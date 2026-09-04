@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { addDays, addWeeks, format, isWithinInterval, parseISO, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+  Bell,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   Inbox,
   Plus,
   Search,
+  SlidersHorizontal,
   UsersRound,
   X,
 } from "lucide-react";
@@ -24,20 +26,12 @@ import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import { WeekBoard, type WeekViewMode } from "@/components/weeki/week-board";
 import { CLIENTS } from "@/features/tasks/seed";
-import { type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
+import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { cn } from "@/lib/utils";
 
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
 const subscribeToHydration = () => () => undefined;
-const statusOptions: Array<{ value: TaskStatus | "all"; label: string }> = [
-  { value: "all", label: "Todas" },
-  { value: "not_started", label: "Pendentes" },
-  { value: "in_progress", label: "Em andamento" },
-  { value: "waiting", label: "Aguardando" },
-  { value: "review", label: "Em revisão" },
-  { value: "completed", label: "Concluídas" },
-];
 
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
@@ -50,6 +44,7 @@ export default function Home() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [initialDate, setInitialDate] = useState<string | null>(null);
   const [initialTime, setInitialTime] = useState("");
@@ -91,8 +86,6 @@ export default function Home() {
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
   const hasActiveFilters = Boolean(query.trim() || statusFilter !== "all" || clientFilter !== "all");
-  const completedCount = tasksInWeek.filter((task) => task.status === "completed").length;
-  const progress = tasksInWeek.length ? Math.round((completedCount / tasksInWeek.length) * 100) : 0;
 
   const openNewTask = useCallback((date: string | null, time = "", clientId: string | null = null) => {
     setSelectedTask(null);
@@ -180,80 +173,87 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f8fc]">
-      <WeekiSidebar inboxCount={inboxTasks.length} onSearch={() => setCommandOpen(true)} />
+    <div className="min-h-screen bg-[#fbfcfe]">
+      <WeekiSidebar inboxCount={inboxTasks.length} />
       <MobileNavigation />
 
       <main className="min-h-screen md:ml-[252px]">
-        <header className="flex h-16 items-center border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
+        <header className="flex h-[68px] items-center border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 md:hidden">
-            <span className="text-[22px] font-semibold tracking-[-0.055em] text-[#141b2b]">weeki</span>
-            <span className="size-2 rounded-full bg-[#4f46e5]" />
+            <span className="text-[23px] font-semibold tracking-[-0.055em] text-[#17171c]">weeki</span>
+            <span className="size-2 rounded-full bg-gradient-to-br from-[#8d6cff] to-[#2f80ed]" />
           </div>
-
-          <div className="hidden items-center gap-3 sm:flex">
-            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-[#f7f8ff] p-0.5">
-              <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="grid size-8 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-slate-900" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
-              <button onClick={() => setWeekStart(initialWeek())} className="h-8 px-3 text-xs font-semibold text-slate-700">Esta semana</button>
-              <button onClick={() => setWeekStart((current) => addWeeks(current, 1))} className="grid size-8 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-slate-900" aria-label="Próxima semana"><ChevronRight className="size-4" /></button>
-            </div>
-            <span className="hidden text-xs font-medium tabular-nums text-slate-500 lg:inline">{format(weekStart, "dd", { locale: ptBR })} — {format(weekEnd, "dd MMM, yyyy", { locale: ptBR })}</span>
+          <div className="hidden items-center gap-2 text-sm text-slate-400 md:flex">
+            <span>Planejamento</span><span>/</span><span className="font-medium text-slate-700">Minha Semana</span>
           </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setInboxOpen((current) => !current)} className={cn("h-9 px-2.5 text-xs text-slate-600", inboxOpen && "bg-[#eef0ff] text-[#4f46e5]")}>
-              <Inbox className="size-4" /><span className="hidden lg:inline">Caixa de Entrada</span>
-              {inboxTasks.length > 0 && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">{inboxTasks.length}</span>}
-            </Button>
-            <Button size="sm" onClick={() => openNewTask(todayKey)} className="h-9 rounded-lg bg-[#0d1729] px-3.5 text-xs shadow-none hover:bg-[#1f2937]"><Plus className="size-4" /><span className="hidden sm:inline">Nova demanda</span><span className="sm:hidden">Nova</span></Button>
-            <span className="hidden size-9 place-items-center rounded-full bg-[#0d1729] text-[10px] font-semibold text-white sm:grid">EV</span>
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <button onClick={() => setCommandOpen(true)} className="focus-ring hidden h-9 min-w-[240px] items-center gap-2 rounded-xl border bg-[#f8f8fa] px-3 text-left text-sm text-slate-400 transition hover:border-slate-300 hover:bg-white lg:flex">
+              <Search className="size-4" /><span className="flex-1">Buscar no Weeki</span><kbd className="rounded-md border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">Ctrl K</kbd>
+            </button>
+            <button onClick={() => setCommandOpen(true)} className="focus-ring grid size-9 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 lg:hidden" aria-label="Buscar"><Search className="size-[18px]" /></button>
+            <button className="focus-ring relative grid size-9 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100" aria-label="Notificações"><Bell className="size-[18px]" /><span className="absolute right-2 top-2 size-1.5 rounded-full bg-[#7657ff] ring-2 ring-white" /></button>
+            <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#202026] to-[#3a3a45] text-xs font-semibold text-white">EV</span>
           </div>
         </header>
 
-        <div className="mx-auto flex max-w-[1680px] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6" style={{ minHeight: "calc(100vh - 64px)" }}>
-          <section className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-[0_2px_12px_-8px_rgba(15,23,42,0.14)] sm:px-6 sm:py-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500"><span className="size-1.5 rounded-full bg-[#4f46e5]" /> Visão operacional</p>
-                <h1 className="mt-1.5 text-[28px] font-semibold tracking-[-0.045em] text-[#111827] sm:text-[32px]">Minha Semana</h1>
-                <p className="mt-1 text-xs text-slate-500">{format(weekStart, "dd 'a'", { locale: ptBR })} {format(weekEnd, "dd 'de' MMMM, yyyy", { locale: ptBR })} · Organize as entregas no seu ritmo</p>
+        <div className="mx-auto flex max-w-[1760px] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6" style={{ minHeight: "calc(100vh - 68px)" }}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-[23px] font-semibold tracking-[-0.035em] text-[#1d1d23] sm:text-[25px]">Minha Semana</h1>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">
+                {format(weekStart, "dd MMM", { locale: ptBR })} — {format(weekEnd, "dd MMM yyyy", { locale: ptBR })}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setInboxOpen((current) => !current)} className={inboxOpen ? "border-[#b9abf2] bg-[#f4f1ff] text-[#6548df]" : "bg-white"}>
+                <Inbox /><span className="hidden sm:inline">Caixa de Entrada</span><span className="sm:hidden">Caixa</span>
+                {inboxTasks.length > 0 && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{inboxTasks.length}</span>}
+              </Button>
+              <Button size="sm" onClick={() => openNewTask(todayKey)} className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-3 shadow-[0_6px_18px_rgba(103,77,225,0.18)] hover:opacity-90 sm:px-4"><Plus /><span className="hidden sm:inline">Nova demanda</span><span className="sm:hidden">Nova</span></Button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-fit items-center gap-0.5 rounded-xl border bg-white p-0.5 shadow-sm">
+                <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="focus-ring grid size-7 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
+                <button onClick={() => setWeekStart(initialWeek())} className="focus-ring h-7 rounded-lg px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">Hoje</button>
+                <button onClick={() => setWeekStart((current) => addWeeks(current, 1))} className="focus-ring grid size-7 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Próxima semana"><ChevronRight className="size-4" /></button>
               </div>
 
-              <div className="w-full rounded-2xl bg-[#f0f1ff] px-4 py-3 lg:w-[320px]">
-                <div className="flex items-center justify-between text-[11px] font-medium text-slate-600"><span>Progresso da semana</span><strong className="font-semibold tabular-nums text-[#111827]">{completedCount}/{tasksInWeek.length} ({progress}%)</strong></div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-[#111827] transition-all" style={{ width: `${progress}%` }} /></div>
-                <p className="mt-2 text-[10px] text-slate-400">{tasksInWeek.length - completedCount} demandas ainda em andamento</p>
+              <div className="flex items-center rounded-xl border bg-white p-0.5 shadow-sm" aria-label="Modo de visualização">
+                <button type="button" onClick={() => setViewMode("week")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition", viewMode === "week" ? "bg-[#17171d] text-white shadow-sm" : "text-slate-500 hover:bg-slate-100")}><CalendarDays className="size-3.5" /> Semana</button>
+                <button type="button" onClick={() => setViewMode("clients")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition", viewMode === "clients" ? "bg-[#17171d] text-white shadow-sm" : "text-slate-500 hover:bg-slate-100")}><UsersRound className="size-3.5" /> Clientes</button>
               </div>
+
+              <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("focus-ring flex h-8 items-center gap-2 rounded-xl border bg-white px-2.5 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300", showWeekend && "border-[#b9abf2] bg-[#f4f1ff] text-[#6548df]")}>
+                <span className={cn("relative h-4 w-7 rounded-full bg-slate-200 transition", showWeekend && "bg-[#7657ff]")}><span className={cn("absolute left-0.5 top-0.5 size-3 rounded-full bg-white shadow-sm transition", showWeekend && "translate-x-3")} /></span>
+                Sáb e dom
+              </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="week-board-scroll flex max-w-full gap-1 overflow-x-auto pb-0.5" aria-label="Filtrar por status">
-                {statusOptions.map((option) => (
-                  <button key={option.value} type="button" onClick={() => setStatusFilter(option.value)} className={cn("h-7 shrink-0 rounded-full px-3 text-[11px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900", statusFilter === option.value && "bg-[#111827] text-white shadow-sm hover:bg-[#111827] hover:text-white")}>{option.label}</button>
-                ))}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div className="relative min-w-[170px] flex-1 sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-8 bg-white pl-9 text-xs shadow-sm sm:w-[190px]" />
               </div>
-
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <div className="relative min-w-[150px] flex-1 sm:flex-none">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
-                  <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-8 rounded-lg bg-[#f7f8fc] pl-8 text-xs shadow-none sm:w-[170px]" />
-                </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-8 bg-white sm:hidden"><SlidersHorizontal /> Filtros</Button>
+              <div className={cn("contents", !mobileFiltersOpen && "max-sm:hidden")}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}>
+                  <SelectTrigger className="h-8 min-w-[126px] flex-1 bg-white text-xs shadow-sm sm:flex-none"><SlidersHorizontal className="size-3.5" /><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Todos os status</SelectItem>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                </Select>
                 <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger className="h-8 min-w-[132px] flex-1 rounded-lg bg-[#f7f8fc] text-xs shadow-none sm:flex-none"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 min-w-[116px] flex-1 bg-white text-xs shadow-sm sm:flex-none"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
                 </Select>
-                <div className="flex h-8 items-center rounded-lg bg-[#f1f2f8] p-0.5" aria-label="Modo de visualização">
-                  <button type="button" onClick={() => setViewMode("week")} className={cn("flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium text-slate-500 transition", viewMode === "week" && "bg-white text-slate-900 shadow-sm")}><CalendarDays className="size-3.5" /> Semana</button>
-                  <button type="button" onClick={() => setViewMode("clients")} className={cn("flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium text-slate-500 transition", viewMode === "clients" && "bg-white text-slate-900 shadow-sm")}><UsersRound className="size-3.5" /> Clientes</button>
-                </div>
-                <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("flex h-8 items-center gap-1.5 rounded-lg bg-[#f1f2f8] px-2.5 text-[11px] font-medium text-slate-500 transition", showWeekend && "bg-[#e9e7ff] text-[#4f46e5]")}><span className={cn("relative h-3.5 w-6 rounded-full bg-slate-300 transition", showWeekend && "bg-[#4f46e5]")}><span className={cn("absolute left-0.5 top-0.5 size-2.5 rounded-full bg-white transition", showWeekend && "translate-x-2.5")} /></span>Fim de semana</button>
-                {hasActiveFilters && <button type="button" onClick={clearFilters} className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Limpar filtros"><X className="size-3.5" /></button>}
               </div>
+              {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-slate-400"><X /> Limpar</Button>}
             </div>
-          </section>
+          </div>
 
           {inboxOpen && (
-            <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_4px_16px_-10px_rgba(15,23,42,0.2)]" aria-label="Caixa de Entrada">
+            <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_6px_24px_rgba(27,27,40,0.03)]" aria-label="Caixa de Entrada">
               <div className="mb-2 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-800">Caixa de Entrada</h2>
@@ -275,7 +275,7 @@ export default function Home() {
             </section>
           )}
 
-          <div className="mt-2 min-h-0 flex-1">
+          <div className="mt-3 min-h-0 flex-1">
             <WeekBoard
               weekStart={weekStart}
               tasks={filteredTasks}
@@ -289,11 +289,6 @@ export default function Home() {
               onDuplicate={handleDuplicate}
               onArchive={handleArchive}
             />
-          </div>
-
-          <div className="mt-2 hidden items-center justify-between px-3 pb-2 text-[10px] text-slate-400 lg:flex">
-            <span className="flex items-center gap-3"><span><kbd className="mr-1 rounded bg-[#eceef7] px-1.5 py-0.5 text-slate-600">N</kbd>Nova demanda</span><span>Arraste cartões entre as colunas</span></span>
-            <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-teal-500" /> Salvo neste navegador</span>
           </div>
         </div>
       </main>

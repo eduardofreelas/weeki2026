@@ -6,18 +6,20 @@ import { ptBR } from "date-fns/locale";
 import {
   AlignLeft,
   Archive,
+  BriefcaseBusiness,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   CirclePlus,
+  Clock3,
   FileText,
-  Flag,
   History,
   Link2,
   Paperclip,
   Plus,
   Repeat2,
   Tags,
+  Timer,
   Trash2,
   X,
   type LucideIcon,
@@ -154,10 +156,6 @@ export function TaskSheet({
   const tomorrowKey = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
   const taskId = task?.id;
-  const selectedClient = clients.find((client) => client.id === draft.clientId);
-  const taskDateLabel = draft.scheduledDate
-    ? format(parseISO(draft.scheduledDate), "EEE, dd MMM", { locale: ptBR }).replace(".", "")
-    : "Sem data";
 
   useEffect(() => {
     if (!open || !taskId || !draft.title.trim()) return;
@@ -211,19 +209,6 @@ export function TaskSheet({
     setLinkInput("");
   };
 
-  const toggleTaskCompletion = () => {
-    const nextDraft: TaskDraft = {
-      ...draft,
-      status: draft.status === "completed" ? "not_started" : "completed",
-    };
-    setDraft(nextDraft);
-    if (taskId && nextDraft.title.trim()) {
-      onSave({ ...nextDraft, title: nextDraft.title.trim() }, taskId, { silent: true });
-      lastSavedRef.current = JSON.stringify(nextDraft);
-      setAutoSaveState("saved");
-    }
-  };
-
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.title.trim()) {
@@ -238,9 +223,9 @@ export function TaskSheet({
     onOpenChange(false);
   };
 
-  const renderEstimate = (showLabel = true) => (
+  const renderEstimate = (sectioned = false) => (
     <div>
-      {showLabel ? <FieldLabel optional>Tempo estimado</FieldLabel> : null}
+      {sectioned ? <SectionTitle title="Tempo estimado" description="Quanto tempo essa demanda deve levar?" icon={Timer} /> : <FieldLabel optional>Tempo estimado</FieldLabel>}
       <div className="flex flex-wrap gap-1.5">
         {estimateOptions.map((option) => (
           <button
@@ -293,65 +278,21 @@ export function TaskSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[calc(100vw-8px)] max-w-[680px] gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-[-20px_0_60px_rgba(22,24,35,0.1)] sm:w-[680px] sm:max-w-[calc(100vw-16px)]" showCloseButton={false}>
         <form onSubmit={submit} className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-          <SheetHeader className={cn("shrink-0 border-b border-slate-100 bg-white", task ? "px-4 py-3 sm:px-5" : "px-5 py-4 pr-14 sm:px-6")}>
-            {task ? (
-              <div className="flex min-w-0 items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <SheetTitle className="sr-only">Gerenciar demanda</SheetTitle>
-                  <SheetDescription className="sr-only">Edite os detalhes da demanda.</SheetDescription>
-                  <div className="flex min-w-0 items-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                    <span className="truncate">Minha semana</span>
-                    <ChevronRight className="size-3 shrink-0" />
-                    <span className="shrink-0 text-slate-600">{taskDateLabel}</span>
-                    {selectedClient && (
-                      <>
-                        <ChevronRight className="hidden size-3 shrink-0 sm:block" />
-                        <span className="hidden truncate text-[#5540bd] sm:block">{selectedClient.name}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={toggleTaskCompletion}
-                    className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15",
-                      draft.status === "completed" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
-                    )}
-                  >
-                    <CheckCircle2 className="size-3.5" />
-                    <span className="hidden min-[390px]:inline">{draft.status === "completed" ? "Concluída" : "Concluir"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDraft((current) => ({ ...current, priority: current.priority === "high" ? "medium" : "high" }))}
-                    className={cn("grid size-8 place-items-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15", draft.priority === "high" ? "border-rose-200 bg-rose-50 text-rose-600" : "border-slate-200 bg-white text-slate-400 hover:text-slate-700")}
-                    aria-label="Alternar prioridade alta"
-                  >
-                    <Flag className="size-3.5" />
-                  </button>
-                  <button type="button" onClick={() => onOpenChange(false)} className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15" aria-label="Fechar">
-                    <X className="size-4" />
-                  </button>
-                </div>
+          <SheetHeader className="shrink-0 border-b border-slate-100 bg-white px-5 py-4 pr-14 sm:px-6">
+            <div className="flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#f1edff] to-[#e9efff] text-[#694ce1] ring-1 ring-[#7657ff]/10">
+                {task ? <FileText className="size-4" /> : <CirclePlus className="size-4" />}
               </div>
-            ) : (
-              <>
-                <div className="flex items-start gap-3">
-                  <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#efedff] text-[#5f46d5] ring-1 ring-[#7657ff]/10">
-                    <CirclePlus className="size-4" />
-                  </div>
-                  <div>
-                    <SheetTitle className="text-[15px] tracking-[-0.01em]">Nova demanda</SheetTitle>
-                    <SheetDescription className="mt-0.5 text-[11px] leading-4">Crie agora e organize os detalhes quando precisar.</SheetDescription>
-                  </div>
-                </div>
-                <button type="button" onClick={() => onOpenChange(false)} className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/25" aria-label="Fechar">
-                  <X className="size-4" />
-                </button>
-              </>
-            )}
+              <div>
+                <SheetTitle className="text-[15px] tracking-[-0.01em]">{task ? "Gerenciar demanda" : "Nova demanda"}</SheetTitle>
+                <SheetDescription className="mt-0.5 text-[11px] leading-4">
+                  {task ? "Edite os detalhes. As alterações são salvas automaticamente." : "Crie agora e organize os detalhes quando precisar."}
+                </SheetDescription>
+              </div>
+            </div>
+            <button type="button" onClick={() => onOpenChange(false)} className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/25" aria-label="Fechar">
+              <X className="size-4" />
+            </button>
           </SheetHeader>
 
           {!task ? (
@@ -438,12 +379,9 @@ export function TaskSheet({
             </div>
           ) : (
             <>
-              <div className="shrink-0 border-b border-slate-100 bg-white px-5 pb-4 pt-4 sm:px-6">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Demanda</span>
-                  <span className="text-[10px] text-slate-400">{autoSaveState === "saving" ? "Salvando alterações..." : "Atualizada agora"}</span>
-                </div>
-                <Input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-auto rounded-none border-0 bg-transparent px-0 py-0 text-xl font-semibold leading-tight tracking-[-0.025em] text-slate-900 shadow-none focus-visible:border-transparent focus-visible:ring-0 sm:text-2xl" />
+              <div className="shrink-0 border-b border-slate-100 bg-white px-5 py-3.5 sm:px-6">
+                <FieldLabel>Título da demanda</FieldLabel>
+                <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-10 rounded-xl bg-white px-3.5 text-sm font-medium shadow-none focus-visible:border-[#7657ff] focus-visible:ring-2 focus-visible:ring-[#7657ff]/15" />
               </div>
 
               <Tabs defaultValue="details" className="min-h-0 flex-1 gap-0 overflow-hidden">
@@ -458,58 +396,30 @@ export function TaskSheet({
 
                 <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
                   <TabsContent value="details" className="m-0 space-y-6 p-5 sm:px-6 sm:py-5">
-                    <section className="rounded-2xl border border-[#e1e2f3] bg-[#f0f1ff] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:p-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
+                    <section>
+                      <SectionTitle title="Organização" icon={BriefcaseBusiness} />
+                      <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6557a8]">Resumo da demanda</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500">Planejamento e organização em um só lugar.</p>
-                        </div>
-                        <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-semibold text-[#5a47bd] ring-1 ring-[#d9d8f2]">{STATUS_LABELS[draft.status]}</span>
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500">Fazer em</p>
-                          <div className="grid grid-cols-[1fr_88px] gap-1.5">
-                            <Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="h-8 min-w-0 rounded-lg border-white/90 bg-white/85 px-2 text-[11px] shadow-none" aria-label="Data de agendamento" />
-                            <Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-8 min-w-0 rounded-lg border-white/90 bg-white/85 px-2 text-[11px] shadow-none" aria-label="Horário de agendamento" />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500">Prazo</p>
-                          <div className="grid grid-cols-[1fr_88px] gap-1.5">
-                            <Input type="date" value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} className="h-8 min-w-0 rounded-lg border-white/90 bg-white/85 px-2 text-[11px] shadow-none" aria-label="Data do prazo" />
-                            <Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="h-8 min-w-0 rounded-lg border-white/90 bg-white/85 px-2 text-[11px] shadow-none" aria-label="Horário limite" />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500">Cliente</p>
+                          <FieldLabel optional>Cliente</FieldLabel>
                           <Select value={draft.clientId ?? "__none"} onValueChange={(value) => setDraft((current) => ({ ...current, clientId: value === "__none" ? null : value }))}>
-                            <SelectTrigger className="h-8 w-full rounded-lg border-white/90 bg-white/85 px-2.5 text-[11px] shadow-none"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
                             <SelectContent><SelectItem value="__none">Sem cliente</SelectItem>{clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <div>
-                            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500">Status</p>
-                            <Select value={draft.status} onValueChange={(value) => setDraft((current) => ({ ...current, status: value as TaskStatus }))}>
-                              <SelectTrigger className="h-8 w-full rounded-lg border-white/90 bg-white/85 px-2.5 text-[11px] shadow-none"><SelectValue /></SelectTrigger>
-                              <SelectContent>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500">Prioridade</p>
-                            <Select value={draft.priority} onValueChange={(value) => setDraft((current) => ({ ...current, priority: value as TaskPriority }))}>
-                              <SelectTrigger className="h-8 w-full rounded-lg border-white/90 bg-white/85 px-2.5 text-[11px] shadow-none"><SelectValue /></SelectTrigger>
-                              <SelectContent>{Object.entries(PRIORITY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
+                        <div>
+                          <FieldLabel>Status</FieldLabel>
+                          <Select value={draft.status} onValueChange={(value) => setDraft((current) => ({ ...current, status: value as TaskStatus }))}>
+                            <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                          </Select>
                         </div>
-                      </div>
-
-                      <div className="mt-3 border-t border-[#d9daf0] pt-3">
-                        <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.11em] text-slate-500">Tempo estimado</p>
-                        {renderEstimate(false)}
+                        <div>
+                          <FieldLabel>Prioridade</FieldLabel>
+                          <Select value={draft.priority} onValueChange={(value) => setDraft((current) => ({ ...current, priority: value as TaskPriority }))}>
+                            <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>{Object.entries(PRIORITY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </section>
 
@@ -517,6 +427,24 @@ export function TaskSheet({
                       <SectionTitle title="Descrição" description="Contexto, orientações ou resultado esperado." icon={AlignLeft} />
                       <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} placeholder="Adicione os detalhes da demanda..." />
                     </section>
+
+                    <section>
+                      <SectionTitle title="Agendamento" description="Quando pretende fazer?" icon={CalendarClock} />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div><FieldLabel optional>Data</FieldLabel><Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="bg-white" /></div>
+                        <div><FieldLabel optional>Horário</FieldLabel><Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="bg-white" /></div>
+                      </div>
+                    </section>
+
+                    <section>
+                      <SectionTitle title="Prazo" description="Até quando precisa estar pronto?" icon={Clock3} />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div><FieldLabel optional>Data</FieldLabel><Input type="date" value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} className="bg-white" /></div>
+                        <div><FieldLabel optional>Horário limite</FieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="bg-white" /></div>
+                      </div>
+                    </section>
+
+                    <section>{renderEstimate(true)}</section>
 
                     <section>
                       <SectionTitle title="Repetição" description="Defina uma frequência e quando ela deve terminar." icon={Repeat2} />
@@ -586,12 +514,12 @@ export function TaskSheet({
                 <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 px-2.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive className="size-3.5" /> <span className="hidden sm:inline">Arquivar</span></Button>
                 <span className="hidden text-xs text-slate-400 md:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
                 <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs text-slate-600" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" size="sm" className="h-8 rounded-lg bg-slate-950 px-3.5 text-xs text-white shadow-sm hover:bg-slate-800">Salvar</Button>
+                <Button type="submit" size="sm" className="h-8 rounded-lg bg-gradient-to-r from-[#7657ff] to-[#6548df] px-3.5 text-xs shadow-[0_4px_14px_rgba(105,78,226,0.18)] hover:opacity-90">Salvar</Button>
               </>
             ) : (
               <>
                 <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 px-2 text-xs text-slate-500" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" size="sm" className="h-8 rounded-lg bg-slate-950 px-3.5 text-xs text-white shadow-sm hover:bg-slate-800"><Plus className="size-3.5" />Criar demanda</Button>
+                <Button type="submit" size="sm" className="h-8 rounded-lg bg-gradient-to-r from-[#7657ff] to-[#6548df] px-3.5 text-xs shadow-[0_4px_14px_rgba(105,78,226,0.18)] hover:opacity-90"><Plus className="size-3.5" />Criar demanda</Button>
               </>
             )}
           </SheetFooter>
