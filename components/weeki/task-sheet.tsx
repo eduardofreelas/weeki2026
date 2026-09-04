@@ -101,22 +101,22 @@ const taskToDraft = (task: Task): TaskDraft => ({
 
 function FieldLabel({ children, optional = false }: { children: React.ReactNode; optional?: boolean }) {
   return (
-    <Label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-slate-700">
+    <Label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
       {children}
-      {optional && <span className="text-xs font-normal text-slate-400">Opcional</span>}
+      {optional && <span className="text-[11px] font-normal text-slate-400">Opcional</span>}
     </Label>
   );
 }
 
 function SectionTitle({ title, description, icon: Icon }: { title: string; description?: string; icon: LucideIcon }) {
   return (
-    <div className="mb-4">
+    <div className="mb-3.5">
       <div className="flex items-center gap-2.5">
-        <Icon className="size-[17px] shrink-0 text-slate-500" />
-        <h3 className="shrink-0 text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500"><Icon className="size-3.5" /></span>
+        <h3 className="shrink-0 text-[13px] font-semibold text-slate-800">{title}</h3>
         <span className="h-px flex-1 bg-slate-200" />
       </div>
-      {description && <p className="mt-1 pl-[27px] text-xs leading-5 text-slate-400">{description}</p>}
+      {description && <p className="mt-1 pl-9 text-[11px] leading-4 text-slate-400">{description}</p>}
     </div>
   );
 }
@@ -233,18 +233,18 @@ export function TaskSheet({
             type="button"
             onClick={() => { setDraft((current) => ({ ...current, estimateMinutes: option.value })); setCustomEstimateOpen(false); }}
             className={cn(
-              "focus-ring rounded-lg border bg-white px-2.5 py-2 text-xs font-medium text-slate-500 transition hover:border-[#a895f2] hover:text-[#6548df]",
+              "focus-ring h-8 rounded-lg border bg-white px-2.5 text-xs font-medium text-slate-500 transition hover:border-[#a895f2] hover:text-[#6548df]",
               draft.estimateMinutes === option.value && !customEstimateOpen && "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]",
             )}
           >
             {option.label}
           </button>
         ))}
-        <button type="button" onClick={() => setCustomEstimateOpen(true)} className={cn("focus-ring rounded-lg border bg-white px-2.5 py-2 text-xs font-medium text-slate-500 transition hover:border-[#a895f2] hover:text-[#6548df]", customEstimateOpen && "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]")}>Personalizado</button>
+        <button type="button" onClick={() => setCustomEstimateOpen(true)} className={cn("focus-ring h-8 rounded-lg border bg-white px-2.5 text-xs font-medium text-slate-500 transition hover:border-[#a895f2] hover:text-[#6548df]", customEstimateOpen && "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]")}>Personalizado</button>
       </div>
       {customEstimateOpen && (
         <div className="mt-2 flex items-center gap-2">
-          <Input type="number" min={15} step={15} value={draft.estimateMinutes ?? ""} onChange={(event) => setDraft((current) => ({ ...current, estimateMinutes: event.target.value ? Number(event.target.value) : null }))} className="max-w-32 bg-white" aria-label="Tempo personalizado em minutos" />
+          <Input type="number" min={15} step={15} value={draft.estimateMinutes ?? ""} onChange={(event) => setDraft((current) => ({ ...current, estimateMinutes: event.target.value ? Number(event.target.value) : null }))} className="h-8 max-w-28 bg-white text-sm" aria-label="Tempo personalizado em minutos" />
           <span className="text-xs text-slate-400">minutos</span>
         </div>
       )}
@@ -276,37 +276,37 @@ export function TaskSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-[-18px_0_60px_rgba(22,24,35,0.12)] sm:max-w-[720px] xl:max-w-[760px]" showCloseButton={false}>
-        <form onSubmit={submit} className="flex h-full min-h-0 flex-1 flex-col">
-          <SheetHeader className="shrink-0 border-b bg-white px-5 py-5 pr-16 sm:px-8">
+      <SheetContent className="w-[calc(100vw-8px)] max-w-[680px] gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-[-20px_0_60px_rgba(22,24,35,0.1)] sm:w-[680px] sm:max-w-[calc(100vw-16px)]" showCloseButton={false}>
+        <form onSubmit={submit} className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+          <SheetHeader className="shrink-0 border-b border-slate-100 bg-white px-5 py-4 pr-14 sm:px-6">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-[#eeeaff] text-[#6f52ec]">
-                {task ? <FileText className="size-[18px]" /> : <CirclePlus className="size-[18px]" />}
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#f1edff] to-[#e9efff] text-[#694ce1] ring-1 ring-[#7657ff]/10">
+                {task ? <FileText className="size-4" /> : <CirclePlus className="size-4" />}
               </div>
               <div>
-                <SheetTitle className="text-base">{task ? "Gerenciar demanda" : "Nova demanda"}</SheetTitle>
-                <SheetDescription className="mt-1 text-xs">
+                <SheetTitle className="text-[15px] tracking-[-0.01em]">{task ? "Gerenciar demanda" : "Nova demanda"}</SheetTitle>
+                <SheetDescription className="mt-0.5 text-[11px] leading-4">
                   {task ? "Edite os detalhes. As alterações são salvas automaticamente." : "Crie agora e organize os detalhes quando precisar."}
                 </SheetDescription>
               </div>
             </div>
-            <button type="button" onClick={() => onOpenChange(false)} className="absolute right-5 top-5 grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Fechar">
+            <button type="button" onClick={() => onOpenChange(false)} className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/25" aria-label="Fechar">
               <X className="size-4" />
             </button>
           </SheetHeader>
 
           {!task ? (
-            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-5 sm:p-8">
-              <div className="space-y-5">
+            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="space-y-4.5">
                 <div>
                   <FieldLabel>O que precisa ser feito?</FieldLabel>
-                  <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Digite o título da demanda..." className="h-11 bg-white text-base" />
+                  <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Digite o título da demanda..." className="h-10 rounded-xl bg-white px-3.5 text-sm shadow-none focus-visible:border-[#7657ff] focus-visible:ring-2 focus-visible:ring-[#7657ff]/15" />
                 </div>
 
                 <div>
                   <FieldLabel optional>Cliente</FieldLabel>
                   <Select value={draft.clientId ?? "__none"} onValueChange={(value) => setDraft((current) => ({ ...current, clientId: value === "__none" ? null : value }))}>
-                    <SelectTrigger className="h-11 w-full bg-white"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                    <SelectTrigger className="h-10 w-full rounded-xl bg-white px-3.5 shadow-none"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">Sem cliente</SelectItem>
                       {clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
@@ -316,22 +316,23 @@ export function TaskSheet({
 
                 <div>
                   <FieldLabel optional>Quando?</FieldLabel>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: todayKey })); setShowDatePicker(false); }} className={cn("focus-ring rounded-xl border bg-white px-2 py-2.5 text-sm font-medium text-slate-500 transition", draft.scheduledDate === todayKey && !showDatePicker && "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]")}>Hoje</button>
-                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: tomorrowKey })); setShowDatePicker(false); }} className={cn("focus-ring rounded-xl border bg-white px-2 py-2.5 text-sm font-medium text-slate-500 transition", draft.scheduledDate === tomorrowKey && !showDatePicker && "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]")}>Amanhã</button>
-                    <button type="button" onClick={() => setShowDatePicker(true)} className={cn("focus-ring rounded-xl border bg-white px-2 py-2.5 text-sm font-medium text-slate-500 transition", showDatePicker && "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]")}>Escolher data</button>
+                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100/80 p-1">
+                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: todayKey })); setShowDatePicker(false); }} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === todayKey && !showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Hoje</button>
+                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: tomorrowKey })); setShowDatePicker(false); }} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === tomorrowKey && !showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Amanhã</button>
+                    <button type="button" onClick={() => setShowDatePicker(true)} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Escolher data</button>
                   </div>
-                  {showDatePicker && <Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="mt-2 bg-white" />}
+                  {showDatePicker && <Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="mt-2 h-9 rounded-xl bg-white" />}
                 </div>
 
                 <div>
                   <FieldLabel optional>Horário</FieldLabel>
-                  <Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="bg-white" />
+                  <Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-10 rounded-xl bg-white shadow-none" />
                 </div>
 
-                <button type="button" onClick={() => setAdvancedOpen((current) => !current)} className="focus-ring flex w-full items-center justify-between rounded-xl border border-dashed bg-white px-3 py-3 text-sm font-semibold text-[#674bdd] transition hover:border-[#a895f2] hover:bg-[#faf9ff]">
-                  <span>{advancedOpen ? "Ocultar opções" : "+ Mais opções"}</span>
-                  <ChevronDown className={cn("size-4 transition", advancedOpen && "rotate-180")} />
+                <button type="button" onClick={() => setAdvancedOpen((current) => !current)} className="flex h-9 items-center gap-2 rounded-lg px-1 text-xs font-semibold text-[#674bdd] transition hover:text-[#4f35c3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20">
+                  <CirclePlus className="size-3.5" />
+                  <span>{advancedOpen ? "Ocultar opções" : "Mais opções"}</span>
+                  <ChevronDown className={cn("ml-0.5 size-3.5 transition", advancedOpen && "rotate-180")} />
                 </button>
 
                 {advancedOpen && (
@@ -378,23 +379,23 @@ export function TaskSheet({
             </div>
           ) : (
             <>
-              <div className="shrink-0 border-b bg-white px-5 py-4 sm:px-8">
+              <div className="shrink-0 border-b border-slate-100 bg-white px-5 py-3.5 sm:px-6">
                 <FieldLabel>Título da demanda</FieldLabel>
-                <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-11 rounded-xl bg-white px-4 text-base font-medium shadow-[0_1px_2px_rgba(15,23,42,0.02)]" />
+                <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-10 rounded-xl bg-white px-3.5 text-sm font-medium shadow-none focus-visible:border-[#7657ff] focus-visible:ring-2 focus-visible:ring-[#7657ff]/15" />
               </div>
 
               <Tabs defaultValue="details" className="min-h-0 flex-1 gap-0 overflow-hidden">
-                <div className="shrink-0 border-b bg-white px-3 sm:px-8">
-                  <TabsList variant="line" className="grid h-14 w-full grid-cols-4 gap-0 overflow-visible p-0">
-                    <TabsTrigger value="details" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><FileText className="size-4" />Detalhes</TabsTrigger>
-                    <TabsTrigger value="checklist" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><CheckCircle2 className="size-4" />Checklist</TabsTrigger>
-                    <TabsTrigger value="files" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><Paperclip className="size-4" />Anexos</TabsTrigger>
-                    <TabsTrigger value="activity" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><History className="size-4" />Atividade</TabsTrigger>
+                <div className="shrink-0 border-b border-slate-100 bg-white px-5 py-2.5 sm:px-6">
+                  <TabsList className="grid h-10 w-full grid-cols-4 gap-1 rounded-xl bg-slate-100/80 p-1 text-slate-500">
+                    <TabsTrigger value="details" className="h-8 gap-1.5 rounded-lg border-0 px-2 py-0 text-xs after:hidden focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20 data-[state=active]:bg-white data-[state=active]:text-[#5d43cf] data-[state=active]:shadow-sm"><FileText className="size-3.5" /><span className="hidden min-[420px]:inline">Detalhes</span></TabsTrigger>
+                    <TabsTrigger value="checklist" className="h-8 gap-1.5 rounded-lg border-0 px-2 py-0 text-xs after:hidden focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20 data-[state=active]:bg-white data-[state=active]:text-[#5d43cf] data-[state=active]:shadow-sm"><CheckCircle2 className="size-3.5" /><span className="hidden min-[420px]:inline">Checklist</span></TabsTrigger>
+                    <TabsTrigger value="files" className="h-8 gap-1.5 rounded-lg border-0 px-2 py-0 text-xs after:hidden focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20 data-[state=active]:bg-white data-[state=active]:text-[#5d43cf] data-[state=active]:shadow-sm"><Paperclip className="size-3.5" /><span className="hidden min-[420px]:inline">Anexos</span></TabsTrigger>
+                    <TabsTrigger value="activity" className="h-8 gap-1.5 rounded-lg border-0 px-2 py-0 text-xs after:hidden focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20 data-[state=active]:bg-white data-[state=active]:text-[#5d43cf] data-[state=active]:shadow-sm"><History className="size-3.5" /><span className="hidden min-[420px]:inline">Atividade</span></TabsTrigger>
                   </TabsList>
                 </div>
 
                 <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
-                  <TabsContent value="details" className="m-0 space-y-8 p-5 sm:p-8">
+                  <TabsContent value="details" className="m-0 space-y-6 p-5 sm:px-6 sm:py-5">
                     <section>
                       <SectionTitle title="Organização" icon={BriefcaseBusiness} />
                       <div className="grid gap-4 sm:grid-cols-2">
@@ -468,7 +469,7 @@ export function TaskSheet({
                     <section>{renderTags(true)}</section>
                   </TabsContent>
 
-                  <TabsContent value="checklist" className="m-0 p-5 sm:p-8">
+                  <TabsContent value="checklist" className="m-0 p-5 sm:px-6 sm:py-5">
                     <div className="mb-5">
                       <div className="mb-2 flex items-center justify-between text-sm"><span className="font-semibold text-slate-800">Progresso</span><span className="font-semibold text-[#6246d8]">{checklistProgress}%</span></div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#7657ff] to-[#2f80ed] transition-all" style={{ width: `${checklistProgress}%` }} /></div>
@@ -479,7 +480,7 @@ export function TaskSheet({
                     <div className="mt-3 flex gap-2"><Input value={checklistInput} onChange={(event) => setChecklistInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addChecklistItem(); } }} placeholder="Adicionar item ao checklist" className="bg-white" /><Button type="button" variant="outline" onClick={addChecklistItem}><Plus className="size-4" /><span className="sr-only sm:not-sr-only">Adicionar</span></Button></div>
                   </TabsContent>
 
-                  <TabsContent value="files" className="m-0 p-5 sm:p-8">
+                  <TabsContent value="files" className="m-0 p-5 sm:px-6 sm:py-5">
                     <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center transition hover:border-[#8b73ef] hover:bg-[#faf9ff]">
                       <span className="mb-3 grid size-11 place-items-center rounded-xl bg-[#eeeaff] text-[#6b50df]"><Paperclip className="size-5" /></span>
                       <span className="text-sm font-semibold text-slate-800">Adicionar arquivos</span>
@@ -499,7 +500,7 @@ export function TaskSheet({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="activity" className="m-0 p-5 sm:p-8">
+                  <TabsContent value="activity" className="m-0 p-5 sm:px-6 sm:py-5">
                     <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-slate-200">{task.activity.map((item) => <div key={item.id} className="relative flex gap-4"><span className="relative z-10 mt-1.5 size-[15px] shrink-0 rounded-full border-[4px] border-white bg-[#7a60eb]" /><div><p className="text-sm font-medium text-slate-700">{item.text}</p><p className="mt-1 text-xs text-slate-400">{format(parseISO(item.createdAt), "dd MMM, HH:mm", { locale: ptBR })}</p></div></div>)}</div>
                   </TabsContent>
                 </div>
@@ -507,18 +508,18 @@ export function TaskSheet({
             </>
           )}
 
-          <SheetFooter className="shrink-0 flex-row items-center gap-2 border-t bg-white px-5 py-3 sm:px-8">
+          <SheetFooter className="shrink-0 flex-row items-center gap-1.5 border-t border-slate-100 bg-white px-5 py-2.5 sm:px-6">
             {task ? (
               <>
-                <Button type="button" variant="ghost" size="sm" className="mr-auto px-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive /> <span className="hidden sm:inline">Arquivar</span></Button>
+                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 px-2.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive className="size-3.5" /> <span className="hidden sm:inline">Arquivar</span></Button>
                 <span className="hidden text-xs text-slate-400 md:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
-                <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" size="sm" className="bg-gradient-to-r from-[#7657ff] to-[#6548df] px-4 shadow-[0_5px_16px_rgba(105,78,226,0.2)] hover:opacity-90">Salvar</Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs text-slate-600" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button type="submit" size="sm" className="h-8 rounded-lg bg-gradient-to-r from-[#7657ff] to-[#6548df] px-3.5 text-xs shadow-[0_4px_14px_rgba(105,78,226,0.18)] hover:opacity-90">Salvar</Button>
               </>
             ) : (
               <>
-                <Button type="button" variant="ghost" className="mr-auto" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-5 shadow-[0_6px_18px_rgba(105,78,226,0.22)] hover:opacity-90">Criar demanda</Button>
+                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 px-2 text-xs text-slate-500" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button type="submit" size="sm" className="h-8 rounded-lg bg-gradient-to-r from-[#7657ff] to-[#6548df] px-3.5 text-xs shadow-[0_4px_14px_rgba(105,78,226,0.18)] hover:opacity-90"><Plus className="size-3.5" />Criar demanda</Button>
               </>
             )}
           </SheetFooter>
