@@ -1,26 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { addDays, addWeeks, endOfWeek, format, isWithinInterval, parseISO, startOfWeek } from "date-fns";
+import { addDays, addWeeks, format, isWithinInterval, parseISO, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Bell,
   ChevronLeft,
   ChevronRight,
   Inbox,
-  PanelTop,
   Plus,
   Search,
   SlidersHorizontal,
-  Sparkles,
-  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar } from "@/components/weeki/sidebar";
@@ -35,7 +30,6 @@ const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const [weekStart, setWeekStart] = useState(initialWeek);
-  const [showWeekend, setShowWeekend] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [query, setQuery] = useState("");
@@ -46,8 +40,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-  const weekEndVisible = addDays(weekStart, showWeekend ? 6 : 4);
+  const weekEnd = addDays(weekStart, 4);
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -80,11 +73,6 @@ export default function Home() {
   }), [tasksInWeek, query, statusFilter, clientFilter]);
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
-  const completed = tasksInWeek.filter((task) => task.status === "completed").length;
-  const openCount = tasksInWeek.length - completed;
-  const dueToday = tasks.filter((task) => task.dueDate === todayKey && task.status !== "completed").length;
-  const overdue = tasks.filter((task) => task.dueDate && task.dueDate < todayKey && task.status !== "completed").length;
-  const progress = tasksInWeek.length ? Math.round((completed / tasksInWeek.length) * 100) : 0;
 
   const openNewTask = (date: string | null) => {
     setSelectedTask(null);
@@ -108,8 +96,8 @@ export default function Home() {
     }
   };
 
-  const handleMove = (taskId: string, date: string) => {
-    moveTask(taskId, date);
+  const handleMove = (taskId: string, date: string, time?: string) => {
+    moveTask(taskId, date, time);
     toast.success("Demanda movida.");
   };
 
@@ -158,60 +146,47 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="mx-auto flex max-w-[1760px] flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-7" style={{ minHeight: "calc(100vh - 68px)" }}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mx-auto flex max-w-[1760px] flex-col px-4 py-4 sm:px-5 lg:px-6" style={{ minHeight: "calc(100vh - 68px)" }}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[#7158e7]"><Sparkles className="size-3.5" /> PLANEJAMENTO SEMANAL</div>
-              <h1 className="text-[28px] font-semibold tracking-[-0.035em] text-[#1d1d23] sm:text-[32px]">Minha Semana</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                {format(weekStart, "dd 'de' MMMM", { locale: ptBR })} — {format(weekEndVisible, "dd 'de' MMMM, yyyy", { locale: ptBR })}
+              <h1 className="text-[25px] font-semibold tracking-[-0.035em] text-[#1d1d23]">Minha Semana</h1>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">
+                {format(weekStart, "dd MMM", { locale: ptBR })} — {format(weekEnd, "dd MMM yyyy", { locale: ptBR })}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" onClick={() => openNewTask(null)} className="bg-white"><Inbox /> Capturar ideia</Button>
-              <Button onClick={() => openNewTask(todayKey)} className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-5 shadow-[0_8px_22px_rgba(103,77,225,0.2)] hover:opacity-90"><Plus /> Criar demanda</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => openNewTask(null)} className="bg-white"><Inbox /> Caixa de Entrada</Button>
+              <Button size="sm" onClick={() => openNewTask(todayKey)} className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-4 shadow-[0_6px_18px_rgba(103,77,225,0.18)] hover:opacity-90"><Plus /> Nova demanda</Button>
             </div>
           </div>
 
-          <section className="mt-5 grid gap-3 md:grid-cols-[1.45fr_1fr_1fr_1fr]" aria-label="Resumo da semana">
-            <div className="flex min-h-[92px] items-center gap-4 rounded-2xl border bg-[#17171c] px-5 text-white shadow-[0_10px_28px_rgba(20,20,28,0.08)]">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10"><Target className="size-5 text-[#a995ff]" /></span>
-              <div className="min-w-0 flex-1"><div className="flex items-center justify-between"><p className="text-xs font-medium text-white/55">Progresso da semana</p><p className="text-sm font-semibold">{progress}%</p></div><Progress value={progress} className="mt-2 h-1.5 bg-white/10 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-[#8b70ff] [&_[data-slot=progress-indicator]]:to-[#438cf1]" /><p className="mt-2 text-[11px] text-white/45">{completed} de {tasksInWeek.length} demandas concluídas</p></div>
-            </div>
-            <div className="flex min-h-[92px] items-center gap-3 rounded-2xl border bg-white px-4"><span className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-600"><PanelTop className="size-[18px]" /></span><div><p className="text-[11px] font-medium text-slate-400">Em aberto</p><p className="mt-0.5 text-xl font-semibold tracking-tight text-slate-800">{openCount}</p></div></div>
-            <div className="flex min-h-[92px] items-center gap-3 rounded-2xl border bg-white px-4"><span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Target className="size-[18px]" /></span><div><p className="text-[11px] font-medium text-slate-400">Vencem hoje</p><p className="mt-0.5 text-xl font-semibold tracking-tight text-slate-800">{dueToday}</p></div></div>
-            <button onClick={() => openNewTask(null)} className="flex min-h-[92px] items-center gap-3 rounded-2xl border bg-white px-4 text-left transition hover:border-[#bdb1f2] hover:shadow-sm"><span className="grid size-9 place-items-center rounded-xl bg-violet-50 text-violet-600"><Inbox className="size-[18px]" /></span><div className="min-w-0 flex-1"><p className="text-[11px] font-medium text-slate-400">Caixa de Entrada</p><p className="mt-0.5 text-xl font-semibold tracking-tight text-slate-800">{inboxTasks.length}</p></div>{overdue > 0 && <span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-600">{overdue} atrasadas</span>}</button>
-          </section>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-1 rounded-xl border bg-white p-1 shadow-sm">
               <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="focus-ring grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
               <button onClick={() => setWeekStart(initialWeek())} className="focus-ring h-8 rounded-lg px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100">Hoje</button>
               <button onClick={() => setWeekStart((current) => addWeeks(current, 1))} className="focus-ring grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Próxima semana"><ChevronRight className="size-4" /></button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative min-w-[190px] flex-1 sm:flex-none">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div className="relative min-w-[170px] flex-1 sm:flex-none">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filtrar demandas..." className="h-10 bg-white pl-9 shadow-sm sm:w-[210px]" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-9 bg-white pl-9 shadow-sm sm:w-[200px]" />
               </div>
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}>
-                <SelectTrigger className="h-10 min-w-[132px] bg-white shadow-sm"><SlidersHorizontal className="size-4" /><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 min-w-[132px] bg-white shadow-sm"><SlidersHorizontal className="size-4" /><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">Todos os status</SelectItem>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger className="h-10 min-w-[122px] bg-white shadow-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 min-w-[122px] bg-white shadow-sm"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
               </Select>
-              <label className="flex h-10 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-medium text-slate-600 shadow-sm"><Switch checked={showWeekend} onCheckedChange={setShowWeekend} /> Fim de semana</label>
             </div>
           </div>
 
-          <div className="mt-4 min-h-0 flex-1">
+          <div className="mt-3 min-h-0 flex-1">
             <WeekBoard
               weekStart={weekStart}
               tasks={filteredTasks}
-              showWeekend={showWeekend}
               onCreate={openNewTask}
               onOpen={openTask}
               onMove={handleMove}

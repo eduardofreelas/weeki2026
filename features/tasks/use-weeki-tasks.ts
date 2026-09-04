@@ -60,13 +60,14 @@ export function useWeekiTasks() {
     }));
   }, []);
 
-  const moveTask = useCallback((id: string, scheduledDate: string | null) => {
+  const moveTask = useCallback((id: string, scheduledDate: string | null, scheduledTime?: string) => {
     setTasks((current) => current.map((task) => {
       if (task.id !== id) return task;
       const now = new Date().toISOString();
       return {
         ...task,
         scheduledDate,
+        scheduledTime: scheduledTime ?? task.scheduledTime,
         updatedAt: now,
         activity: [
           {

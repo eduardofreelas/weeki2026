@@ -1,31 +1,24 @@
 "use client";
 
-import { AlarmClock, Archive, CalendarDays, Check, CheckSquare2, Clock3, Copy, MoreHorizontal, Pencil, RotateCw } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Archive, Copy, MoreHorizontal, Pencil } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CLIENTS } from "@/features/tasks/seed";
-import { PRIORITY_LABELS, STATUS_LABELS, type Task } from "@/features/tasks/types";
+import { PRIORITY_LABELS, type Task } from "@/features/tasks/types";
+import { cn } from "@/lib/utils";
 
 const priorityClasses = {
-  low: "bg-slate-100 text-slate-600",
+  low: "bg-slate-100 text-slate-500",
   medium: "bg-amber-50 text-amber-700",
   high: "bg-orange-50 text-orange-700",
   urgent: "bg-rose-50 text-rose-700",
 };
-
-const statusDots = {
-  not_started: "bg-slate-400",
-  in_progress: "bg-blue-500",
-  waiting: "bg-amber-500",
-  review: "bg-violet-500",
-  completed: "bg-emerald-500",
-};
-
-const formatEstimate = (minutes: number) => minutes >= 60
-  ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}min` : ""}`
-  : `${minutes}min`;
 
 export function TaskCard({
   task,
@@ -41,9 +34,7 @@ export function TaskCard({
   onArchive: () => void;
 }) {
   const client = CLIENTS.find((item) => item.id === task.clientId);
-  const completedItems = task.checklist.filter((item) => item.completed).length;
   const isCompleted = task.status === "completed";
-  const isOverdue = Boolean(task.dueDate && task.dueDate < new Date().toISOString().slice(0, 10) && !isCompleted);
 
   return (
     <article
@@ -54,70 +45,65 @@ export function TaskCard({
       }}
       onClick={onOpen}
       onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") onOpen();
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
       }}
       role="button"
       tabIndex={0}
       aria-label={`Abrir demanda ${task.title}`}
       className={cn(
-        "group relative cursor-grab rounded-[15px] border bg-white p-3.5 shadow-[0_2px_10px_rgba(24,24,30,0.035)] transition duration-200 hover:-translate-y-0.5 hover:border-[#cbc4f8] hover:shadow-[0_10px_28px_rgba(52,40,108,0.10)] active:cursor-grabbing",
-        isCompleted && "opacity-65",
+        "group relative h-full min-h-[64px] cursor-grab overflow-hidden rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-[0_2px_8px_rgba(30,30,45,0.045)] transition duration-200 hover:z-20 hover:border-[#bdb2ef] hover:shadow-[0_8px_22px_rgba(50,38,102,0.12)] active:cursor-grabbing",
+        isCompleted && "bg-slate-50/90 opacity-60",
       )}
     >
-      <div className="mb-3 flex items-start gap-2.5">
+      <div className="flex min-w-0 items-start gap-2 pr-5">
         <Checkbox
           checked={isCompleted}
           aria-label={isCompleted ? "Reabrir demanda" : "Concluir demanda"}
           onClick={(event) => event.stopPropagation()}
           onCheckedChange={onToggleComplete}
-          className="mt-0.5 size-[18px] rounded-full data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+          className="mt-0.5 size-[17px] rounded-full data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
         />
-        <h3 className={cn("min-w-0 flex-1 text-[14px] font-semibold leading-[1.42] text-[#26262c]", isCompleted && "line-through")}>
+        <h3 className={cn(
+          "line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-[1.35] text-[#27272e]",
+          isCompleted && "line-through",
+        )}>
           {task.title}
         </h3>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button onClick={(event) => event.stopPropagation()} className="-mr-1 -mt-1 grid size-7 place-items-center rounded-lg text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100 focus:opacity-100" aria-label="Mais ações">
-              <MoreHorizontal className="size-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
-            <DropdownMenuItem onSelect={onOpen}><Pencil /> Editar</DropdownMenuItem>
-            <DropdownMenuItem onSelect={onDuplicate}><Copy /> Duplicar</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={onArchive}><Archive /> Arquivar</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
-      {client && (
-        <div className="mb-3 flex items-center gap-2 text-[12px] font-medium text-slate-600">
-          <span className="size-2 rounded-full" style={{ backgroundColor: client.color }} />
-          <span className="truncate">{client.name}</span>
-        </div>
-      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(event) => event.stopPropagation()}
+            className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-md text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100 focus:opacity-100"
+            aria-label="Mais ações"
+          >
+            <MoreHorizontal className="size-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+          <DropdownMenuItem onSelect={onOpen}><Pencil /> Editar</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onDuplicate}><Copy /> Duplicar</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onSelect={onArchive}><Archive /> Arquivar</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className={cn("rounded-md px-2 py-1 text-[10px] font-semibold", priorityClasses[task.priority])}>
+      <div className="mt-2 flex min-w-0 items-center gap-1.5 pl-[25px]">
+        {client ? (
+          <>
+            <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: client.color }} />
+            <span className="min-w-0 truncate text-[11px] font-medium text-slate-500">{client.name}</span>
+          </>
+        ) : (
+          <span className="text-[11px] text-slate-400">Sem cliente</span>
+        )}
+        <span className={cn("ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide", priorityClasses[task.priority])}>
           {PRIORITY_LABELS[task.priority]}
         </span>
-        <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-600">
-          <span className={cn("size-1.5 rounded-full", statusDots[task.status])} />
-          {STATUS_LABELS[task.status]}
-        </span>
-      </div>
-
-      <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
-        {task.scheduledTime && <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" /> {task.scheduledTime}</span>}
-        {task.estimateMinutes && <span className="inline-flex items-center gap-1"><AlarmClock className="size-3.5" /> {formatEstimate(task.estimateMinutes)}</span>}
-        {task.dueDate && <span className={cn("inline-flex items-center gap-1", isOverdue && "font-semibold text-rose-600")}><CalendarDays className="size-3.5" /> {format(parseISO(task.dueDate), "dd/MM")}</span>}
-        {task.checklist.length > 0 && (
-          <span className={cn("ml-auto inline-flex items-center gap-1", completedItems === task.checklist.length && "text-emerald-600")}>
-            {completedItems === task.checklist.length ? <Check className="size-3.5" /> : <CheckSquare2 className="size-3.5" />}
-            {completedItems}/{task.checklist.length}
-          </span>
-        )}
-        {task.recurrence.type !== "none" && <RotateCw className="ml-auto size-3.5" aria-label="Demanda recorrente" />}
       </div>
     </article>
   );
