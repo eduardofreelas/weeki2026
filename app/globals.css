@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d7d8df transparent;
+}
+
+:root {
+  --background: #f6f7fb;
+  --foreground: #17171c;
+  --card: #ffffff;
+  --card-foreground: #17171c;
+  --popover: #ffffff;
+  --popover-foreground: #17171c;
+  --primary: #17171c;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f1f6;
+  --secondary-foreground: #26262d;
+  --muted: #f0f1f6;
+  --muted-foreground: #71717d;
+  --accent: #f1efff;
+  --accent-foreground: #6246e5;
+  --destructive: #dc274b;
+  --border: #e5e6ec;
+  --input: #dedfe7;
+  --ring: #7657ff;
+  --chart-1: #7657ff;
+  --chart-2: #2f80ed;
+  --chart-3: #16a47a;
+  --chart-4: #f59e0b;
+  --chart-5: #ef476f;
+  --radius: 0.875rem;
+  --sidebar: #101014;
+  --sidebar-foreground: #f8f8fb;
+  --sidebar-primary: #7657ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #202028;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a2a32;
+  --sidebar-ring: #8d76ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --font-sans: Inter, "SF Pro Text", "Segoe UI", Arial, sans-serif;
+}
+
+* { border-color: var(--border); }
+html { background: var(--background); }
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+}
+
+button, input, textarea { font: inherit; }
+::selection { background: #dcd4ff; color: #281b64; }
+
+.week-board-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d2d4dc transparent;
+}
+
+.week-board-scroll::-webkit-scrollbar { height: 8px; }
+.week-board-scroll::-webkit-scrollbar-thumb { background: #d2d4dc; border-radius: 999px; }
+
+.focus-ring:focus-visible {
+  outline: 3px solid color-mix(in srgb, #7657ff 32%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  body { padding-bottom: 4.75rem; }
+}
