@@ -43,7 +43,7 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
 
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
   low: "Baixa",
-  medium: "Média",
+  medium: "Normal",
   high: "Alta",
   urgent: "Urgente",
 };

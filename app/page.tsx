@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, addWeeks, format, isWithinInterval, parseISO, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,24 +20,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Toaster } from "@/components/ui/sonner";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar } from "@/components/weeki/sidebar";
+import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import { WeekBoard } from "@/components/weeki/week-board";
 import { CLIENTS } from "@/features/tasks/seed";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
+import { cn } from "@/lib/utils";
 
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
 
 export default function Home() {
-  const { tasks, addTask, updateTask, moveTask, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
+  const { tasks, addTask, updateTask, moveTask, resizeTask, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const [weekStart, setWeekStart] = useState(initialWeek);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [initialDate, setInitialDate] = useState<string | null>(null);
+  const [initialTime, setInitialTime] = useState("");
   const [mounted, setMounted] = useState(false);
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
@@ -51,6 +57,7 @@ export default function Home() {
       if (event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLTextAreaElement)) {
         setSelectedTask(null);
         setInitialDate(todayKey);
+        setInitialTime("");
         setSheetOpen(true);
       }
     };
@@ -73,42 +80,72 @@ export default function Home() {
   }), [tasksInWeek, query, statusFilter, clientFilter]);
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
+  const hasActiveFilters = Boolean(query.trim() || statusFilter !== "all" || clientFilter !== "all");
 
-  const openNewTask = (date: string | null) => {
+  const openNewTask = useCallback((date: string | null, time = "") => {
     setSelectedTask(null);
     setInitialDate(date);
+    setInitialTime(time);
     setSheetOpen(true);
-  };
+  }, []);
 
-  const openTask = (task: Task) => {
+  const openTask = useCallback((task: Task) => {
     setSelectedTask(task);
     setInitialDate(task.scheduledDate);
+    setInitialTime(task.scheduledTime);
     setSheetOpen(true);
-  };
+  }, []);
 
-  const saveTask = (draft: TaskDraft, taskId?: string) => {
+  const saveTask = useCallback((draft: TaskDraft, taskId?: string, options?: { silent?: boolean }) => {
     if (taskId) {
-      updateTask(taskId, draft);
-      toast.success("Demanda atualizada.");
+      updateTask(taskId, draft, !options?.silent);
+      setSelectedTask((current) => current?.id === taskId ? { ...current, ...draft, updatedAt: new Date().toISOString() } : current);
+      if (!options?.silent) toast.success("Demanda atualizada.");
     } else {
       addTask(draft);
       toast.success(draft.scheduledDate ? "Demanda adicionada à semana." : "Demanda salva na Caixa de Entrada.");
     }
-  };
+  }, [addTask, updateTask]);
 
-  const handleMove = (taskId: string, date: string, time?: string) => {
+  const handleMove = useCallback((taskId: string, date: string, time?: string) => {
+    const previous = tasks.find((task) => task.id === taskId);
     moveTask(taskId, date, time);
-    toast.success("Demanda movida.");
-  };
+    toast.success("Demanda movida.", previous ? {
+      action: {
+        label: "Desfazer",
+        onClick: () => moveTask(taskId, previous.scheduledDate, previous.scheduledTime),
+      },
+    } : undefined);
+  }, [moveTask, tasks]);
 
-  const handleDuplicate = (taskId: string) => {
+  const handleResize = useCallback((taskId: string, minutes: number) => {
+    resizeTask(taskId, minutes);
+    toast.success("Duração ajustada.");
+  }, [resizeTask]);
+
+  const handleToggleComplete = useCallback((taskId: string) => {
+    const task = tasks.find((item) => item.id === taskId);
+    const wasCompleted = task?.status === "completed";
+    toggleComplete(taskId);
+    toast.success(wasCompleted ? "Demanda reaberta." : "Demanda concluída.", {
+      action: { label: "Desfazer", onClick: () => toggleComplete(taskId) },
+    });
+  }, [tasks, toggleComplete]);
+
+  const handleDuplicate = useCallback((taskId: string) => {
     duplicateTask(taskId);
     toast.success("Demanda duplicada.");
-  };
+  }, [duplicateTask]);
 
-  const handleArchive = (taskId: string) => {
+  const handleArchive = useCallback((taskId: string) => {
     archiveTask(taskId);
     toast.success("Demanda arquivada.");
+  }, [archiveTask]);
+
+  const clearFilters = () => {
+    setQuery("");
+    setStatusFilter("all");
+    setClientFilter("all");
   };
 
   if (!mounted) {
@@ -146,22 +183,25 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="mx-auto flex max-w-[1760px] flex-col px-4 py-4 sm:px-5 lg:px-6" style={{ minHeight: "calc(100vh - 68px)" }}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-[25px] font-semibold tracking-[-0.035em] text-[#1d1d23]">Minha Semana</h1>
+        <div className="mx-auto flex max-w-[1760px] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6" style={{ minHeight: "calc(100vh - 68px)" }}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-[23px] font-semibold tracking-[-0.035em] text-[#1d1d23] sm:text-[25px]">Minha Semana</h1>
               <p className="mt-0.5 text-xs font-medium text-slate-400">
                 {format(weekStart, "dd MMM", { locale: ptBR })} — {format(weekEnd, "dd MMM yyyy", { locale: ptBR })}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => openNewTask(null)} className="bg-white"><Inbox /> Caixa de Entrada</Button>
-              <Button size="sm" onClick={() => openNewTask(todayKey)} className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-4 shadow-[0_6px_18px_rgba(103,77,225,0.18)] hover:opacity-90"><Plus /> Nova demanda</Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setInboxOpen((current) => !current)} className={inboxOpen ? "border-[#b9abf2] bg-[#f4f1ff] text-[#6548df]" : "bg-white"}>
+                <Inbox /><span className="hidden sm:inline">Caixa de Entrada</span><span className="sm:hidden">Caixa</span>
+                {inboxTasks.length > 0 && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{inboxTasks.length}</span>}
+              </Button>
+              <Button size="sm" onClick={() => openNewTask(todayKey)} className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-3 shadow-[0_6px_18px_rgba(103,77,225,0.18)] hover:opacity-90 sm:px-4"><Plus /><span className="hidden sm:inline">Nova demanda</span><span className="sm:hidden">Nova</span></Button>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-1 rounded-xl border bg-white p-1 shadow-sm">
+          <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex w-fit items-center gap-1 rounded-xl border bg-white p-1 shadow-sm">
               <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="focus-ring grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
               <button onClick={() => setWeekStart(initialWeek())} className="focus-ring h-8 rounded-lg px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100">Hoje</button>
               <button onClick={() => setWeekStart((current) => addWeeks(current, 1))} className="focus-ring grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Próxima semana"><ChevronRight className="size-4" /></button>
@@ -172,16 +212,43 @@ export default function Home() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-9 bg-white pl-9 shadow-sm sm:w-[200px]" />
               </div>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}>
-                <SelectTrigger className="h-9 min-w-[132px] bg-white shadow-sm"><SlidersHorizontal className="size-4" /><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="all">Todos os status</SelectItem>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={clientFilter} onValueChange={setClientFilter}>
-                <SelectTrigger className="h-9 min-w-[122px] bg-white shadow-sm"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-9 bg-white sm:hidden"><SlidersHorizontal /> Filtros</Button>
+              <div className={cn("contents", !mobileFiltersOpen && "max-sm:hidden")}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}>
+                  <SelectTrigger className="h-9 min-w-[132px] flex-1 bg-white shadow-sm sm:flex-none"><SlidersHorizontal className="size-4" /><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Todos os status</SelectItem>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={clientFilter} onValueChange={setClientFilter}>
+                  <SelectTrigger className="h-9 min-w-[122px] flex-1 bg-white shadow-sm sm:flex-none"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-9 px-2 text-slate-400"><X /> Limpar</Button>}
             </div>
           </div>
+
+          {inboxOpen && (
+            <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_6px_24px_rgba(27,27,40,0.03)]" aria-label="Caixa de Entrada">
+              <div className="mb-2 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-800">Caixa de Entrada</h2>
+                  <p className="text-xs text-slate-400">Arraste uma demanda para um dia e horário da semana.</p>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={() => openNewTask(null)} className="text-[#674bdd]"><Plus /> Capturar</Button>
+              </div>
+              {inboxTasks.length > 0 ? (
+                <div className="week-board-scroll flex gap-2 overflow-x-auto pb-1">
+                  {inboxTasks.map((task) => (
+                    <div key={task.id} className="h-[72px] w-[240px] shrink-0">
+                      <TaskCard task={task} onOpen={() => openTask(task)} onToggleComplete={() => handleToggleComplete(task.id)} onDuplicate={() => handleDuplicate(task.id)} onArchive={() => handleArchive(task.id)} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <button type="button" onClick={() => openNewTask(null)} className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed text-sm text-slate-400 transition hover:border-[#a998ef] hover:text-[#684be6]"><Plus className="size-4" /> Capturar uma demanda sem data</button>
+              )}
+            </section>
+          )}
 
           <div className="mt-3 min-h-0 flex-1">
             <WeekBoard
@@ -190,7 +257,8 @@ export default function Home() {
               onCreate={openNewTask}
               onOpen={openTask}
               onMove={handleMove}
-              onToggleComplete={toggleComplete}
+              onResize={handleResize}
+              onToggleComplete={handleToggleComplete}
               onDuplicate={handleDuplicate}
               onArchive={handleArchive}
             />
@@ -198,7 +266,7 @@ export default function Home() {
         </div>
       </main>
 
-      <TaskSheet open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
+      <TaskSheet open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
       <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} />
       <Toaster position="bottom-right" richColors />
     </div>

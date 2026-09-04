@@ -44,7 +44,7 @@ export function useWeekiTasks() {
     return task;
   }, []);
 
-  const updateTask = useCallback((id: string, draft: TaskDraft) => {
+  const updateTask = useCallback((id: string, draft: TaskDraft, recordActivity = true) => {
     setTasks((current) => current.map((task) => {
       if (task.id !== id) return task;
       const now = new Date().toISOString();
@@ -52,10 +52,9 @@ export function useWeekiTasks() {
         ...task,
         ...draft,
         updatedAt: now,
-        activity: [
-          { id: makeId(), text: "Detalhes atualizados", createdAt: now },
-          ...task.activity,
-        ],
+        activity: recordActivity
+          ? [{ id: makeId(), text: "Detalhes atualizados", createdAt: now }, ...task.activity]
+          : task.activity,
       };
     }));
   }, []);
@@ -75,6 +74,22 @@ export function useWeekiTasks() {
             text: scheduledDate ? "Movida para outro dia" : "Movida para a Caixa de Entrada",
             createdAt: now,
           },
+          ...task.activity,
+        ],
+      };
+    }));
+  }, []);
+
+  const resizeTask = useCallback((id: string, estimateMinutes: number) => {
+    setTasks((current) => current.map((task) => {
+      if (task.id !== id) return task;
+      const now = new Date().toISOString();
+      return {
+        ...task,
+        estimateMinutes,
+        updatedAt: now,
+        activity: [
+          { id: makeId(), text: "Duração ajustada", createdAt: now },
           ...task.activity,
         ],
       };
@@ -125,5 +140,5 @@ export function useWeekiTasks() {
 
   const activeTasks = useMemo(() => tasks.filter((task) => !task.archivedAt), [tasks]);
 
-  return { tasks: activeTasks, addTask, updateTask, moveTask, toggleComplete, duplicateTask, archiveTask };
+  return { tasks: activeTasks, addTask, updateTask, moveTask, resizeTask, toggleComplete, duplicateTask, archiveTask };
 }

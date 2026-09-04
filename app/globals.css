@@ -92,11 +92,13 @@ button, input, textarea { font: inherit; }
 
 .week-board-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #d2d4dc transparent;
+  scrollbar-color: #d8dae2 transparent;
 }
 
-.week-board-scroll::-webkit-scrollbar { height: 8px; }
-.week-board-scroll::-webkit-scrollbar-thumb { background: #d2d4dc; border-radius: 999px; }
+.week-board-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.week-board-scroll::-webkit-scrollbar-track { background: transparent; }
+.week-board-scroll::-webkit-scrollbar-thumb { background: #d8dae2; border-radius: 999px; }
+.week-board-scroll::-webkit-scrollbar-thumb:hover { background: #c5c8d2; }
 
 .focus-ring:focus-visible {
   outline: 3px solid color-mix(in srgb, #7657ff 32%, transparent);
