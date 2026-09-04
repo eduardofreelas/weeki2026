@@ -5,7 +5,6 @@ import { addDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Archive,
-  Check,
   ChevronDown,
   CirclePlus,
   FileText,
@@ -52,10 +51,10 @@ const estimateOptions = [
   { value: 240, label: "4h" },
 ];
 
-const emptyDraft = (scheduledDate: string | null, scheduledTime = ""): TaskDraft => ({
+const emptyDraft = (scheduledDate: string | null, scheduledTime = "", clientId: string | null = null): TaskDraft => ({
   title: "",
   description: "",
-  clientId: null,
+  clientId,
   status: "not_started",
   priority: "medium",
   scheduledDate,
@@ -67,7 +66,7 @@ const emptyDraft = (scheduledDate: string | null, scheduledTime = ""): TaskDraft
   checklist: [],
   attachments: [],
   notes: "",
-  recurrence: { type: "none", days: [] },
+  recurrence: { type: "none", days: [], endDate: "" },
   archivedAt: null,
 });
 
@@ -86,7 +85,7 @@ const taskToDraft = (task: Task): TaskDraft => ({
   checklist: task.checklist.map((item) => ({ ...item })),
   attachments: task.attachments.map((item) => ({ ...item })),
   notes: task.notes,
-  recurrence: { ...task.recurrence, days: [...task.recurrence.days] },
+  recurrence: { ...task.recurrence, days: [...task.recurrence.days], endDate: task.recurrence.endDate ?? "" },
   archivedAt: task.archivedAt,
 });
 
@@ -114,6 +113,7 @@ export function TaskSheet({
   task,
   initialDate,
   initialTime = "",
+  initialClientId = null,
   clients,
   onSave,
   onArchive,
@@ -123,16 +123,18 @@ export function TaskSheet({
   task: Task | null;
   initialDate: string | null;
   initialTime?: string;
+  initialClientId?: string | null;
   clients: Client[];
   onSave: (draft: TaskDraft, taskId?: string, options?: { silent?: boolean }) => void;
   onArchive: (taskId: string) => void;
 }) {
-  const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft(initialDate, initialTime));
+  const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft(initialDate, initialTime, initialClientId));
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customEstimateOpen, setCustomEstimateOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [checklistInput, setChecklistInput] = useState("");
+  const [linkInput, setLinkInput] = useState("");
   const [autoSaveState, setAutoSaveState] = useState<"saving" | "saved" | null>(null);
   const lastSavedRef = useRef("");
   const todayKey = format(new Date(), "yyyy-MM-dd");
@@ -140,7 +142,7 @@ export function TaskSheet({
 
   useEffect(() => {
     if (!open) return;
-    const nextDraft = task ? taskToDraft(task) : emptyDraft(initialDate, initialTime);
+    const nextDraft = task ? taskToDraft(task) : emptyDraft(initialDate, initialTime, initialClientId);
     setDraft(nextDraft);
     lastSavedRef.current = JSON.stringify(nextDraft);
     setAdvancedOpen(false);
@@ -148,8 +150,9 @@ export function TaskSheet({
     setCustomEstimateOpen(Boolean(nextDraft.estimateMinutes && !estimateOptions.some((option) => option.value === nextDraft.estimateMinutes)));
     setTagInput("");
     setChecklistInput("");
+    setLinkInput("");
     setAutoSaveState(task ? "saved" : null);
-  }, [open, task?.id, initialDate, initialTime, todayKey, tomorrowKey]);
+  }, [open, task?.id, initialDate, initialTime, initialClientId, todayKey, tomorrowKey]);
 
   useEffect(() => {
     if (!open || !task || !draft.title.trim()) return;
@@ -186,10 +189,31 @@ export function TaskSheet({
     setChecklistInput("");
   };
 
+  const addLink = () => {
+    const value = linkInput.trim();
+    if (!value) return;
+    try {
+      const url = new URL(value);
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('invalid protocol');
+    } catch {
+      toast.error("Insira um link válido começando com http:// ou https://.");
+      return;
+    }
+    setDraft((current) => ({
+      ...current,
+      attachments: [...current.attachments, { id: makeId(), name: value, size: 0, type: "link" }],
+    }));
+    setLinkInput("");
+  };
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.title.trim()) {
       toast.error("Dê um título para a demanda.");
+      return;
+    }
+    if (draft.recurrence.type === "custom" && !draft.recurrence.endDate) {
+      toast.error("Escolha a data final da repetição.");
       return;
     }
     onSave({ ...draft, title: draft.title.trim() }, task?.id);
@@ -331,7 +355,18 @@ export function TaskSheet({
                         <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
                         <SelectContent>{Object.entries(RECURRENCE_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                       </Select>
-                      {draft.recurrence.type === "custom" && <div className="mt-3 flex flex-wrap gap-2">{weekDays.map((day) => { const active = draft.recurrence.days.includes(day.value); return <button key={day.label} type="button" title={day.label} onClick={() => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, days: active ? current.recurrence.days.filter((value) => value !== day.value) : [...current.recurrence.days, day.value] } }))} className={cn("grid size-9 place-items-center rounded-lg border text-xs font-semibold transition", active ? "border-[#7657ff] bg-[#7657ff] text-white" : "bg-white text-slate-500 hover:border-[#9b88ef]")}>{day.short}</button>; })}</div>}
+                      {draft.recurrence.type === "custom" && (
+                        <div className="mt-3 space-y-4 rounded-xl border border-slate-200 bg-white p-3">
+                          <div>
+                            <p className="mb-2 text-xs font-medium text-slate-500">Repetir nestes dias</p>
+                            <div className="flex flex-wrap gap-2">{weekDays.map((day) => { const active = draft.recurrence.days.includes(day.value); return <button key={day.label} type="button" title={day.label} onClick={() => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, days: active ? current.recurrence.days.filter((value) => value !== day.value) : [...current.recurrence.days, day.value] } }))} className={cn("grid size-8 place-items-center rounded-lg border text-xs font-semibold transition", active ? "border-[#7657ff] bg-[#7657ff] text-white" : "bg-white text-slate-500 hover:border-[#9b88ef]")}>{day.short}</button>; })}</div>
+                          </div>
+                          <div>
+                            <FieldLabel>Repetir até</FieldLabel>
+                            <Input type="date" required min={draft.scheduledDate ?? todayKey} value={draft.recurrence.endDate} onChange={(event) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, endDate: event.target.value } }))} className="bg-white" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {renderTags()}
                   </div>
@@ -412,7 +447,18 @@ export function TaskSheet({
                         <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
                         <SelectContent>{Object.entries(RECURRENCE_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                       </Select>
-                      {draft.recurrence.type === "custom" && <div className="mt-3 flex flex-wrap gap-2">{weekDays.map((day) => { const active = draft.recurrence.days.includes(day.value); return <button key={day.label} type="button" title={day.label} onClick={() => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, days: active ? current.recurrence.days.filter((value) => value !== day.value) : [...current.recurrence.days, day.value] } }))} className={cn("grid size-9 place-items-center rounded-lg border text-xs font-semibold transition", active ? "border-[#7657ff] bg-[#7657ff] text-white" : "bg-white text-slate-500 hover:border-[#9b88ef]")}>{day.short}</button>; })}</div>}
+                      {draft.recurrence.type === "custom" && (
+                        <div className="mt-3 space-y-4 rounded-xl border border-slate-200 bg-white p-3">
+                          <div>
+                            <p className="mb-2 text-xs font-medium text-slate-500">Repetir nestes dias</p>
+                            <div className="flex flex-wrap gap-2">{weekDays.map((day) => { const active = draft.recurrence.days.includes(day.value); return <button key={day.label} type="button" title={day.label} onClick={() => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, days: active ? current.recurrence.days.filter((value) => value !== day.value) : [...current.recurrence.days, day.value] } }))} className={cn("grid size-8 place-items-center rounded-lg border text-xs font-semibold transition", active ? "border-[#7657ff] bg-[#7657ff] text-white" : "bg-white text-slate-500 hover:border-[#9b88ef]")}>{day.short}</button>; })}</div>
+                          </div>
+                          <div>
+                            <FieldLabel>Repetir até</FieldLabel>
+                            <Input type="date" required min={draft.scheduledDate ?? todayKey} value={draft.recurrence.endDate} onChange={(event) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, endDate: event.target.value } }))} className="bg-white" />
+                          </div>
+                        </div>
+                      )}
                     </section>
 
                     <section>{renderTags()}</section>
@@ -433,11 +479,20 @@ export function TaskSheet({
                     <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center transition hover:border-[#8b73ef] hover:bg-[#faf9ff]">
                       <span className="mb-3 grid size-11 place-items-center rounded-xl bg-[#eeeaff] text-[#6b50df]"><Paperclip className="size-5" /></span>
                       <span className="text-sm font-semibold text-slate-800">Adicionar arquivos</span>
-                      <span className="mt-1 text-xs leading-5 text-slate-500">Selecione documentos, imagens ou links de referência.</span>
+                      <span className="mt-1 text-xs leading-5 text-slate-500">Selecione documentos ou imagens do seu computador.</span>
                       <input type="file" multiple className="sr-only" onChange={(event) => { const files = Array.from(event.target.files ?? []); setDraft((current) => ({ ...current, attachments: [...current.attachments, ...files.map((file) => ({ id: makeId(), name: file.name, size: file.size, type: file.type }))] })); event.target.value = ""; }} />
                     </label>
                     <div className="mt-4 space-y-2">{draft.attachments.map((file) => <div key={file.id} className="flex items-center gap-3 rounded-xl border bg-white p-3"><span className="grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-500"><FileText className="size-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-800">{file.name}</p><p className="text-xs text-slate-400">{file.size ? `${Math.max(1, Math.round(file.size / 1024))} KB` : "Arquivo"}</p></div><button type="button" onClick={() => setDraft((current) => ({ ...current, attachments: current.attachments.filter((item) => item.id !== file.id) }))} className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Remover ${file.name}`}><Trash2 className="size-4" /></button></div>)}</div>
-                    <Button type="button" variant="ghost" className="mt-3 text-[#6b50df]" onClick={() => { const url = window.prompt("Cole o link de referência:"); if (!url?.trim()) return; setDraft((current) => ({ ...current, attachments: [...current.attachments, { id: makeId(), name: url.trim(), size: 0, type: "link" }] })); }}><Link2 /> Adicionar link</Button>
+                    <div className="mt-4">
+                      <FieldLabel optional>Adicionar por link</FieldLabel>
+                      <div className="flex gap-2">
+                        <div className="relative min-w-0 flex-1">
+                          <Link2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                          <Input value={linkInput} onChange={(event) => setLinkInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addLink(); } }} placeholder="https://..." className="bg-white pl-9" />
+                        </div>
+                        <Button type="button" size="sm" variant="outline" onClick={addLink} className="h-9 shrink-0">Adicionar</Button>
+                      </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="activity" className="m-0 p-5 sm:p-6">

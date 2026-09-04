@@ -5,12 +5,14 @@ import { addDays, addWeeks, format, isWithinInterval, parseISO, startOfWeek } fr
 import { ptBR } from "date-fns/locale";
 import {
   Bell,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Inbox,
   Plus,
   Search,
   SlidersHorizontal,
+  UsersRound,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +24,7 @@ import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar } from "@/components/weeki/sidebar";
 import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
-import { WeekBoard } from "@/components/weeki/week-board";
+import { WeekBoard, type WeekViewMode } from "@/components/weeki/week-board";
 import { CLIENTS } from "@/features/tasks/seed";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
@@ -31,8 +33,10 @@ import { cn } from "@/lib/utils";
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
 
 export default function Home() {
-  const { tasks, addTask, updateTask, moveTask, resizeTask, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
+  const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const [weekStart, setWeekStart] = useState(initialWeek);
+  const [viewMode, setViewMode] = useState<WeekViewMode>("week");
+  const [showWeekend, setShowWeekend] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [query, setQuery] = useState("");
@@ -43,10 +47,11 @@ export default function Home() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [initialDate, setInitialDate] = useState<string | null>(null);
   const [initialTime, setInitialTime] = useState("");
+  const [initialClientId, setInitialClientId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const weekEnd = addDays(weekStart, 4);
+  const weekEnd = addDays(weekStart, showWeekend ? 6 : 4);
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -58,6 +63,7 @@ export default function Home() {
         setSelectedTask(null);
         setInitialDate(todayKey);
         setInitialTime("");
+        setInitialClientId(null);
         setSheetOpen(true);
       }
     };
@@ -82,10 +88,11 @@ export default function Home() {
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
   const hasActiveFilters = Boolean(query.trim() || statusFilter !== "all" || clientFilter !== "all");
 
-  const openNewTask = useCallback((date: string | null, time = "") => {
+  const openNewTask = useCallback((date: string | null, time = "", clientId: string | null = null) => {
     setSelectedTask(null);
     setInitialDate(date);
     setInitialTime(time);
+    setInitialClientId(clientId);
     setSheetOpen(true);
   }, []);
 
@@ -93,6 +100,7 @@ export default function Home() {
     setSelectedTask(task);
     setInitialDate(task.scheduledDate);
     setInitialTime(task.scheduledTime);
+    setInitialClientId(task.clientId);
     setSheetOpen(true);
   }, []);
 
@@ -118,10 +126,16 @@ export default function Home() {
     } : undefined);
   }, [moveTask, tasks]);
 
-  const handleResize = useCallback((taskId: string, minutes: number) => {
-    resizeTask(taskId, minutes);
-    toast.success("Duração ajustada.");
-  }, [resizeTask]);
+  const handleChangeClient = useCallback((taskId: string, clientId: string | null) => {
+    const previous = tasks.find((task) => task.id === taskId);
+    assignTaskClient(taskId, clientId);
+    toast.success("Cliente da demanda atualizado.", previous ? {
+      action: {
+        label: "Desfazer",
+        onClick: () => assignTaskClient(taskId, previous.clientId),
+      },
+    } : undefined);
+  }, [assignTaskClient, tasks]);
 
   const handleToggleComplete = useCallback((taskId: string) => {
     const task = tasks.find((item) => item.id === taskId);
@@ -200,30 +214,42 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex w-fit items-center gap-1 rounded-xl border bg-white p-1 shadow-sm">
-              <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="focus-ring grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
-              <button onClick={() => setWeekStart(initialWeek())} className="focus-ring h-8 rounded-lg px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100">Hoje</button>
-              <button onClick={() => setWeekStart((current) => addWeeks(current, 1))} className="focus-ring grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Próxima semana"><ChevronRight className="size-4" /></button>
+          <div className="mt-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-fit items-center gap-0.5 rounded-xl border bg-white p-0.5 shadow-sm">
+                <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="focus-ring grid size-7 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
+                <button onClick={() => setWeekStart(initialWeek())} className="focus-ring h-7 rounded-lg px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">Hoje</button>
+                <button onClick={() => setWeekStart((current) => addWeeks(current, 1))} className="focus-ring grid size-7 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Próxima semana"><ChevronRight className="size-4" /></button>
+              </div>
+
+              <div className="flex items-center rounded-xl border bg-white p-0.5 shadow-sm" aria-label="Modo de visualização">
+                <button type="button" onClick={() => setViewMode("week")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition", viewMode === "week" ? "bg-[#17171d] text-white shadow-sm" : "text-slate-500 hover:bg-slate-100")}><CalendarDays className="size-3.5" /> Semana</button>
+                <button type="button" onClick={() => setViewMode("clients")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition", viewMode === "clients" ? "bg-[#17171d] text-white shadow-sm" : "text-slate-500 hover:bg-slate-100")}><UsersRound className="size-3.5" /> Clientes</button>
+              </div>
+
+              <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("focus-ring flex h-8 items-center gap-2 rounded-xl border bg-white px-2.5 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300", showWeekend && "border-[#b9abf2] bg-[#f4f1ff] text-[#6548df]")}>
+                <span className={cn("relative h-4 w-7 rounded-full bg-slate-200 transition", showWeekend && "bg-[#7657ff]")}><span className={cn("absolute left-0.5 top-0.5 size-3 rounded-full bg-white shadow-sm transition", showWeekend && "translate-x-3")} /></span>
+                Sáb e dom
+              </button>
             </div>
 
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <div className="relative min-w-[170px] flex-1 sm:flex-none">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-9 bg-white pl-9 shadow-sm sm:w-[200px]" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-8 bg-white pl-9 text-xs shadow-sm sm:w-[190px]" />
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-9 bg-white sm:hidden"><SlidersHorizontal /> Filtros</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-8 bg-white sm:hidden"><SlidersHorizontal /> Filtros</Button>
               <div className={cn("contents", !mobileFiltersOpen && "max-sm:hidden")}>
                 <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}>
-                  <SelectTrigger className="h-9 min-w-[132px] flex-1 bg-white shadow-sm sm:flex-none"><SlidersHorizontal className="size-4" /><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 min-w-[126px] flex-1 bg-white text-xs shadow-sm sm:flex-none"><SlidersHorizontal className="size-3.5" /><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="all">Todos os status</SelectItem>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger className="h-9 min-w-[122px] flex-1 bg-white shadow-sm sm:flex-none"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 min-w-[116px] flex-1 bg-white text-xs shadow-sm sm:flex-none"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-9 px-2 text-slate-400"><X /> Limpar</Button>}
+              {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-slate-400"><X /> Limpar</Button>}
             </div>
           </div>
 
@@ -232,14 +258,14 @@ export default function Home() {
               <div className="mb-2 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-800">Caixa de Entrada</h2>
-                  <p className="text-xs text-slate-400">Arraste uma demanda para um dia e horário da semana.</p>
+                  <p className="text-xs text-slate-400">Arraste uma demanda para um dia da semana.</p>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={() => openNewTask(null)} className="text-[#674bdd]"><Plus /> Capturar</Button>
               </div>
               {inboxTasks.length > 0 ? (
                 <div className="week-board-scroll flex gap-2 overflow-x-auto pb-1">
                   {inboxTasks.map((task) => (
-                    <div key={task.id} className="h-[72px] w-[240px] shrink-0">
+                    <div key={task.id} className="w-[240px] shrink-0">
                       <TaskCard task={task} onOpen={() => openTask(task)} onToggleComplete={() => handleToggleComplete(task.id)} onDuplicate={() => handleDuplicate(task.id)} onArchive={() => handleArchive(task.id)} />
                     </div>
                   ))}
@@ -254,10 +280,12 @@ export default function Home() {
             <WeekBoard
               weekStart={weekStart}
               tasks={filteredTasks}
+              viewMode={viewMode}
+              showWeekend={showWeekend}
               onCreate={openNewTask}
               onOpen={openTask}
               onMove={handleMove}
-              onResize={handleResize}
+              onChangeClient={handleChangeClient}
               onToggleComplete={handleToggleComplete}
               onDuplicate={handleDuplicate}
               onArchive={handleArchive}
@@ -266,7 +294,7 @@ export default function Home() {
         </div>
       </main>
 
-      <TaskSheet open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
+      <TaskSheet open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} initialClientId={initialClientId} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
       <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} />
       <Toaster position="bottom-right" richColors />
     </div>

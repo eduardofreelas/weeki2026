@@ -6,7 +6,7 @@ export interface Client { id: string; name: string; color: string; initials: str
 export interface ChecklistItem { id: string; label: string; completed: boolean; }
 export interface Attachment { id: string; name: string; size: number; type: string; }
 export interface ActivityItem { id: string; text: string; createdAt: string; }
-export interface Recurrence { type: RecurrenceType; days: number[]; }
+export interface Recurrence { type: RecurrenceType; days: number[]; endDate: string; }
 
 export interface Task {
   id: string;

@@ -80,16 +80,16 @@ export function useWeekiTasks() {
     }));
   }, []);
 
-  const resizeTask = useCallback((id: string, estimateMinutes: number) => {
+  const assignTaskClient = useCallback((id: string, clientId: string | null) => {
     setTasks((current) => current.map((task) => {
       if (task.id !== id) return task;
       const now = new Date().toISOString();
       return {
         ...task,
-        estimateMinutes,
+        clientId,
         updatedAt: now,
         activity: [
-          { id: makeId(), text: "Duração ajustada", createdAt: now },
+          { id: makeId(), text: clientId ? "Movida para outro cliente" : "Removida do cliente", createdAt: now },
           ...task.activity,
         ],
       };
@@ -140,5 +140,5 @@ export function useWeekiTasks() {
 
   const activeTasks = useMemo(() => tasks.filter((task) => !task.archivedAt), [tasks]);
 
-  return { tasks: activeTasks, addTask, updateTask, moveTask, resizeTask, toggleComplete, duplicateTask, archiveTask };
+  return { tasks: activeTasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask };
 }

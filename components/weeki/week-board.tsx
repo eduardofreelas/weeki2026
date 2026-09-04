@@ -1,140 +1,96 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { addDays, format, isSameDay } from "date-fns";
+import { useMemo, useState } from "react";
+import { addDays, format, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock3, Plus } from "lucide-react";
+import { Plus, UserRound } from "lucide-react";
+import { CLIENTS } from "@/features/tasks/seed";
 import type { Task } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "./task-card";
 
-const HOUR_HEIGHT = 88;
-const DEFAULT_START_HOUR = 8;
-const DEFAULT_END_HOUR = 20;
+export type WeekViewMode = "week" | "clients";
 
-const timeToMinutes = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return Number.isFinite(hours) && Number.isFinite(minutes) ? hours * 60 + minutes : null;
+const sortByTime = (a: Task, b: Task) => {
+  if (a.scheduledTime && b.scheduledTime) return a.scheduledTime.localeCompare(b.scheduledTime);
+  if (a.scheduledTime) return -1;
+  if (b.scheduledTime) return 1;
+  return a.createdAt.localeCompare(b.createdAt);
 };
 
-const minutesToTime = (minutes: number) => {
-  const hours = Math.floor(minutes / 60).toString().padStart(2, "0");
-  const remainder = (minutes % 60).toString().padStart(2, "0");
-  return `${hours}:${remainder}`;
+const sortByDateAndTime = (a: Task, b: Task) => {
+  const dateComparison = (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "");
+  return dateComparison || sortByTime(a, b);
 };
 
-const formatDailyLoad = (tasks: Task[]) => {
-  const minutes = tasks.reduce((total, task) => total + (task.estimateMinutes ?? 0), 0);
-  if (!minutes) return "Sem tempo estimado";
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return `${hours ? `${hours}h` : ""}${remainder ? `${remainder.toString().padStart(hours ? 2 : 1, "0")}min` : ""} planejadas`;
+type BoardColumn = {
+  id: string;
+  title: string;
+  dateNumber?: string;
+  dateKey?: string;
+  clientId?: string | null;
+  clientColor?: string;
+  tasks: Task[];
+  isToday?: boolean;
 };
-
-type PositionedTask = {
-  task: Task;
-  top: number;
-  height: number;
-  lane: number;
-  lanes: number;
-};
-
-function positionTasks(tasks: Task[], startHour: number, endHour: number, preview?: { taskId: string; minutes: number } | null): PositionedTask[] {
-  const startLimit = startHour * 60;
-  const endLimit = endHour * 60;
-  const scheduled = tasks
-    .map((task) => {
-      const rawStart = timeToMinutes(task.scheduledTime);
-      if (rawStart === null) return null;
-      const duration = Math.max(15, preview?.taskId === task.id ? preview.minutes : (task.estimateMinutes ?? 60));
-      const start = Math.min(Math.max(rawStart, startLimit), endLimit - 15);
-      return { task, start, end: Math.min(start + duration, endLimit), lane: 0, lanes: 1 };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-    .sort((a, b) => a.start - b.start || a.end - b.end);
-
-  const result: typeof scheduled = [];
-  let group: typeof scheduled = [];
-  let groupEnd = -1;
-
-  const finishGroup = () => {
-    if (!group.length) return;
-    const lanes = Math.max(...group.map((item) => item.lane)) + 1;
-    group.forEach((item) => {
-      item.lanes = lanes;
-      result.push(item);
-    });
-    group = [];
-    groupEnd = -1;
-  };
-
-  scheduled.forEach((item) => {
-    if (group.length && item.start >= groupEnd) finishGroup();
-    let lane = 0;
-    while (group.some((current) => current.lane === lane && current.end > item.start)) lane += 1;
-    item.lane = lane;
-    group.push(item);
-    groupEnd = Math.max(groupEnd, item.end);
-  });
-  finishGroup();
-
-  return result.map((item) => ({
-    task: item.task,
-    lane: item.lane,
-    lanes: item.lanes,
-    top: ((item.start - startLimit) / 60) * HOUR_HEIGHT + 2,
-    height: Math.max(24, ((item.end - item.start) / 60) * HOUR_HEIGHT - 4),
-  }));
-}
 
 export function WeekBoard({
   weekStart,
   tasks,
+  viewMode,
+  showWeekend,
   onCreate,
   onOpen,
   onMove,
-  onResize,
+  onChangeClient,
   onToggleComplete,
   onDuplicate,
   onArchive,
 }: {
   weekStart: Date;
   tasks: Task[];
-  onCreate: (date: string, time?: string) => void;
+  viewMode: WeekViewMode;
+  showWeekend: boolean;
+  onCreate: (date: string | null, time?: string, clientId?: string | null) => void;
   onOpen: (task: Task) => void;
   onMove: (taskId: string, date: string, time?: string) => void;
-  onResize: (taskId: string, estimateMinutes: number) => void;
+  onChangeClient: (taskId: string, clientId: string | null) => void;
   onToggleComplete: (taskId: string) => void;
   onDuplicate: (taskId: string) => void;
   onArchive: (taskId: string) => void;
 }) {
   const [dragTarget, setDragTarget] = useState<string | null>(null);
-  const [resizePreview, setResizePreview] = useState<{ taskId: string; minutes: number } | null>(null);
-  const [mobileDayIndex, setMobileDayIndex] = useState(0);
-  const days = useMemo(() => Array.from({ length: 5 }, (_, index) => addDays(weekStart, index)), [weekStart]);
   const today = new Date();
 
-  useEffect(() => {
-    const todayIndex = days.findIndex((day) => isSameDay(day, today));
-    setMobileDayIndex(todayIndex >= 0 ? todayIndex : 0);
-  }, [days]);
+  const columns = useMemo<BoardColumn[]>(() => {
+    if (viewMode === "clients") {
+      const clientColumns: BoardColumn[] = CLIENTS.map((client) => ({
+        id: `client-${client.id}`,
+        title: client.name,
+        clientId: client.id,
+        clientColor: client.color,
+        tasks: tasks.filter((task) => task.clientId === client.id).sort(sortByDateAndTime),
+      }));
+      const withoutClient = tasks.filter((task) => !task.clientId).sort(sortByDateAndTime);
+      if (withoutClient.length) {
+        clientColumns.push({ id: "client-none", title: "Sem cliente", clientId: null, tasks: withoutClient });
+      }
+      return clientColumns;
+    }
 
-  const { startHour, endHour } = useMemo(() => {
-    const timedTasks = tasks
-      .map((task) => ({ minutes: timeToMinutes(task.scheduledTime), duration: task.estimateMinutes ?? 60 }))
-      .filter((item): item is { minutes: number; duration: number } => item.minutes !== null);
-    if (!timedTasks.length) return { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR };
-    const earliest = Math.floor(Math.min(...timedTasks.map((item) => item.minutes)) / 60);
-    const latest = Math.ceil(Math.max(...timedTasks.map((item) => item.minutes + item.duration)) / 60);
-    return {
-      startHour: Math.max(0, Math.min(DEFAULT_START_HOUR, earliest)),
-      endHour: Math.min(24, Math.max(DEFAULT_END_HOUR, latest)),
-    };
-  }, [tasks]);
-
-  const timelineHeight = (endHour - startHour) * HOUR_HEIGHT;
-  const hours = Array.from({ length: endHour - startHour }, (_, index) => startHour + index);
-  const gridTemplate = `52px repeat(${days.length}, minmax(0, 1fr))`;
+    return Array.from({ length: showWeekend ? 7 : 5 }, (_, index) => {
+      const day = addDays(weekStart, index);
+      const dateKey = format(day, "yyyy-MM-dd");
+      return {
+        id: `day-${dateKey}`,
+        title: format(day, "EEEE", { locale: ptBR }),
+        dateNumber: format(day, "dd"),
+        dateKey,
+        tasks: tasks.filter((task) => task.scheduledDate === dateKey).sort(sortByTime),
+        isToday: isSameDay(day, today),
+      };
+    });
+  }, [showWeekend, tasks, viewMode, weekStart]);
 
   const cardProps = (task: Task) => ({
     task,
@@ -144,225 +100,73 @@ export function WeekBoard({
     onArchive: () => onArchive(task.id),
   });
 
-  const startResize = (event: React.PointerEvent<HTMLButtonElement>, task: Task) => {
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>, column: BoardColumn) => {
     event.preventDefault();
-    event.stopPropagation();
-    const startY = event.clientY;
-    const initialDuration = task.estimateMinutes ?? 60;
-    let nextDuration = initialDuration;
-
-    const handleMove = (moveEvent: PointerEvent) => {
-      const deltaMinutes = ((moveEvent.clientY - startY) / HOUR_HEIGHT) * 60;
-      nextDuration = Math.min(12 * 60, Math.max(15, Math.round((initialDuration + deltaMinutes) / 15) * 15));
-      setResizePreview({ taskId: task.id, minutes: nextDuration });
-    };
-
-    const handleEnd = () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleEnd);
-      setResizePreview(null);
-      if (nextDuration !== initialDuration) onResize(task.id, nextDuration);
-    };
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleEnd, { once: true });
+    const taskId = event.dataTransfer.getData("text/weeki-task");
+    if (!taskId) return;
+    if (viewMode === "week" && column.dateKey) onMove(taskId, column.dateKey);
+    if (viewMode === "clients") onChangeClient(taskId, column.clientId ?? null);
+    setDragTarget(null);
   };
 
-  const mobileDay = days[mobileDayIndex];
-  const mobileDateKey = format(mobileDay, "yyyy-MM-dd");
-  const mobileTasks = tasks.filter((task) => task.scheduledDate === mobileDateKey);
-  const mobileTimedTasks = mobileTasks
-    .filter((task) => task.scheduledTime)
-    .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
-  const mobileUntimedTasks = mobileTasks.filter((task) => !task.scheduledTime);
+  const createForColumn = (column: BoardColumn) => {
+    if (viewMode === "week") onCreate(column.dateKey ?? null);
+    else onCreate(format(weekStart, "yyyy-MM-dd"), "", column.clientId ?? null);
+  };
 
   return (
-    <>
-      <section className="week-board-scroll hidden h-[calc(100vh-218px)] min-h-[520px] overflow-auto rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(27,27,40,0.035)] md:block" aria-label="Agenda da semana">
-        <div className="min-w-[700px] lg:min-w-0">
-          <div className="sticky top-0 z-40 grid border-b border-slate-200 bg-white/95 backdrop-blur" style={{ gridTemplateColumns: gridTemplate }}>
-            <div className="sticky left-0 z-50 bg-white/95" aria-hidden="true" />
-            {days.map((day) => {
-              const isToday = isSameDay(day, today);
-              const dateKey = format(day, "yyyy-MM-dd");
-              return (
-                <header key={dateKey} className={cn("group/day relative flex h-[54px] min-w-0 items-center border-l border-slate-200 px-2.5", isToday && "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#7657ff]")}>
-                  <div className="flex min-w-0 items-baseline gap-1.5">
-                    <h2 className={cn("truncate text-sm font-semibold capitalize text-slate-700", isToday && "text-[#6749df]")}>
-                      {format(day, "EEEE", { locale: ptBR })}
-                    </h2>
-                    <span className={cn("text-xs font-medium text-slate-400", isToday && "text-[#8067e8]")}>
-                      {format(day, "dd")}
-                    </span>
-                    <button onClick={() => onCreate(dateKey)} className="focus-ring ml-0.5 grid size-6 shrink-0 place-items-center rounded-md text-slate-300 opacity-30 transition hover:bg-[#f1efff] hover:text-[#684be6] hover:opacity-100 group-hover/day:opacity-100 focus:opacity-100" aria-label={`Criar demanda para ${format(day, "EEEE", { locale: ptBR })}`}>
-                      <Plus className="size-3.5" />
-                    </button>
-                  </div>
-                </header>
-              );
-            })}
-          </div>
-
-          <div className="grid border-b border-slate-200 bg-[#fafafd]" style={{ gridTemplateColumns: gridTemplate }}>
-            <div className="sticky left-0 z-30 flex min-h-[78px] items-start justify-end bg-[#fafafd] px-2 pt-3 text-[10px] font-medium leading-4 text-slate-400">
-              Sem<br />horário
-            </div>
-            {days.map((day) => {
-              const dateKey = format(day, "yyyy-MM-dd");
-              const untimedTasks = tasks.filter((task) => task.scheduledDate === dateKey && !task.scheduledTime);
-              return (
-                <div
-                  key={dateKey}
-                  onDragOver={(event) => { event.preventDefault(); setDragTarget(`untimed-${dateKey}`); }}
-                  onDragLeave={() => setDragTarget(null)}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    const taskId = event.dataTransfer.getData("text/weeki-task");
-                    if (taskId) onMove(taskId, dateKey, "");
-                    setDragTarget(null);
-                  }}
-                  className={cn("min-h-[78px] border-l border-slate-200 p-1.5 transition", dragTarget === `untimed-${dateKey}` && "bg-[#f0edff]")}
-                >
-                  <div className="space-y-1.5">
-                    {untimedTasks.map((task) => <TaskCard key={task.id} {...cardProps(task)} />)}
-                  </div>
-                  {!untimedTasks.length && (
-                    <button onClick={() => onCreate(dateKey)} className="flex h-full min-h-[64px] w-full items-center justify-center rounded-lg text-slate-200 transition hover:bg-white hover:text-[#8a73ef]" aria-label={`Adicionar demanda sem horário em ${format(day, "EEEE", { locale: ptBR })}`}>
-                      <Plus className="size-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid" style={{ gridTemplateColumns: gridTemplate }}>
-            <div className="sticky left-0 z-30 bg-white shadow-[4px_0_10px_rgba(30,30,45,0.025)]" style={{ height: timelineHeight }} aria-hidden="true">
-              {hours.map((hour, index) => (
-                <span key={hour} className="absolute right-2 text-[10px] font-medium tabular-nums text-slate-400" style={{ top: index * HOUR_HEIGHT + 6 }}>
-                  {hour.toString().padStart(2, "0")}:00
-                </span>
-              ))}
-            </div>
-
-            {days.map((day) => {
-              const dateKey = format(day, "yyyy-MM-dd");
-              const isToday = isSameDay(day, today);
-              const dayTasks = tasks.filter((task) => task.scheduledDate === dateKey && task.scheduledTime);
-              const positionedTasks = positionTasks(dayTasks, startHour, endHour, resizePreview);
-              const nowMinutes = today.getHours() * 60 + today.getMinutes();
-              const showCurrentTime = isToday && nowMinutes >= startHour * 60 && nowMinutes <= endHour * 60;
-              const currentTimeTop = ((nowMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
-
-              return (
-                <div
-                  key={dateKey}
-                  onDragOver={(event) => { event.preventDefault(); setDragTarget(dateKey); }}
-                  onDragLeave={(event) => {
-                    if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragTarget(null);
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    const taskId = event.dataTransfer.getData("text/weeki-task");
-                    if (taskId) {
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      const rawMinutes = startHour * 60 + ((event.clientY - rect.top) / HOUR_HEIGHT) * 60;
-                      const roundedMinutes = Math.round(rawMinutes / 15) * 15;
-                      const safeMinutes = Math.min(endHour * 60 - 15, Math.max(startHour * 60, roundedMinutes));
-                      onMove(taskId, dateKey, minutesToTime(safeMinutes));
-                    }
-                    setDragTarget(null);
-                  }}
-                  className={cn("relative border-l border-slate-200 transition", dragTarget === dateKey && "bg-[#f8f6ff]")}
-                  style={{ height: timelineHeight }}
-                >
-                  {hours.map((hour, index) => (
-                    <button
-                      key={hour}
-                      type="button"
-                      onClick={() => onCreate(dateKey, minutesToTime(hour * 60))}
-                      className="group/hour absolute inset-x-0 z-0 border-t border-slate-100 text-left transition hover:bg-[#faf9ff]"
-                      style={{ top: index * HOUR_HEIGHT, height: HOUR_HEIGHT }}
-                      aria-label={`Criar demanda às ${hour.toString().padStart(2, "0")}:00 de ${format(day, "EEEE", { locale: ptBR })}`}
-                    >
-                      <span className="absolute left-2 top-2 flex items-center gap-1 text-[10px] font-medium text-[#8067e8] opacity-0 transition group-hover/hour:opacity-100"><Plus className="size-3" /> adicionar</span>
-                    </button>
-                  ))}
-
-                  {showCurrentTime && (
-                    <div className="pointer-events-none absolute inset-x-0 z-20 border-t border-[#7657ff]/55" style={{ top: currentTimeTop }}>
-                      <span className="absolute -left-1 -top-1 size-2 rounded-full bg-[#7657ff]" />
-                    </div>
-                  )}
-
-                  {positionedTasks.map(({ task, top, height, lane, lanes }) => {
-                    const width = 100 / lanes;
-                    return (
-                      <div
-                        key={task.id}
-                        className="group/task absolute z-10 px-1"
-                        style={{ top, height, left: `${lane * width}%`, width: `${width}%` }}
-                      >
-                        <TaskCard {...cardProps(task)} displayHeight={height} hasConflict={lanes > 1} />
-                        <button
-                          type="button"
-                          onPointerDown={(event) => startResize(event, task)}
-                          className="absolute inset-x-3 bottom-0 z-30 h-2 cursor-ns-resize rounded-full opacity-0 transition group-hover/task:opacity-100"
-                          aria-label={`Alterar duração de ${task.title}`}
-                          title="Arraste para alterar a duração"
-                        >
-                          <span className="mx-auto block h-0.5 w-6 rounded-full bg-slate-400/70" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(27,27,40,0.035)] md:hidden" aria-label="Agenda do dia">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-white/95 px-3 py-3 backdrop-blur">
-          <button type="button" onClick={() => setMobileDayIndex((current) => Math.max(0, current - 1))} disabled={mobileDayIndex === 0} className="focus-ring grid size-9 place-items-center rounded-lg text-slate-500 disabled:opacity-25" aria-label="Dia anterior"><ChevronLeft className="size-5" /></button>
-          <div className="text-center">
-            <p className="text-sm font-semibold capitalize text-slate-800">{format(mobileDay, "EEEE, dd", { locale: ptBR })}</p>
-            <p className="mt-0.5 text-xs text-slate-400">{formatDailyLoad(mobileTimedTasks)}</p>
-          </div>
-          <button type="button" onClick={() => setMobileDayIndex((current) => Math.min(4, current + 1))} disabled={mobileDayIndex === 4} className="focus-ring grid size-9 place-items-center rounded-lg text-slate-500 disabled:opacity-25" aria-label="Próximo dia"><ChevronRight className="size-5" /></button>
-        </header>
-
-        <div className="p-3">
-          {mobileUntimedTasks.length > 0 && (
-            <div className="mb-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Sem horário</p>
-              <div className="space-y-2">{mobileUntimedTasks.map((task) => <TaskCard key={task.id} {...cardProps(task)} />)}</div>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {mobileTimedTasks.map((task) => (
-              <div key={task.id} className="grid grid-cols-[48px_minmax(0,1fr)] gap-2">
-                <time className="pt-2 text-xs font-semibold tabular-nums text-slate-400">{task.scheduledTime}</time>
-                <TaskCard {...cardProps(task)} />
+    <section className="week-board-scroll snap-x snap-mandatory overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_10px_36px_rgba(25,25,40,0.045)] lg:snap-none" aria-label={viewMode === "week" ? "Demandas da semana" : "Demandas por cliente"}>
+      <div className="week-columns" style={{ "--weeki-column-count": columns.length, "--weeki-board-min-width": `${columns.length * 144 + Math.max(0, columns.length - 1) * 12}px` } as React.CSSProperties}>
+        {columns.map((column) => (
+          <div
+            key={column.id}
+            onDragOver={(event) => { event.preventDefault(); setDragTarget(column.id); }}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragTarget(null);
+            }}
+            onDrop={(event) => handleDrop(event, column)}
+            className={cn(
+              "group/column relative min-h-[440px] snap-start overflow-hidden rounded-xl border border-slate-200 bg-[#f8f9fc] transition",
+              dragTarget === column.id && "border-[#9d8bed] bg-[#f4f1ff] shadow-[inset_0_0_0_1px_rgba(118,87,255,0.12)]",
+              column.isToday && "border-[#cec5f5]",
+            )}
+          >
+            <header className={cn("sticky top-0 z-10 flex h-14 items-center border-b border-slate-200 bg-white/95 px-3 backdrop-blur", column.isToday && "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#7657ff]")}>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {viewMode === "clients" && (
+                  column.clientColor
+                    ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} />
+                    : <span className="grid size-5 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400"><UserRound className="size-3" /></span>
+                )}
+                <h2 className={cn("truncate text-sm font-semibold capitalize text-slate-700", column.isToday && "text-[#6749df]")}>{column.title}</h2>
+                {column.dateNumber && <span className={cn("text-xs font-medium text-slate-400", column.isToday && "text-[#8067e8]")}>{column.dateNumber}</span>}
+                {viewMode === "clients" && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">{column.tasks.length}</span>}
               </div>
-            ))}
+              <button type="button" onClick={() => createForColumn(column)} className="focus-ring grid size-7 shrink-0 place-items-center rounded-lg text-slate-300 opacity-50 transition hover:bg-[#f1efff] hover:text-[#684be6] hover:opacity-100 group-hover/column:opacity-100 focus:opacity-100" aria-label={`Criar demanda em ${column.title}`}>
+                <Plus className="size-3.5" />
+              </button>
+            </header>
+
+            <div className="space-y-2 p-2.5">
+              {column.tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  {...cardProps(task)}
+                  contextLabel={viewMode === "clients" && task.scheduledDate ? format(parseISO(task.scheduledDate), "EEE, dd MMM", { locale: ptBR }) : undefined}
+                />
+              ))}
+
+              {!column.tasks.length && (
+                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/55 px-4 text-center text-xs text-slate-400 transition hover:border-[#aa9bed] hover:bg-white hover:text-[#674bdd]">
+                  <span className="mb-2 grid size-7 place-items-center rounded-lg bg-white text-slate-300 shadow-sm"><Plus className="size-3.5" /></span>
+                  Nenhuma demanda
+                  <span className="mt-1 text-[11px] text-slate-300">Clique para adicionar</span>
+                </button>
+              )}
+            </div>
           </div>
-
-          {!mobileTasks.length && (
-            <button type="button" onClick={() => onCreate(mobileDateKey)} className="flex min-h-44 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 text-center text-sm text-slate-400 transition hover:border-[#a998ef] hover:bg-[#faf9ff] hover:text-[#684be6]">
-              <span className="mb-2 grid size-9 place-items-center rounded-lg bg-[#f1efff] text-[#7657ff]"><Plus className="size-4" /></span>
-              Nenhuma demanda neste dia
-              <span className="mt-1 text-xs">Toque para adicionar</span>
-            </button>
-          )}
-
-          {mobileTasks.length > 0 && (
-            <button type="button" onClick={() => onCreate(mobileDateKey)} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-slate-400 transition hover:bg-[#f4f1ff] hover:text-[#684be6]"><Plus className="size-4" /> Adicionar demanda</button>
-          )}
-        </div>
-      </section>
-    </>
+        ))}
+      </div>
+    </section>
   );
 }
