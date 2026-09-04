@@ -8,8 +8,8 @@
 }
 
 :root {
-  --background: #f6f7fb;
-  --foreground: #17171c;
+  --background: #f7f8fc;
+  --foreground: #141b2b;
   --card: #ffffff;
   --card-foreground: #17171c;
   --popover: #ffffff;
@@ -103,11 +103,13 @@ button, input, textarea { font: inherit; }
 .week-columns {
   display: flex;
   min-width: max-content;
-  padding: 0.5rem 0 0;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0 0;
 }
 
 .week-columns > * {
-  flex: 0 0 min(84vw, 304px);
+  flex: 0 0 min(84vw, 268px);
 }
 
 @media (min-width: 1280px) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, CalendarDays, Clock3, Copy, MoreHorizontal, Pencil } from "lucide-react";
+import { Archive, CalendarDays, Clock3, Copy, ListChecks, MoreHorizontal, Paperclip, Pencil } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -14,10 +14,10 @@ import { PRIORITY_LABELS, type Task } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
 
 const priorityBorderClasses = {
-  low: "border-slate-300 hover:border-slate-400",
-  medium: "border-[#78a8ff] hover:border-[#4c8df7]",
-  high: "border-[#f2bd36] hover:border-[#e3a70c]",
-  urgent: "border-[#fb6b86] hover:border-[#f43f62]",
+  low: "border-slate-200 hover:border-slate-300",
+  medium: "border-indigo-200 hover:border-indigo-300",
+  high: "border-amber-300 hover:border-amber-400",
+  urgent: "border-rose-300 hover:border-rose-400",
 };
 
 const formatEstimate = (minutes: number | null) => {
@@ -46,6 +46,8 @@ export function TaskCard({
   const client = CLIENTS.find((item) => item.id === task.clientId);
   const isCompleted = task.status === "completed";
   const estimateLabel = formatEstimate(task.estimateMinutes);
+  const timeLabel = [task.scheduledTime, estimateLabel].filter(Boolean).join(" · ");
+  const checklistDone = task.checklist.filter((item) => item.completed).length;
 
   return (
     <article
@@ -66,28 +68,39 @@ export function TaskCard({
       tabIndex={0}
       aria-label={`Abrir demanda ${task.title}`}
       className={cn(
-        "group relative min-h-[102px] cursor-grab overflow-hidden rounded-[13px] border bg-white p-4 shadow-[0_2px_8px_rgba(27,31,44,0.025)] transition duration-200 hover:-translate-y-px hover:shadow-[0_9px_24px_rgba(46,51,67,0.08)] active:cursor-grabbing",
+        "group relative cursor-grab overflow-hidden rounded-xl border bg-white p-3 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.12)] transition duration-200 hover:-translate-y-px hover:shadow-[0_8px_20px_-8px_rgba(15,23,42,0.22)] active:cursor-grabbing",
         priorityBorderClasses[task.priority],
-        isCompleted && "border-emerald-400 bg-emerald-50/20 hover:border-emerald-500",
+        isCompleted && "border-teal-200 bg-slate-50/70 hover:border-teal-300",
       )}
     >
-      <div className="flex min-w-0 items-start gap-3 pr-5">
+      <div className="mb-2.5 flex min-w-0 items-center gap-1.5 pr-5">
+        {contextLabel ? (
+          <span className="flex min-w-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500"><CalendarDays className="size-3 shrink-0" /><span className="truncate">{contextLabel}</span></span>
+        ) : client ? (
+          <span className="min-w-0 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${client.color}14`, color: client.color }}>{client.name}</span>
+        ) : (
+          <span className="truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">Sem cliente</span>
+        )}
+        {timeLabel && <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] font-medium tabular-nums text-slate-500"><Clock3 className="size-3" />{timeLabel}</span>}
+      </div>
+
+      <div className="flex min-w-0 items-start gap-2.5 pr-4">
         <Checkbox
           checked={isCompleted}
           aria-label={isCompleted ? "Reabrir demanda" : "Concluir demanda"}
           onClick={(event) => event.stopPropagation()}
           onCheckedChange={onToggleComplete}
-          className="mt-0.5 size-5 shrink-0 rounded-full border-slate-300 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+          className="mt-0.5 size-4 shrink-0 rounded-[5px] border-slate-300 data-[state=checked]:border-[#111827] data-[state=checked]:bg-[#111827]"
         />
-        <h3 className={cn("line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-[1.45] tracking-[-0.01em] text-[#262631]", isCompleted && "text-slate-400 line-through")}>
+        <h3 className={cn("line-clamp-3 min-w-0 flex-1 text-[13px] font-medium leading-[1.45] tracking-[-0.005em] text-[#1a2232]", isCompleted && "font-normal text-slate-400 line-through")}>
           {task.title}
         </h3>
       </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button onClick={(event) => event.stopPropagation()} className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-lg text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100 focus:opacity-100" aria-label="Mais ações">
-            <MoreHorizontal className="size-4" />
+          <button onClick={(event) => event.stopPropagation()} className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-md bg-white/80 text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100 focus:opacity-100" aria-label="Mais ações">
+            <MoreHorizontal className="size-3.5" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
@@ -98,16 +111,12 @@ export function TaskCard({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="mt-4 flex min-w-0 items-center gap-2 pl-8">
-        {contextLabel ? (
-          <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-slate-500"><CalendarDays className="size-3.5 shrink-0 text-slate-400" /><span className="truncate">{contextLabel}</span></span>
-        ) : client ? (
-          <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-slate-500"><span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: client.color }} /><span className="truncate">{client.name}</span></span>
-        ) : (
-          <span className="truncate text-[11px] text-slate-400">Sem cliente</span>
-        )}
-        {estimateLabel && <span className="ml-auto flex shrink-0 items-center gap-1 text-[11px] font-medium tabular-nums text-slate-500"><Clock3 className="size-3.5 text-slate-400" />{estimateLabel}</span>}
-      </div>
+      {(task.checklist.length > 0 || task.attachments.length > 0) && (
+        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-2 pl-[26px] text-[10px] font-medium text-slate-400">
+          {task.checklist.length > 0 && <span className="flex items-center gap-1"><ListChecks className="size-3" />{checklistDone}/{task.checklist.length}</span>}
+          {task.attachments.length > 0 && <span className="flex items-center gap-1"><Paperclip className="size-3" />{task.attachments.length}</span>}
+        </div>
+      )}
     </article>
   );
 }

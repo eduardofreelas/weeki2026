@@ -26,7 +26,7 @@ const sortByDateAndTime = (a: Task, b: Task) => {
 type BoardColumn = {
   id: string;
   title: string;
-  dateLabel?: string;
+  dateNumber?: string;
   dateKey?: string;
   clientId?: string | null;
   clientColor?: string;
@@ -83,8 +83,8 @@ export function WeekBoard({
       const dateKey = format(day, "yyyy-MM-dd");
       return {
         id: `day-${dateKey}`,
-        title: format(day, "EEEE", { locale: ptBR }),
-        dateLabel: format(day, "dd 'de' MMMM", { locale: ptBR }),
+        title: format(day, "EEE", { locale: ptBR }).replace(".", "").toUpperCase(),
+        dateNumber: format(day, "dd"),
         dateKey,
         tasks: tasks.filter((task) => task.scheduledDate === dateKey).sort(sortByTime),
         isToday: dateKey === todayKey,
@@ -126,29 +126,26 @@ export function WeekBoard({
             }}
             onDrop={(event) => handleDrop(event, column)}
             className={cn(
-              "group/column relative min-h-[520px] snap-start border-l border-slate-200/90 transition first:border-l-0",
-              dragTarget === column.id && "bg-[#f8f6ff] shadow-[inset_0_0_0_1px_rgba(118,87,255,0.08)]",
+              "group/column relative min-h-[470px] snap-start rounded-2xl border border-transparent bg-white/65 p-1.5 transition",
+              column.isToday && "border-slate-300 bg-[#eef0ff]",
+              dragTarget === column.id && "border-[#8275ee] bg-[#eceaff] shadow-[0_10px_28px_-16px_rgba(79,70,229,0.45)]",
             )}
           >
-            <header className="sticky top-0 z-10 flex min-h-[76px] items-start bg-[#fbfcfe]/95 px-4 py-4 backdrop-blur">
-              <div className="flex min-w-0 flex-1 items-start gap-2">
+            <header className="sticky top-0 z-10 flex min-h-12 items-center rounded-xl bg-inherit px-2.5 py-2 backdrop-blur">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 {viewMode === "clients" && (
                   column.clientColor
-                    ? <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} />
+                    ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} />
                     : <span className="grid size-5 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400"><UserRound className="size-3" /></span>
                 )}
-                <div className="min-w-0">
-                  <h2 className={cn("truncate text-[15px] font-semibold capitalize tracking-[-0.015em] text-[#272731]", column.isToday && "text-[#6749df]")}>{column.title}</h2>
-                  {column.dateLabel && <p className={cn("mt-1 truncate text-[11px] font-medium text-slate-400", column.isToday && "text-[#8a77df]")}>{column.dateLabel}</p>}
-                  {viewMode === "clients" && <p className="mt-1 text-[11px] text-slate-400">{column.tasks.length} {column.tasks.length === 1 ? "demanda" : "demandas"}</p>}
-                </div>
+                <h2 className={cn("truncate text-[11px] font-semibold tracking-[0.04em] text-slate-600", column.isToday && "text-[#4f46e5]", viewMode === "clients" && "text-xs normal-case tracking-normal text-slate-700")}>{column.title}</h2>
+                {column.dateNumber && <span className="text-[15px] font-semibold tracking-[-0.02em] text-[#172033]">{column.dateNumber}</span>}
+                {column.isToday && <span className="rounded-md bg-[#111827] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">Hoje</span>}
+                <span className="ml-auto rounded-md bg-[#f0f1f7] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-500">{column.tasks.length}</span>
               </div>
-              <button type="button" onClick={() => createForColumn(column)} className="focus-ring grid size-7 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-[#f1efff] hover:text-[#684be6]" aria-label={`Criar demanda em ${column.title}`}>
-                <Plus className="size-4" />
-              </button>
             </header>
 
-            <div className="space-y-3 px-4 pb-6">
+            <div className="space-y-2 px-1 pb-1">
               {column.tasks.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -157,11 +154,9 @@ export function WeekBoard({
                 />
               ))}
 
-              {!column.tasks.length && (
-                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-24 w-full items-center justify-center rounded-xl border border-dashed border-transparent px-4 text-center text-xs text-slate-300 opacity-0 transition hover:border-slate-200 hover:bg-white/60 hover:text-[#674bdd] group-hover/column:opacity-100 focus:opacity-100">
-                  <Plus className="mr-1.5 size-3.5" /> Adicionar demanda
-                </button>
-              )}
+              <button type="button" onClick={() => createForColumn(column)} className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-medium text-slate-400 transition hover:bg-white hover:text-[#4f46e5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f46e5]/20">
+                <Plus className="size-3.5" /> Adicionar
+              </button>
             </div>
           </div>
         ))}
