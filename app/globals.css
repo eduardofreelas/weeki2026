@@ -103,22 +103,39 @@ button, input, textarea { font: inherit; }
 .week-columns {
   display: flex;
   min-width: max-content;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 0.5rem 0 0;
 }
 
 .week-columns > * {
-  flex: 0 0 min(82vw, 280px);
+  flex: 0 0 min(84vw, 304px);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .week-columns {
     display: grid;
-    grid-template-columns: repeat(var(--weeki-column-count), minmax(132px, 1fr));
-    min-width: max(100%, var(--weeki-board-min-width));
+    grid-template-columns: repeat(var(--weeki-column-count), minmax(0, 1fr));
+    min-width: 100%;
+    width: 100%;
   }
 
   .week-columns > * { min-width: 0; }
+}
+
+.rich-text-editor:empty::before {
+  color: #a3a6b2;
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.rich-text-editor p + p { margin-top: 0.5rem; }
+.rich-text-editor ul,
+.rich-text-editor ol { padding-left: 1.35rem; }
+.rich-text-editor ul { list-style: disc; }
+.rich-text-editor ol { list-style: decimal; }
+.rich-text-editor a {
+  color: #6548df;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .focus-ring:focus-visible {

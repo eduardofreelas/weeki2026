@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { addDays, addWeeks, format, isWithinInterval, parseISO, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -31,6 +31,7 @@ import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { cn } from "@/lib/utils";
 
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
+const subscribeToHydration = () => () => undefined;
 
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
@@ -48,7 +49,7 @@ export default function Home() {
   const [initialDate, setInitialDate] = useState<string | null>(null);
   const [initialTime, setInitialTime] = useState("");
   const [initialClientId, setInitialClientId] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
   const weekEnd = addDays(weekStart, showWeekend ? 6 : 4);
@@ -70,8 +71,6 @@ export default function Home() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, [todayKey]);
-
-  useEffect(() => setMounted(true), []);
 
   const tasksInWeek = useMemo(() => tasks.filter((task) => {
     if (!task.scheduledDate) return false;
@@ -174,7 +173,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb]">
+    <div className="min-h-screen bg-[#fbfcfe]">
       <WeekiSidebar inboxCount={inboxTasks.length} />
       <MobileNavigation />
 
@@ -294,7 +293,7 @@ export default function Home() {
         </div>
       </main>
 
-      <TaskSheet open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} initialClientId={initialClientId} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
+      <TaskSheet key={`${sheetOpen ? "open" : "closed"}-${selectedTask?.id ?? "new"}-${initialDate ?? "inbox"}-${initialTime}-${initialClientId ?? "none"}`} open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} initialClientId={initialClientId} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
       <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} />
       <Toaster position="bottom-right" richColors />
     </div>

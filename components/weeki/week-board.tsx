@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addDays, format, isSameDay, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, UserRound } from "lucide-react";
 import { CLIENTS } from "@/features/tasks/seed";
@@ -26,7 +26,7 @@ const sortByDateAndTime = (a: Task, b: Task) => {
 type BoardColumn = {
   id: string;
   title: string;
-  dateNumber?: string;
+  dateLabel?: string;
   dateKey?: string;
   clientId?: string | null;
   clientColor?: string;
@@ -60,7 +60,7 @@ export function WeekBoard({
   onArchive: (taskId: string) => void;
 }) {
   const [dragTarget, setDragTarget] = useState<string | null>(null);
-  const today = new Date();
+  const todayKey = format(new Date(), "yyyy-MM-dd");
 
   const columns = useMemo<BoardColumn[]>(() => {
     if (viewMode === "clients") {
@@ -84,13 +84,13 @@ export function WeekBoard({
       return {
         id: `day-${dateKey}`,
         title: format(day, "EEEE", { locale: ptBR }),
-        dateNumber: format(day, "dd"),
+        dateLabel: format(day, "dd 'de' MMMM", { locale: ptBR }),
         dateKey,
         tasks: tasks.filter((task) => task.scheduledDate === dateKey).sort(sortByTime),
-        isToday: isSameDay(day, today),
+        isToday: dateKey === todayKey,
       };
     });
-  }, [showWeekend, tasks, viewMode, weekStart]);
+  }, [showWeekend, tasks, todayKey, viewMode, weekStart]);
 
   const cardProps = (task: Task) => ({
     task,
@@ -115,8 +115,8 @@ export function WeekBoard({
   };
 
   return (
-    <section className="week-board-scroll snap-x snap-mandatory overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_10px_36px_rgba(25,25,40,0.045)] lg:snap-none" aria-label={viewMode === "week" ? "Demandas da semana" : "Demandas por cliente"}>
-      <div className="week-columns" style={{ "--weeki-column-count": columns.length, "--weeki-board-min-width": `${columns.length * 144 + Math.max(0, columns.length - 1) * 12}px` } as React.CSSProperties}>
+    <section className="week-board-scroll snap-x snap-mandatory overflow-x-auto xl:snap-none" aria-label={viewMode === "week" ? "Demandas da semana" : "Demandas por cliente"}>
+      <div className="week-columns" style={{ "--weeki-column-count": columns.length } as React.CSSProperties}>
         {columns.map((column) => (
           <div
             key={column.id}
@@ -126,28 +126,29 @@ export function WeekBoard({
             }}
             onDrop={(event) => handleDrop(event, column)}
             className={cn(
-              "group/column relative min-h-[440px] snap-start overflow-hidden rounded-xl border border-slate-200 bg-[#f8f9fc] transition",
-              dragTarget === column.id && "border-[#9d8bed] bg-[#f4f1ff] shadow-[inset_0_0_0_1px_rgba(118,87,255,0.12)]",
-              column.isToday && "border-[#cec5f5]",
+              "group/column relative min-h-[520px] snap-start border-l border-slate-200/90 transition first:border-l-0",
+              dragTarget === column.id && "bg-[#f8f6ff] shadow-[inset_0_0_0_1px_rgba(118,87,255,0.08)]",
             )}
           >
-            <header className={cn("sticky top-0 z-10 flex h-14 items-center border-b border-slate-200 bg-white/95 px-3 backdrop-blur", column.isToday && "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#7657ff]")}>
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+            <header className="sticky top-0 z-10 flex min-h-[76px] items-start bg-[#fbfcfe]/95 px-4 py-4 backdrop-blur">
+              <div className="flex min-w-0 flex-1 items-start gap-2">
                 {viewMode === "clients" && (
                   column.clientColor
-                    ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} />
+                    ? <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} />
                     : <span className="grid size-5 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400"><UserRound className="size-3" /></span>
                 )}
-                <h2 className={cn("truncate text-sm font-semibold capitalize text-slate-700", column.isToday && "text-[#6749df]")}>{column.title}</h2>
-                {column.dateNumber && <span className={cn("text-xs font-medium text-slate-400", column.isToday && "text-[#8067e8]")}>{column.dateNumber}</span>}
-                {viewMode === "clients" && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">{column.tasks.length}</span>}
+                <div className="min-w-0">
+                  <h2 className={cn("truncate text-[15px] font-semibold capitalize tracking-[-0.015em] text-[#272731]", column.isToday && "text-[#6749df]")}>{column.title}</h2>
+                  {column.dateLabel && <p className={cn("mt-1 truncate text-[11px] font-medium text-slate-400", column.isToday && "text-[#8a77df]")}>{column.dateLabel}</p>}
+                  {viewMode === "clients" && <p className="mt-1 text-[11px] text-slate-400">{column.tasks.length} {column.tasks.length === 1 ? "demanda" : "demandas"}</p>}
+                </div>
               </div>
-              <button type="button" onClick={() => createForColumn(column)} className="focus-ring grid size-7 shrink-0 place-items-center rounded-lg text-slate-300 opacity-50 transition hover:bg-[#f1efff] hover:text-[#684be6] hover:opacity-100 group-hover/column:opacity-100 focus:opacity-100" aria-label={`Criar demanda em ${column.title}`}>
-                <Plus className="size-3.5" />
+              <button type="button" onClick={() => createForColumn(column)} className="focus-ring grid size-7 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-[#f1efff] hover:text-[#684be6]" aria-label={`Criar demanda em ${column.title}`}>
+                <Plus className="size-4" />
               </button>
             </header>
 
-            <div className="space-y-2 p-2.5">
+            <div className="space-y-3 px-4 pb-6">
               {column.tasks.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -157,10 +158,8 @@ export function WeekBoard({
               ))}
 
               {!column.tasks.length && (
-                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/55 px-4 text-center text-xs text-slate-400 transition hover:border-[#aa9bed] hover:bg-white hover:text-[#674bdd]">
-                  <span className="mb-2 grid size-7 place-items-center rounded-lg bg-white text-slate-300 shadow-sm"><Plus className="size-3.5" /></span>
-                  Nenhuma demanda
-                  <span className="mt-1 text-[11px] text-slate-300">Clique para adicionar</span>
+                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-24 w-full items-center justify-center rounded-xl border border-dashed border-transparent px-4 text-center text-xs text-slate-300 opacity-0 transition hover:border-slate-200 hover:bg-white/60 hover:text-[#674bdd] group-hover/column:opacity-100 focus:opacity-100">
+                  <Plus className="mr-1.5 size-3.5" /> Adicionar demanda
                 </button>
               )}
             </div>

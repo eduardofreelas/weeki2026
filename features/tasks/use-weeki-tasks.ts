@@ -12,24 +12,23 @@ const makeId = () =>
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export function useWeekiTasks() {
-  const [tasks, setTasks] = useState<Task[]>(() => createSeedTasks());
-  const [hydrated, setHydrated] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    if (typeof window === "undefined") return createSeedTasks();
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) as Task[] : createSeedTasks();
+    } catch {
+      return createSeedTasks();
+    }
+  });
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) setTasks(JSON.parse(saved) as Task[]);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     } catch {
-      // The starter data remains available if storage is blocked.
-    } finally {
-      setHydrated(true);
+      // The app remains usable when browser storage is unavailable.
     }
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }, [hydrated, tasks]);
+  }, [tasks]);
 
   const addTask = useCallback((draft: TaskDraft) => {
     const now = new Date().toISOString();

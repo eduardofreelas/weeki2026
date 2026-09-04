@@ -4,15 +4,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+  AlignLeft,
   Archive,
+  BriefcaseBusiness,
+  CalendarClock,
+  CheckCircle2,
   ChevronDown,
   CirclePlus,
+  Clock3,
   FileText,
+  History,
   Link2,
   Paperclip,
   Plus,
+  Repeat2,
+  Tags,
+  Timer,
   Trash2,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/weeki/rich-text-editor";
 import type { Client, RecurrenceType, Task, TaskDraft, TaskPriority, TaskStatus } from "@/features/tasks/types";
 import { PRIORITY_LABELS, RECURRENCE_LABELS, STATUS_LABELS } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
@@ -98,11 +108,15 @@ function FieldLabel({ children, optional = false }: { children: React.ReactNode;
   );
 }
 
-function SectionTitle({ title, description }: { title: string; description?: string }) {
+function SectionTitle({ title, description, icon: Icon }: { title: string; description?: string; icon: LucideIcon }) {
   return (
-    <div className="mb-3">
-      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-      {description && <p className="mt-0.5 text-xs leading-5 text-slate-400">{description}</p>}
+    <div className="mb-4">
+      <div className="flex items-center gap-2.5">
+        <Icon className="size-[17px] shrink-0 text-slate-500" />
+        <h3 className="shrink-0 text-sm font-semibold text-slate-800">{title}</h3>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+      {description && <p className="mt-1 pl-[27px] text-xs leading-5 text-slate-400">{description}</p>}
     </div>
   );
 }
@@ -128,44 +142,33 @@ export function TaskSheet({
   onSave: (draft: TaskDraft, taskId?: string, options?: { silent?: boolean }) => void;
   onArchive: (taskId: string) => void;
 }) {
-  const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft(initialDate, initialTime, initialClientId));
+  const initialDraft = task ? taskToDraft(task) : emptyDraft(initialDate, initialTime, initialClientId);
+  const [draft, setDraft] = useState<TaskDraft>(initialDraft);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [customEstimateOpen, setCustomEstimateOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(Boolean(initialDraft.scheduledDate && initialDraft.scheduledDate !== format(new Date(), "yyyy-MM-dd") && initialDraft.scheduledDate !== format(addDays(new Date(), 1), "yyyy-MM-dd")));
+  const [customEstimateOpen, setCustomEstimateOpen] = useState(Boolean(initialDraft.estimateMinutes && !estimateOptions.some((option) => option.value === initialDraft.estimateMinutes)));
   const [tagInput, setTagInput] = useState("");
   const [checklistInput, setChecklistInput] = useState("");
   const [linkInput, setLinkInput] = useState("");
-  const [autoSaveState, setAutoSaveState] = useState<"saving" | "saved" | null>(null);
-  const lastSavedRef = useRef("");
+  const [autoSaveState, setAutoSaveState] = useState<"saving" | "saved" | null>(task ? "saved" : null);
+  const lastSavedRef = useRef(JSON.stringify(initialDraft));
   const todayKey = format(new Date(), "yyyy-MM-dd");
   const tomorrowKey = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
-  useEffect(() => {
-    if (!open) return;
-    const nextDraft = task ? taskToDraft(task) : emptyDraft(initialDate, initialTime, initialClientId);
-    setDraft(nextDraft);
-    lastSavedRef.current = JSON.stringify(nextDraft);
-    setAdvancedOpen(false);
-    setShowDatePicker(Boolean(nextDraft.scheduledDate && nextDraft.scheduledDate !== todayKey && nextDraft.scheduledDate !== tomorrowKey));
-    setCustomEstimateOpen(Boolean(nextDraft.estimateMinutes && !estimateOptions.some((option) => option.value === nextDraft.estimateMinutes)));
-    setTagInput("");
-    setChecklistInput("");
-    setLinkInput("");
-    setAutoSaveState(task ? "saved" : null);
-  }, [open, task?.id, initialDate, initialTime, initialClientId, todayKey, tomorrowKey]);
+  const taskId = task?.id;
 
   useEffect(() => {
-    if (!open || !task || !draft.title.trim()) return;
+    if (!open || !taskId || !draft.title.trim()) return;
     const serialized = JSON.stringify(draft);
     if (serialized === lastSavedRef.current) return;
     setAutoSaveState("saving");
     const timer = window.setTimeout(() => {
-      onSave({ ...draft, title: draft.title.trim() }, task.id, { silent: true });
+      onSave({ ...draft, title: draft.title.trim() }, taskId, { silent: true });
       lastSavedRef.current = serialized;
       setAutoSaveState("saved");
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [draft, open, task?.id, onSave]);
+  }, [draft, open, taskId, onSave]);
 
   const checklistProgress = useMemo(() => {
     if (!draft.checklist.length) return 0;
@@ -220,9 +223,9 @@ export function TaskSheet({
     onOpenChange(false);
   };
 
-  const renderEstimate = () => (
+  const renderEstimate = (sectioned = false) => (
     <div>
-      <FieldLabel optional>Tempo estimado</FieldLabel>
+      {sectioned ? <SectionTitle title="Tempo estimado" description="Quanto tempo essa demanda deve levar?" icon={Timer} /> : <FieldLabel optional>Tempo estimado</FieldLabel>}
       <div className="flex flex-wrap gap-1.5">
         {estimateOptions.map((option) => (
           <button
@@ -248,9 +251,9 @@ export function TaskSheet({
     </div>
   );
 
-  const renderTags = () => (
+  const renderTags = (sectioned = false) => (
     <div>
-      <FieldLabel optional>Tags</FieldLabel>
+      {sectioned ? <SectionTitle title="Etiquetas" description="Use marcadores curtos para organizar e localizar demandas." icon={Tags} /> : <FieldLabel optional>Tags</FieldLabel>}
       <Input
         value={tagInput}
         onChange={(event) => setTagInput(event.target.value)}
@@ -273,9 +276,9 @@ export function TaskSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-hidden border-l border-slate-200 bg-[#fbfbfd] p-0 sm:max-w-[600px]" showCloseButton={false}>
+      <SheetContent className="w-full gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-[-18px_0_60px_rgba(22,24,35,0.12)] sm:max-w-[720px] xl:max-w-[760px]" showCloseButton={false}>
         <form onSubmit={submit} className="flex h-full min-h-0 flex-1 flex-col">
-          <SheetHeader className="shrink-0 border-b bg-white px-5 py-4 pr-16 sm:px-6">
+          <SheetHeader className="shrink-0 border-b bg-white px-5 py-5 pr-16 sm:px-8">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-[#eeeaff] text-[#6f52ec]">
                 {task ? <FileText className="size-[18px]" /> : <CirclePlus className="size-[18px]" />}
@@ -293,7 +296,7 @@ export function TaskSheet({
           </SheetHeader>
 
           {!task ? (
-            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-5 sm:p-8">
               <div className="space-y-5">
                 <div>
                   <FieldLabel>O que precisa ser feito?</FieldLabel>
@@ -335,7 +338,7 @@ export function TaskSheet({
                   <div className="space-y-6 border-t pt-5">
                     <div>
                       <FieldLabel optional>Descrição</FieldLabel>
-                      <Textarea value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Contexto, orientações ou resultado esperado..." className="min-h-24 resize-y bg-white" />
+                      <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} placeholder="Contexto, orientações ou resultado esperado..." />
                     </div>
                     <div>
                       <FieldLabel>Prioridade</FieldLabel>
@@ -375,24 +378,25 @@ export function TaskSheet({
             </div>
           ) : (
             <>
-              <div className="shrink-0 border-b bg-white px-5 pt-4 sm:px-6">
-                <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-auto rounded-none border-0 px-0 pb-4 text-xl font-semibold tracking-[-0.02em] shadow-none focus-visible:ring-0" />
+              <div className="shrink-0 border-b bg-white px-5 py-4 sm:px-8">
+                <FieldLabel>Título da demanda</FieldLabel>
+                <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-11 rounded-xl bg-white px-4 text-base font-medium shadow-[0_1px_2px_rgba(15,23,42,0.02)]" />
               </div>
 
               <Tabs defaultValue="details" className="min-h-0 flex-1 gap-0 overflow-hidden">
-                <div className="shrink-0 border-b bg-white px-4 sm:px-6">
-                  <TabsList variant="line" className="grid h-12 w-full grid-cols-4 gap-0 overflow-visible p-0">
-                    <TabsTrigger value="details" className="h-12 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]">Detalhes</TabsTrigger>
-                    <TabsTrigger value="checklist" className="h-12 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]">Checklist</TabsTrigger>
-                    <TabsTrigger value="files" className="h-12 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]">Anexos</TabsTrigger>
-                    <TabsTrigger value="activity" className="h-12 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]">Atividade</TabsTrigger>
+                <div className="shrink-0 border-b bg-white px-3 sm:px-8">
+                  <TabsList variant="line" className="grid h-14 w-full grid-cols-4 gap-0 overflow-visible p-0">
+                    <TabsTrigger value="details" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><FileText className="size-4" />Detalhes</TabsTrigger>
+                    <TabsTrigger value="checklist" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><CheckCircle2 className="size-4" />Checklist</TabsTrigger>
+                    <TabsTrigger value="files" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><Paperclip className="size-4" />Anexos</TabsTrigger>
+                    <TabsTrigger value="activity" className="h-14 gap-2 rounded-none px-1 text-xs after:bottom-0 after:bg-[#7657ff]"><History className="size-4" />Atividade</TabsTrigger>
                   </TabsList>
                 </div>
 
                 <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
-                  <TabsContent value="details" className="m-0 space-y-7 p-5 sm:p-6">
+                  <TabsContent value="details" className="m-0 space-y-8 p-5 sm:p-8">
                     <section>
-                      <SectionTitle title="Organização" />
+                      <SectionTitle title="Organização" icon={BriefcaseBusiness} />
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <FieldLabel optional>Cliente</FieldLabel>
@@ -419,12 +423,12 @@ export function TaskSheet({
                     </section>
 
                     <section>
-                      <SectionTitle title="Descrição" description="Contexto, orientações ou resultado esperado." />
-                      <Textarea value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Adicione os detalhes da demanda..." className="min-h-28 resize-y bg-white" />
+                      <SectionTitle title="Descrição" description="Contexto, orientações ou resultado esperado." icon={AlignLeft} />
+                      <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} placeholder="Adicione os detalhes da demanda..." />
                     </section>
 
                     <section>
-                      <SectionTitle title="Agendamento" description="Quando pretende fazer?" />
+                      <SectionTitle title="Agendamento" description="Quando pretende fazer?" icon={CalendarClock} />
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div><FieldLabel optional>Data</FieldLabel><Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="bg-white" /></div>
                         <div><FieldLabel optional>Horário</FieldLabel><Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="bg-white" /></div>
@@ -432,17 +436,17 @@ export function TaskSheet({
                     </section>
 
                     <section>
-                      <SectionTitle title="Prazo" description="Até quando precisa estar pronto?" />
+                      <SectionTitle title="Prazo" description="Até quando precisa estar pronto?" icon={Clock3} />
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div><FieldLabel optional>Data</FieldLabel><Input type="date" value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} className="bg-white" /></div>
                         <div><FieldLabel optional>Horário limite</FieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="bg-white" /></div>
                       </div>
                     </section>
 
-                    <section>{renderEstimate()}</section>
+                    <section>{renderEstimate(true)}</section>
 
                     <section>
-                      <SectionTitle title="Repetição" />
+                      <SectionTitle title="Repetição" description="Defina uma frequência e quando ela deve terminar." icon={Repeat2} />
                       <Select value={draft.recurrence.type} onValueChange={(value) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, type: value as RecurrenceType } }))}>
                         <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
                         <SelectContent>{Object.entries(RECURRENCE_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
@@ -461,10 +465,10 @@ export function TaskSheet({
                       )}
                     </section>
 
-                    <section>{renderTags()}</section>
+                    <section>{renderTags(true)}</section>
                   </TabsContent>
 
-                  <TabsContent value="checklist" className="m-0 p-5 sm:p-6">
+                  <TabsContent value="checklist" className="m-0 p-5 sm:p-8">
                     <div className="mb-5">
                       <div className="mb-2 flex items-center justify-between text-sm"><span className="font-semibold text-slate-800">Progresso</span><span className="font-semibold text-[#6246d8]">{checklistProgress}%</span></div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#7657ff] to-[#2f80ed] transition-all" style={{ width: `${checklistProgress}%` }} /></div>
@@ -475,7 +479,7 @@ export function TaskSheet({
                     <div className="mt-3 flex gap-2"><Input value={checklistInput} onChange={(event) => setChecklistInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addChecklistItem(); } }} placeholder="Adicionar item ao checklist" className="bg-white" /><Button type="button" variant="outline" onClick={addChecklistItem}><Plus className="size-4" /><span className="sr-only sm:not-sr-only">Adicionar</span></Button></div>
                   </TabsContent>
 
-                  <TabsContent value="files" className="m-0 p-5 sm:p-6">
+                  <TabsContent value="files" className="m-0 p-5 sm:p-8">
                     <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center transition hover:border-[#8b73ef] hover:bg-[#faf9ff]">
                       <span className="mb-3 grid size-11 place-items-center rounded-xl bg-[#eeeaff] text-[#6b50df]"><Paperclip className="size-5" /></span>
                       <span className="text-sm font-semibold text-slate-800">Adicionar arquivos</span>
@@ -495,21 +499,21 @@ export function TaskSheet({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="activity" className="m-0 p-5 sm:p-6">
-                    <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-slate-200">{task.activity.map((item) => <div key={item.id} className="relative flex gap-4"><span className="relative z-10 mt-1.5 size-[15px] shrink-0 rounded-full border-[4px] border-[#fbfbfd] bg-[#7a60eb]" /><div><p className="text-sm font-medium text-slate-700">{item.text}</p><p className="mt-1 text-xs text-slate-400">{format(parseISO(item.createdAt), "dd MMM, HH:mm", { locale: ptBR })}</p></div></div>)}</div>
+                  <TabsContent value="activity" className="m-0 p-5 sm:p-8">
+                    <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-slate-200">{task.activity.map((item) => <div key={item.id} className="relative flex gap-4"><span className="relative z-10 mt-1.5 size-[15px] shrink-0 rounded-full border-[4px] border-white bg-[#7a60eb]" /><div><p className="text-sm font-medium text-slate-700">{item.text}</p><p className="mt-1 text-xs text-slate-400">{format(parseISO(item.createdAt), "dd MMM, HH:mm", { locale: ptBR })}</p></div></div>)}</div>
                   </TabsContent>
                 </div>
               </Tabs>
             </>
           )}
 
-          <SheetFooter className="shrink-0 flex-row items-center border-t bg-white px-5 py-4 sm:px-6">
+          <SheetFooter className="shrink-0 flex-row items-center gap-2 border-t bg-white px-5 py-3 sm:px-8">
             {task ? (
               <>
-                <Button type="button" variant="ghost" className="mr-auto px-2 text-slate-500 hover:text-rose-600" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive /> <span className="hidden sm:inline">Arquivar</span></Button>
-                <span className="hidden text-xs text-slate-400 sm:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-                <Button type="submit" className="bg-gradient-to-r from-[#7657ff] to-[#356fd7] px-4 shadow-[0_6px_18px_rgba(105,78,226,0.2)] hover:opacity-90">Salvar</Button>
+                <Button type="button" variant="ghost" size="sm" className="mr-auto px-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive /> <span className="hidden sm:inline">Arquivar</span></Button>
+                <span className="hidden text-xs text-slate-400 md:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button type="submit" size="sm" className="bg-gradient-to-r from-[#7657ff] to-[#6548df] px-4 shadow-[0_5px_16px_rgba(105,78,226,0.2)] hover:opacity-90">Salvar</Button>
               </>
             ) : (
               <>

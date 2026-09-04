@@ -13,11 +13,11 @@ import { CLIENTS } from "@/features/tasks/seed";
 import { PRIORITY_LABELS, type Task } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
 
-const priorityBarClasses = {
-  low: "before:bg-slate-200",
-  medium: "before:bg-transparent",
-  high: "before:bg-orange-400",
-  urgent: "before:bg-rose-500",
+const priorityBorderClasses = {
+  low: "border-slate-300 hover:border-slate-400",
+  medium: "border-[#78a8ff] hover:border-[#4c8df7]",
+  high: "border-[#f2bd36] hover:border-[#e3a70c]",
+  urgent: "border-[#fb6b86] hover:border-[#f43f62]",
 };
 
 const formatEstimate = (minutes: number | null) => {
@@ -45,7 +45,7 @@ export function TaskCard({
 }) {
   const client = CLIENTS.find((item) => item.id === task.clientId);
   const isCompleted = task.status === "completed";
-  const timeLabel = [task.scheduledTime, formatEstimate(task.estimateMinutes)].filter(Boolean).join(" · ");
+  const estimateLabel = formatEstimate(task.estimateMinutes);
 
   return (
     <article
@@ -66,20 +66,20 @@ export function TaskCard({
       tabIndex={0}
       aria-label={`Abrir demanda ${task.title}`}
       className={cn(
-        "group relative min-h-[86px] cursor-grab overflow-hidden rounded-xl border border-slate-200/90 bg-white p-3 shadow-[0_2px_9px_rgba(25,25,38,0.04)] transition duration-200 before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-r-full hover:-translate-y-0.5 hover:border-[#bcb0ee] hover:shadow-[0_10px_26px_rgba(56,43,112,0.1)] active:cursor-grabbing",
-        priorityBarClasses[task.priority],
-        isCompleted && "bg-slate-50/90 opacity-60",
+        "group relative min-h-[102px] cursor-grab overflow-hidden rounded-[13px] border bg-white p-4 shadow-[0_2px_8px_rgba(27,31,44,0.025)] transition duration-200 hover:-translate-y-px hover:shadow-[0_9px_24px_rgba(46,51,67,0.08)] active:cursor-grabbing",
+        priorityBorderClasses[task.priority],
+        isCompleted && "border-emerald-400 bg-emerald-50/20 hover:border-emerald-500",
       )}
     >
-      <div className="flex min-w-0 items-start gap-2.5 pr-5">
+      <div className="flex min-w-0 items-start gap-3 pr-5">
         <Checkbox
           checked={isCompleted}
           aria-label={isCompleted ? "Reabrir demanda" : "Concluir demanda"}
           onClick={(event) => event.stopPropagation()}
           onCheckedChange={onToggleComplete}
-          className="mt-0.5 size-4 shrink-0 rounded-full data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+          className="mt-0.5 size-5 shrink-0 rounded-full border-slate-300 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
         />
-        <h3 className={cn("line-clamp-2 min-w-0 flex-1 text-[13px] font-semibold leading-[1.4] text-[#282830]", isCompleted && "line-through")}>
+        <h3 className={cn("line-clamp-2 min-w-0 flex-1 text-sm font-semibold leading-[1.45] tracking-[-0.01em] text-[#262631]", isCompleted && "text-slate-400 line-through")}>
           {task.title}
         </h3>
       </div>
@@ -98,7 +98,7 @@ export function TaskCard({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="mt-3 flex min-w-0 items-center gap-2 pl-[26px]">
+      <div className="mt-4 flex min-w-0 items-center gap-2 pl-8">
         {contextLabel ? (
           <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-slate-500"><CalendarDays className="size-3.5 shrink-0 text-slate-400" /><span className="truncate">{contextLabel}</span></span>
         ) : client ? (
@@ -106,7 +106,7 @@ export function TaskCard({
         ) : (
           <span className="truncate text-[11px] text-slate-400">Sem cliente</span>
         )}
-        {timeLabel && <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] font-medium tabular-nums text-slate-400"><Clock3 className="size-3" />{timeLabel}</span>}
+        {estimateLabel && <span className="ml-auto flex shrink-0 items-center gap-1 text-[11px] font-medium tabular-nums text-slate-500"><Clock3 className="size-3.5 text-slate-400" />{estimateLabel}</span>}
       </div>
     </article>
   );
