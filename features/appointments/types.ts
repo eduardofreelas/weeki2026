@@ -1,5 +1,6 @@
 export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled";
 export type AppointmentMode = "google_meet" | "video" | "in_person" | "phone";
+export type EventVisibility = "public" | "private";
 
 export interface EventType {
   id: string;
@@ -13,6 +14,16 @@ export interface EventType {
   active: boolean;
   slug: string;
   color: string;
+  visibility?: EventVisibility;
+  bookingWindowStart?: string;
+  bookingWindowEnd?: string;
+  timezone?: string;
+  autoDetectTimezone?: boolean;
+  location?: string;
+  additionalHosts?: string[];
+  emailReminder?: boolean;
+  calendarInvite?: boolean;
+  coverImage?: string;
   createdAt: string;
   updatedAt: string;
 }
