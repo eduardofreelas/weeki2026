@@ -3,6 +3,7 @@
 import {
   Archive,
   BarChart3,
+  CalendarClock,
   CalendarDays,
   ChevronDown,
   CircleHelp,
@@ -19,6 +20,7 @@ const primaryItems = [
   { label: "Minha Semana", icon: CalendarDays, area: "week" as const },
   { label: "Demandas", icon: ListTodo },
   { label: "Clientes", icon: Users, area: "clients" as const },
+  { label: "Agendamentos", icon: CalendarClock, area: "appointments" as const },
 ];
 
 const secondaryItems = [
@@ -26,7 +28,7 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients";
+export type WeekiArea = "week" | "clients" | "appointments";
 
 export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
   return (
@@ -94,7 +96,7 @@ export function MobileNavigation({ activeArea, onNavigate }: { activeArea: Weeki
       {primaryItems.map((item) => (
         <button key={item.label} type="button" onClick={() => item.area && onNavigate(item.area)} className={cn("flex min-w-14 flex-col items-center gap-1 text-[10px] text-white/50", item.area === activeArea && "text-white")}>
           <item.icon className={cn("size-5", item.area === activeArea && "text-[#9a84ff]")} />
-          <span>{item.label === "Minha Semana" ? "Semana" : item.label}</span>
+          <span>{item.label === "Minha Semana" ? "Semana" : item.label === "Agendamentos" ? "Agenda" : item.label}</span>
         </button>
       ))}
     </nav>
