@@ -92,33 +92,27 @@ button, input, textarea { font: inherit; }
 
 .week-board-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #d8dae2 transparent;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-.week-board-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.week-board-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .week-board-scroll::-webkit-scrollbar-track { background: transparent; }
-.week-board-scroll::-webkit-scrollbar-thumb { background: #d8dae2; border-radius: 999px; }
-.week-board-scroll::-webkit-scrollbar-thumb:hover { background: #c5c8d2; }
+.week-board-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+.week-board-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 .week-columns {
-  display: flex;
+  display: grid;
+  grid-auto-columns: minmax(215px, 1fr);
+  grid-auto-flow: column;
+  align-items: start;
+  gap: 0.875rem;
   min-width: max-content;
-  padding: 0.5rem 0 0;
+  width: 100%;
+  padding: 0.5rem 0;
 }
 
-.week-columns > * {
-  flex: 0 0 min(84vw, 304px);
-}
-
-@media (min-width: 1280px) {
-  .week-columns {
-    display: grid;
-    grid-template-columns: repeat(var(--weeki-column-count), minmax(0, 1fr));
-    min-width: 100%;
-    width: 100%;
-  }
-
-  .week-columns > * { min-width: 0; }
+@media (max-width: 767px) {
+  .week-columns { grid-auto-columns: min(82vw, 270px); }
 }
 
 .rich-text-editor:empty::before {

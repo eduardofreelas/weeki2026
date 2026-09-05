@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DatePicker } from "@/components/weeki/date-picker";
 import { RichTextEditor } from "@/components/weeki/rich-text-editor";
 import type { Client, RecurrenceType, Task, TaskDraft, TaskPriority, TaskStatus } from "@/features/tasks/types";
 import { PRIORITY_LABELS, RECURRENCE_LABELS, STATUS_LABELS } from "@/features/tasks/types";
@@ -335,7 +336,7 @@ export function TaskSheet({
                     <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: tomorrowKey })); setShowDatePicker(false); }} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === tomorrowKey && !showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Amanhã</button>
                     <button type="button" onClick={() => setShowDatePicker(true)} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Escolher data</button>
                   </div>
-                  {showDatePicker && <Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="mt-2 h-9 rounded-xl bg-white" />}
+                  {showDatePicker && <DatePicker value={draft.scheduledDate} onChange={(value) => setDraft((current) => ({ ...current, scheduledDate: value || null }))} className="mt-2" />}
                 </div>
 
                 <div>
@@ -364,7 +365,7 @@ export function TaskSheet({
                     </div>
                     {renderEstimate()}
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div><FieldLabel optional>Prazo</FieldLabel><Input type="date" value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} className="bg-white" /></div>
+                      <div><FieldLabel optional>Prazo</FieldLabel><DatePicker value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} /></div>
                       <div><FieldLabel optional>Horário limite</FieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="bg-white" /></div>
                     </div>
                     <div>
@@ -381,7 +382,7 @@ export function TaskSheet({
                           </div>
                           <div>
                             <FieldLabel>Repetir até</FieldLabel>
-                            <Input type="date" required min={draft.scheduledDate ?? todayKey} value={draft.recurrence.endDate} onChange={(event) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, endDate: event.target.value } }))} className="bg-white" />
+                            <DatePicker required min={draft.scheduledDate ?? todayKey} value={draft.recurrence.endDate} onChange={(value) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, endDate: value } }))} />
                           </div>
                         </div>
                       )}
@@ -444,7 +445,7 @@ export function TaskSheet({
                     <section>
                       <SectionTitle title="Agendamento" icon={CalendarClock} />
                       <div className="grid gap-3.5 sm:grid-cols-2">
-                        <div><ModalFieldLabel optional>Data</ModalFieldLabel><Input type="date" value={draft.scheduledDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, scheduledDate: event.target.value || null }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
+                        <div><ModalFieldLabel optional>Data</ModalFieldLabel><DatePicker value={draft.scheduledDate} onChange={(value) => setDraft((current) => ({ ...current, scheduledDate: value || null }))} /></div>
                         <div><ModalFieldLabel optional>Horário</ModalFieldLabel><Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
                       </div>
                     </section>
@@ -452,7 +453,7 @@ export function TaskSheet({
                     <section>
                       <SectionTitle title="Prazo" description="Até quando precisa estar pronto?" icon={Clock3} />
                       <div className="grid gap-3.5 sm:grid-cols-2">
-                        <div><ModalFieldLabel optional>Data</ModalFieldLabel><Input type="date" value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
+                        <div><ModalFieldLabel optional>Data</ModalFieldLabel><DatePicker value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} /></div>
                         <div><ModalFieldLabel optional>Horário limite</ModalFieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
                       </div>
                     </section>
@@ -473,7 +474,7 @@ export function TaskSheet({
                           </div>
                           <div>
                             <ModalFieldLabel>Repetir até</ModalFieldLabel>
-                            <Input type="date" required min={draft.scheduledDate ?? todayKey} value={draft.recurrence.endDate} onChange={(event) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, endDate: event.target.value } }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" />
+                            <DatePicker required min={draft.scheduledDate ?? todayKey} value={draft.recurrence.endDate} onChange={(value) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, endDate: value } }))} />
                           </div>
                         </div>
                       )}

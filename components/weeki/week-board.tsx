@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { TaskCard } from "./task-card";
 
 export type WeekViewMode = "week" | "clients";
+export type WeekLayoutMode = "board" | "list";
 
 const sortByTime = (a: Task, b: Task) => {
   if (a.scheduledTime && b.scheduledTime) return a.scheduledTime.localeCompare(b.scheduledTime);
@@ -27,6 +28,7 @@ type BoardColumn = {
   id: string;
   title: string;
   dateLabel?: string;
+  longDateLabel?: string;
   dateKey?: string;
   clientId?: string | null;
   clientColor?: string;
@@ -38,6 +40,7 @@ export function WeekBoard({
   weekStart,
   tasks,
   viewMode,
+  layoutMode,
   showWeekend,
   onCreate,
   onOpen,
@@ -50,6 +53,7 @@ export function WeekBoard({
   weekStart: Date;
   tasks: Task[];
   viewMode: WeekViewMode;
+  layoutMode: WeekLayoutMode;
   showWeekend: boolean;
   onCreate: (date: string | null, time?: string, clientId?: string | null) => void;
   onOpen: (task: Task) => void;
@@ -72,19 +76,19 @@ export function WeekBoard({
         tasks: tasks.filter((task) => task.clientId === client.id).sort(sortByDateAndTime),
       }));
       const withoutClient = tasks.filter((task) => !task.clientId).sort(sortByDateAndTime);
-      if (withoutClient.length) {
-        clientColumns.push({ id: "client-none", title: "Sem cliente", clientId: null, tasks: withoutClient });
-      }
+      if (withoutClient.length) clientColumns.push({ id: "client-none", title: "Sem cliente", clientId: null, tasks: withoutClient });
       return clientColumns;
     }
 
     return Array.from({ length: showWeekend ? 7 : 5 }, (_, index) => {
       const day = addDays(weekStart, index);
       const dateKey = format(day, "yyyy-MM-dd");
+      const dayName = format(day, "EEEE", { locale: ptBR }).replace("-feira", "");
       return {
         id: `day-${dateKey}`,
-        title: format(day, "EEEE", { locale: ptBR }),
-        dateLabel: format(day, "dd 'de' MMMM", { locale: ptBR }),
+        title: dayName,
+        dateLabel: format(day, "dd"),
+        longDateLabel: format(day, "dd 'de' MMMM", { locale: ptBR }),
         dateKey,
         tasks: tasks.filter((task) => task.scheduledDate === dateKey).sort(sortByTime),
         isToday: dateKey === todayKey,
@@ -114,53 +118,66 @@ export function WeekBoard({
     else onCreate(format(weekStart, "yyyy-MM-dd"), "", column.clientId ?? null);
   };
 
+  const dropProps = (column: BoardColumn) => ({
+    onDragOver: (event: React.DragEvent<HTMLDivElement>) => { event.preventDefault(); setDragTarget(column.id); },
+    onDragLeave: (event: React.DragEvent<HTMLDivElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragTarget(null);
+    },
+    onDrop: (event: React.DragEvent<HTMLDivElement>) => handleDrop(event, column),
+  });
+
+  if (layoutMode === "list") {
+    return (
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]" aria-label={viewMode === "week" ? "Demandas da semana em lista" : "Demandas por cliente em lista"}>
+        {columns.map((column) => (
+          <div key={column.id} {...dropProps(column)} className={cn("border-b border-slate-200 last:border-b-0", dragTarget === column.id && "bg-[#f8f7ff]")}>
+            <header className={cn("flex min-h-12 items-center gap-3 bg-slate-50/70 px-3.5 sm:px-4", column.isToday && "bg-[#f5f3ff]")}>
+              {viewMode === "clients" && (column.clientColor ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} /> : <UserRound className="size-4 text-slate-400" />)}
+              <h2 className={cn("text-xs font-bold capitalize text-slate-800", column.isToday && "text-[#4f46e5]")}>{column.title}</h2>
+              {column.longDateLabel && <span className={cn("text-[11px] font-medium text-slate-400", column.isToday && "text-[#7771e9]")}>{column.longDateLabel}</span>}
+              <span className="text-[10px] font-medium text-slate-400">{column.tasks.length} {column.tasks.length === 1 ? "demanda" : "demandas"}</span>
+              <button type="button" onClick={() => createForColumn(column)} className="focus-ring ml-auto grid size-7 place-items-center rounded-md text-slate-400 transition hover:bg-white hover:text-[#4f46e5]" aria-label={`Criar demanda em ${column.title}`}><Plus className="size-4" /></button>
+            </header>
+            {column.tasks.length ? column.tasks.map((task) => (
+              <TaskCard key={task.id} {...cardProps(task)} variant="list" contextLabel={viewMode === "clients" && task.scheduledDate ? format(parseISO(task.scheduledDate), "EEE, dd MMM", { locale: ptBR }) : undefined} />
+            )) : (
+              <button type="button" onClick={() => createForColumn(column)} className="flex h-12 w-full items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-50 hover:text-[#5b46e8]"><Plus className="size-3.5" /> Adicionar demanda</button>
+            )}
+          </div>
+        ))}
+      </section>
+    );
+  }
+
   return (
-    <section className="week-board-scroll snap-x snap-mandatory overflow-x-auto xl:snap-none" aria-label={viewMode === "week" ? "Demandas da semana" : "Demandas por cliente"}>
+    <section className="week-board-scroll overflow-x-auto pb-2" aria-label={viewMode === "week" ? "Demandas da semana em painel" : "Demandas por cliente em painel"}>
       <div className="week-columns" style={{ "--weeki-column-count": columns.length } as React.CSSProperties}>
         {columns.map((column) => (
           <div
             key={column.id}
-            onDragOver={(event) => { event.preventDefault(); setDragTarget(column.id); }}
-            onDragLeave={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragTarget(null);
-            }}
-            onDrop={(event) => handleDrop(event, column)}
+            {...dropProps(column)}
             className={cn(
-              "group/column relative min-h-[520px] snap-start border-l border-slate-200/90 transition first:border-l-0",
-              dragTarget === column.id && "bg-[#f8f6ff] shadow-[inset_0_0_0_1px_rgba(118,87,255,0.08)]",
+              "group/column flex min-h-[540px] flex-col rounded-[14px] border border-slate-200/90 bg-white/60 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.025)] transition-colors hover:bg-white/85",
+              column.isToday && "border-[#d5ceff] bg-[#f6f5ff] ring-1 ring-[#645efb]/10",
+              dragTarget === column.id && "border-[#b8adff] bg-[#f5f3ff]",
             )}
           >
-            <header className="sticky top-0 z-10 flex min-h-[76px] items-start bg-[#fbfcfe]/95 px-4 py-4 backdrop-blur">
-              <div className="flex min-w-0 flex-1 items-start gap-2">
-                {viewMode === "clients" && (
-                  column.clientColor
-                    ? <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} />
-                    : <span className="grid size-5 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400"><UserRound className="size-3" /></span>
-                )}
-                <div className="min-w-0">
-                  <h2 className={cn("truncate text-[15px] font-semibold capitalize tracking-[-0.015em] text-[#272731]", column.isToday && "text-[#6749df]")}>{column.title}</h2>
-                  {column.dateLabel && <p className={cn("mt-1 truncate text-[11px] font-medium text-slate-400", column.isToday && "text-[#8a77df]")}>{column.dateLabel}</p>}
-                  {viewMode === "clients" && <p className="mt-1 text-[11px] text-slate-400">{column.tasks.length} {column.tasks.length === 1 ? "demanda" : "demandas"}</p>}
-                </div>
+            <header className={cn("mb-3 flex min-h-9 items-start border-b border-slate-100 pb-3", column.isToday && "border-[#e4e0ff]")}>
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                {viewMode === "clients" && (column.clientColor ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} /> : <UserRound className="size-4 shrink-0 text-slate-400" />)}
+                <h2 className={cn("truncate text-xs font-bold capitalize tracking-[-0.01em] text-slate-900", column.isToday && "text-[#4f46e5]")}>{column.title}</h2>
+                {column.dateLabel && <span className={cn("text-xs font-semibold tabular-nums text-slate-400", column.isToday && "text-[#7168eb]")}>{column.dateLabel}</span>}
+                {column.isToday && <span className="size-1.5 shrink-0 rounded-full bg-[#4f46e5]" aria-label="Hoje" />}
               </div>
-              <button type="button" onClick={() => createForColumn(column)} className="focus-ring grid size-7 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-[#f1efff] hover:text-[#684be6]" aria-label={`Criar demanda em ${column.title}`}>
-                <Plus className="size-4" />
-              </button>
+              <button type="button" onClick={() => createForColumn(column)} className={cn("focus-ring grid size-6 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-[#f1efff] hover:text-[#4f46e5]", column.isToday && "text-[#6a5ce4]")} aria-label={`Criar demanda em ${column.title}`}><Plus className="size-3.5" /></button>
             </header>
 
-            <div className="space-y-3 px-4 pb-6">
+            <div className="space-y-2.5">
               {column.tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  {...cardProps(task)}
-                  contextLabel={viewMode === "clients" && task.scheduledDate ? format(parseISO(task.scheduledDate), "EEE, dd MMM", { locale: ptBR }) : undefined}
-                />
+                <TaskCard key={task.id} {...cardProps(task)} contextLabel={viewMode === "clients" && task.scheduledDate ? format(parseISO(task.scheduledDate), "EEE, dd MMM", { locale: ptBR }) : undefined} />
               ))}
-
               {!column.tasks.length && (
-                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-24 w-full items-center justify-center rounded-xl border border-dashed border-transparent px-4 text-center text-xs text-slate-300 opacity-0 transition hover:border-slate-200 hover:bg-white/60 hover:text-[#674bdd] group-hover/column:opacity-100 focus:opacity-100">
-                  <Plus className="mr-1.5 size-3.5" /> Adicionar demanda
-                </button>
+                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-24 w-full items-center justify-center rounded-lg border border-dashed border-transparent px-3 text-center text-[11px] text-slate-300 opacity-0 transition hover:border-slate-200 hover:bg-white/60 hover:text-[#5b46e8] group-hover/column:opacity-100 focus:opacity-100"><Plus className="mr-1.5 size-3.5" /> Adicionar demanda</button>
               )}
             </div>
           </div>
