@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { addDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, UserRound } from "lucide-react";
-import { CLIENTS } from "@/features/tasks/seed";
+import type { Client } from "@/features/clients/types";
 import type { Task } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "./task-card";
@@ -39,6 +39,7 @@ type BoardColumn = {
 export function WeekBoard({
   weekStart,
   tasks,
+  clients,
   viewMode,
   layoutMode,
   showWeekend,
@@ -52,6 +53,7 @@ export function WeekBoard({
 }: {
   weekStart: Date;
   tasks: Task[];
+  clients: Client[];
   viewMode: WeekViewMode;
   layoutMode: WeekLayoutMode;
   showWeekend: boolean;
@@ -68,7 +70,7 @@ export function WeekBoard({
 
   const columns = useMemo<BoardColumn[]>(() => {
     if (viewMode === "clients") {
-      const clientColumns: BoardColumn[] = CLIENTS.map((client) => ({
+      const clientColumns: BoardColumn[] = clients.map((client) => ({
         id: `client-${client.id}`,
         title: client.name,
         clientId: client.id,
@@ -94,10 +96,11 @@ export function WeekBoard({
         isToday: dateKey === todayKey,
       };
     });
-  }, [showWeekend, tasks, todayKey, viewMode, weekStart]);
+  }, [clients, showWeekend, tasks, todayKey, viewMode, weekStart]);
 
   const cardProps = (task: Task) => ({
     task,
+    clients,
     onOpen: () => onOpen(task),
     onToggleComplete: () => onToggleComplete(task.id),
     onDuplicate: () => onDuplicate(task.id),

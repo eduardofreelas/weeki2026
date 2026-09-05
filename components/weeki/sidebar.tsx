@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 
 const primaryItems = [
   { label: "Início", icon: LayoutDashboard },
-  { label: "Minha Semana", icon: CalendarDays, active: true },
+  { label: "Minha Semana", icon: CalendarDays, area: "week" as const },
   { label: "Demandas", icon: ListTodo },
-  { label: "Clientes", icon: Users },
+  { label: "Clientes", icon: Users, area: "clients" as const },
 ];
 
 const secondaryItems = [
@@ -26,7 +26,9 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export function WeekiSidebar({ inboxCount }: { inboxCount: number }) {
+export type WeekiArea = "week" | "clients";
+
+export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[252px] flex-col bg-[#101014] px-3 py-4 text-white md:flex">
       <div className="flex h-12 items-center px-3">
@@ -45,12 +47,14 @@ export function WeekiSidebar({ inboxCount }: { inboxCount: number }) {
         {primaryItems.map((item) => (
           <button
             key={item.label}
+            type="button"
+            onClick={() => item.area && onNavigate(item.area)}
             className={cn(
               "relative flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.06] hover:text-white",
-              item.active && "bg-white/[0.09] text-white",
+              item.area === activeArea && "bg-white/[0.09] text-white",
             )}
           >
-            {item.active && <span className="absolute -left-3 h-6 w-[3px] rounded-r-full bg-[#8065ff]" />}
+            {item.area === activeArea && <span className="absolute -left-3 h-6 w-[3px] rounded-r-full bg-[#8065ff]" />}
             <item.icon className="size-[18px]" strokeWidth={1.8} />
             <span>{item.label}</span>
           </button>
@@ -84,12 +88,12 @@ export function WeekiSidebar({ inboxCount }: { inboxCount: number }) {
   );
 }
 
-export function MobileNavigation() {
+export function MobileNavigation({ activeArea, onNavigate }: { activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
   return (
     <nav className="fixed inset-x-3 bottom-3 z-40 flex h-[62px] items-center justify-around rounded-2xl border border-white/10 bg-[#101014]/95 px-2 text-white shadow-2xl backdrop-blur md:hidden" aria-label="Navegação móvel">
       {primaryItems.map((item) => (
-        <button key={item.label} className={cn("flex min-w-14 flex-col items-center gap-1 text-[10px] text-white/50", item.active && "text-white")}>
-          <item.icon className={cn("size-5", item.active && "text-[#9a84ff]")} />
+        <button key={item.label} type="button" onClick={() => item.area && onNavigate(item.area)} className={cn("flex min-w-14 flex-col items-center gap-1 text-[10px] text-white/50", item.area === activeArea && "text-white")}>
+          <item.icon className={cn("size-5", item.area === activeArea && "text-[#9a84ff]")} />
           <span>{item.label === "Minha Semana" ? "Semana" : item.label}</span>
         </button>
       ))}

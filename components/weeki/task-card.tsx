@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CLIENTS } from "@/features/tasks/seed";
+import type { Client } from "@/features/clients/types";
 import { PRIORITY_LABELS, type Task } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,7 @@ const formatEstimate = (minutes: number | null) => {
 
 export function TaskCard({
   task,
+  clients,
   onOpen,
   onToggleComplete,
   onDuplicate,
@@ -42,6 +43,7 @@ export function TaskCard({
   variant = "board",
 }: {
   task: Task;
+  clients: Client[];
   onOpen: () => void;
   onToggleComplete: () => void;
   onDuplicate: () => void;
@@ -49,7 +51,7 @@ export function TaskCard({
   contextLabel?: string;
   variant?: "board" | "list";
 }) {
-  const client = CLIENTS.find((item) => item.id === task.clientId);
+  const client = clients.find((item) => item.id === task.clientId);
   const isCompleted = task.status === "completed";
   const estimateLabel = formatEstimate(task.estimateMinutes);
   const completedChecklist = task.checklist.filter((item) => item.completed).length;

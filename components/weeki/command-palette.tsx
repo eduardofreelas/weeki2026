@@ -11,13 +11,14 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { CLIENTS } from "@/features/tasks/seed";
+import type { Client } from "@/features/clients/types";
 import type { Task } from "@/features/tasks/types";
 
 export function WeekiCommandPalette({
   open,
   onOpenChange,
   tasks,
+  clients,
   onCreate,
   onOpenTask,
   onToday,
@@ -25,6 +26,7 @@ export function WeekiCommandPalette({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tasks: Task[];
+  clients: Client[];
   onCreate: (date: string | null) => void;
   onOpenTask: (task: Task) => void;
   onToday: () => void;
@@ -47,7 +49,7 @@ export function WeekiCommandPalette({
         <CommandSeparator />
         <CommandGroup heading="Demandas">
           {tasks.slice(0, 8).map((task) => {
-            const client = CLIENTS.find((item) => item.id === task.clientId);
+            const client = clients.find((item) => item.id === task.clientId);
             return (
               <CommandItem key={task.id} value={`${task.title} ${client?.name ?? ""}`} onSelect={() => run(() => onOpenTask(task))}>
                 {task.status === "completed" ? <CheckCircle2 className="text-emerald-500" /> : <Search />}
@@ -59,7 +61,7 @@ export function WeekiCommandPalette({
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Clientes">
-          {CLIENTS.map((client) => <CommandItem key={client.id}><UserRound /><span className="flex-1">{client.name}</span><span className="size-2 rounded-full" style={{ backgroundColor: client.color }} /></CommandItem>)}
+          {clients.map((client) => <CommandItem key={client.id}><UserRound /><span className="flex-1">{client.name}</span><span className="size-2 rounded-full" style={{ backgroundColor: client.color }} /></CommandItem>)}
         </CommandGroup>
       </CommandList>
     </CommandDialog>

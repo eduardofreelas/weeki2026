@@ -35,7 +35,8 @@ import { SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/compon
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/weeki/date-picker";
 import { RichTextEditor } from "@/components/weeki/rich-text-editor";
-import type { Client, RecurrenceType, Task, TaskDraft, TaskPriority, TaskStatus } from "@/features/tasks/types";
+import type { Client } from "@/features/clients/types";
+import type { RecurrenceType, Task, TaskDraft, TaskPriority, TaskStatus } from "@/features/tasks/types";
 import { PRIORITY_LABELS, RECURRENCE_LABELS, STATUS_LABELS } from "@/features/tasks/types";
 import { cn } from "@/lib/utils";
 

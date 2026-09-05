@@ -22,12 +22,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
+import { ClientsScreen } from "@/components/weeki/clients-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
-import { MobileNavigation, WeekiSidebar } from "@/components/weeki/sidebar";
+import { MobileNavigation, WeekiSidebar, type WeekiArea } from "@/components/weeki/sidebar";
 import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import { WeekBoard, type WeekLayoutMode, type WeekViewMode } from "@/components/weeki/week-board";
-import { CLIENTS } from "@/features/tasks/seed";
+import { useWeekiClients } from "@/features/clients/use-weeki-clients";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,8 @@ const subscribeToHydration = () => () => undefined;
 
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
+  const { clients, addClient, updateClient } = useWeekiClients();
+  const [activeArea, setActiveArea] = useState<WeekiArea>("week");
   const [weekStart, setWeekStart] = useState(initialWeek);
   const [viewMode, setViewMode] = useState<WeekViewMode>("week");
   const [layoutMode, setLayoutMode] = useState<WeekLayoutMode>(() => {
@@ -72,7 +75,7 @@ export default function Home() {
         event.preventDefault();
         setCommandOpen((current) => !current);
       }
-      if (event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLTextAreaElement)) {
+      if (activeArea === "week" && event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLTextAreaElement)) {
         setSelectedTask(null);
         setInitialDate(todayKey);
         setInitialTime("");
@@ -82,7 +85,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [todayKey]);
+  }, [activeArea, todayKey]);
 
   const tasksInWeek = useMemo(() => tasks.filter((task) => {
     if (!task.scheduledDate) return false;
@@ -90,11 +93,11 @@ export default function Home() {
   }), [tasks, weekStart, weekEnd]);
 
   const filteredTasks = useMemo(() => tasksInWeek.filter((task) => {
-    const client = CLIENTS.find((item) => item.id === task.clientId);
+    const client = clients.find((item) => item.id === task.clientId);
     const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
     const matchesQuery = !normalizedQuery || `${task.title} ${task.description} ${client?.name ?? ""} ${task.tags.join(" ")}`.toLocaleLowerCase("pt-BR").includes(normalizedQuery);
     return matchesQuery && (statusFilter === "all" || task.status === statusFilter) && (clientFilter === "all" || task.clientId === clientFilter);
-  }), [tasksInWeek, query, statusFilter, clientFilter]);
+  }), [tasksInWeek, query, statusFilter, clientFilter, clients]);
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
   const hasActiveFilters = Boolean(query.trim() || statusFilter !== "all" || clientFilter !== "all");
@@ -186,8 +189,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      <WeekiSidebar inboxCount={inboxTasks.length} />
-      <MobileNavigation />
+      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={setActiveArea} />
+      <MobileNavigation activeArea={activeArea} onNavigate={setActiveArea} />
 
       <main className="min-h-screen md:ml-[252px]">
         <header className="flex h-[68px] items-center border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:px-8">
@@ -196,7 +199,7 @@ export default function Home() {
             <span className="size-2 rounded-full bg-gradient-to-br from-[#8d6cff] to-[#2f80ed]" />
           </div>
           <div className="hidden items-center gap-2 text-sm text-slate-400 md:flex">
-            <span>Planejamento</span><span>/</span><span className="font-medium text-slate-700">Minha Semana</span>
+            <span>{activeArea === "week" ? "Planejamento" : "Relacionamento"}</span><span>/</span><span className="font-medium text-slate-700">{activeArea === "week" ? "Minha Semana" : "Clientes"}</span>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <button onClick={() => setCommandOpen(true)} className="focus-ring hidden h-9 min-w-[240px] items-center gap-2 rounded-lg border bg-[#f8f8fa] px-3 text-left text-sm text-slate-400 transition hover:border-slate-300 hover:bg-white lg:flex">
@@ -208,6 +211,17 @@ export default function Home() {
           </div>
         </header>
 
+        {activeArea === "clients" ? (
+          <ClientsScreen
+            clients={clients}
+            tasks={tasks}
+            onAddClient={addClient}
+            onUpdateClient={updateClient}
+            onNewTask={(clientId) => openNewTask(todayKey, "", clientId)}
+            onOpenTask={openTask}
+            onToggleTask={handleToggleComplete}
+          />
+        ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 68px)" }}>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -264,7 +278,7 @@ export default function Home() {
                 </Select>
                 <Select value={clientFilter} onValueChange={setClientFilter}>
                   <SelectTrigger className="h-7 w-[132px] shrink-0 rounded-lg bg-white px-2.5 text-[11px] shadow-sm"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
+                  <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-7 px-2 text-[11px] text-slate-400"><X /> Limpar</Button>}
@@ -284,7 +298,7 @@ export default function Home() {
                 <div className="week-board-scroll flex gap-2 overflow-x-auto pb-1">
                   {inboxTasks.map((task) => (
                     <div key={task.id} className="w-[240px] shrink-0">
-                      <TaskCard task={task} onOpen={() => openTask(task)} onToggleComplete={() => handleToggleComplete(task.id)} onDuplicate={() => handleDuplicate(task.id)} onArchive={() => handleArchive(task.id)} />
+                      <TaskCard task={task} clients={clients} onOpen={() => openTask(task)} onToggleComplete={() => handleToggleComplete(task.id)} onDuplicate={() => handleDuplicate(task.id)} onArchive={() => handleArchive(task.id)} />
                     </div>
                   ))}
                 </div>
@@ -298,6 +312,7 @@ export default function Home() {
             <WeekBoard
               weekStart={weekStart}
               tasks={filteredTasks}
+              clients={clients}
               viewMode={viewMode}
               layoutMode={layoutMode}
               showWeekend={showWeekend}
@@ -311,10 +326,11 @@ export default function Home() {
             />
           </div>
         </div>
+        )}
       </main>
 
-      <TaskSheet key={`${sheetOpen ? "open" : "closed"}-${selectedTask?.id ?? "new"}-${initialDate ?? "inbox"}-${initialTime}-${initialClientId ?? "none"}`} open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} initialClientId={initialClientId} clients={CLIENTS} onSave={saveTask} onArchive={handleArchive} />
-      <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} />
+      <TaskSheet key={`${sheetOpen ? "open" : "closed"}-${selectedTask?.id ?? "new"}-${initialDate ?? "inbox"}-${initialTime}-${initialClientId ?? "none"}`} open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} initialClientId={initialClientId} clients={clients} onSave={saveTask} onArchive={handleArchive} />
+      <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} clients={clients} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} />
       <Toaster position="bottom-right" richColors />
     </div>
   );
