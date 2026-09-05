@@ -31,7 +31,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/weeki/date-picker";
 import { RichTextEditor } from "@/components/weeki/rich-text-editor";
@@ -101,35 +101,33 @@ const taskToDraft = (task: Task): TaskDraft => ({
   archivedAt: task.archivedAt,
 });
 
-function FieldLabel({ children, optional = false }: { children: React.ReactNode; optional?: boolean }) {
+function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+    <Label className="mb-1.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.065em] text-slate-600">
       {children}
-      {optional && <span className="text-[11px] font-normal text-slate-400">Opcional</span>}
     </Label>
   );
 }
 
-function ModalFieldLabel({ children, optional = false }: { children: React.ReactNode; optional?: boolean }) {
+function ModalFieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-700">
+    <Label className="mb-1.5 flex items-center text-[11px] font-medium text-slate-600">
       {children}
-      {optional && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-normal text-slate-400">Opcional</span>}
     </Label>
   );
 }
 
 function SectionTitle({ title, description, icon: Icon }: { title: string; description?: string; icon: LucideIcon }) {
   return (
-    <div className="mb-3.5">
+    <div className="mb-2.5">
       <div className="flex items-center gap-2">
         <div className="flex shrink-0 items-center gap-1.5">
-          <Icon className="size-4 text-slate-500" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">{title}</h3>
+          <Icon className="size-3.5 text-slate-400" />
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.065em] text-slate-700">{title}</h3>
         </div>
         <span className="ml-2 h-px flex-1 bg-slate-200" />
       </div>
-      {description && <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>}
+      {description && <p className="mt-1 text-[11px] leading-4 text-slate-400">{description}</p>}
     </div>
   );
 }
@@ -238,28 +236,28 @@ export function TaskSheet({
 
   const renderEstimate = (sectioned = false) => (
     <div>
-      {sectioned ? <SectionTitle title="Tempo estimado" description="Quanto tempo essa demanda deve levar?" icon={Timer} /> : <FieldLabel optional>Tempo estimado</FieldLabel>}
-      <div className="flex flex-wrap gap-1.5">
+      {sectioned ? <SectionTitle title="Tempo estimado" description="Quanto tempo essa demanda deve levar?" icon={Timer} /> : <FieldLabel>Tempo estimado</FieldLabel>}
+      <div className="flex flex-wrap gap-1">
         {estimateOptions.map((option) => (
           <button
             key={option.label}
             type="button"
             onClick={() => { setDraft((current) => ({ ...current, estimateMinutes: option.value })); setCustomEstimateOpen(false); }}
             className={cn(
-              "focus-ring h-8 rounded-lg border bg-white text-xs font-medium transition",
-              sectioned ? "border-slate-200 px-3 text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50" : "px-2.5 text-slate-500 hover:border-[#a895f2] hover:text-[#6548df]",
+              "focus-ring h-7 rounded-md border bg-white text-[11px] font-medium transition",
+              sectioned ? "border-slate-200 px-2.5 text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50" : "px-2 text-slate-500 hover:border-[#a895f2] hover:text-[#6548df]",
               draft.estimateMinutes === option.value && !customEstimateOpen && (sectioned ? "border-[#ddd6fe] bg-[#f5f3ff] font-semibold text-[#6d28d9]" : "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]"),
             )}
           >
             {option.label}
           </button>
         ))}
-        <button type="button" onClick={() => setCustomEstimateOpen(true)} className={cn("focus-ring h-8 rounded-lg border bg-white text-xs font-medium transition", sectioned ? "border-slate-200 px-3 text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50" : "px-2.5 text-slate-500 hover:border-[#a895f2] hover:text-[#6548df]", customEstimateOpen && (sectioned ? "border-[#ddd6fe] bg-[#f5f3ff] font-semibold text-[#6d28d9]" : "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]"))}>Personalizado</button>
+        <button type="button" onClick={() => setCustomEstimateOpen(true)} className={cn("focus-ring h-7 rounded-md border bg-white text-[11px] font-medium transition", sectioned ? "border-slate-200 px-2.5 text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50" : "px-2 text-slate-500 hover:border-[#a895f2] hover:text-[#6548df]", customEstimateOpen && (sectioned ? "border-[#ddd6fe] bg-[#f5f3ff] font-semibold text-[#6d28d9]" : "border-[#8068e8] bg-[#f4f1ff] text-[#6548df]"))}>Personalizado</button>
       </div>
       {customEstimateOpen && (
         <div className="mt-2 flex items-center gap-2">
-          <Input type="number" min={15} step={15} value={draft.estimateMinutes ?? ""} onChange={(event) => setDraft((current) => ({ ...current, estimateMinutes: event.target.value ? Number(event.target.value) : null }))} className="h-8 max-w-28 bg-white text-sm" aria-label="Tempo personalizado em minutos" />
-          <span className="text-xs text-slate-400">minutos</span>
+          <Input type="number" min={15} step={15} value={draft.estimateMinutes ?? ""} onChange={(event) => setDraft((current) => ({ ...current, estimateMinutes: event.target.value ? Number(event.target.value) : null }))} className="h-7 max-w-24 rounded-md bg-white px-2.5 text-xs" aria-label="Tempo personalizado em minutos" />
+          <span className="text-[11px] text-slate-400">minutos</span>
         </div>
       )}
     </div>
@@ -267,7 +265,7 @@ export function TaskSheet({
 
   const renderTags = (sectioned = false) => (
     <div>
-      {sectioned ? <SectionTitle title="Etiquetas" description="Use marcadores curtos para organizar e localizar demandas." icon={Tags} /> : <FieldLabel optional>Tags</FieldLabel>}
+      {sectioned ? <SectionTitle title="Etiquetas" description="Use marcadores curtos para organizar e localizar demandas." icon={Tags} /> : <FieldLabel>Tags</FieldLabel>}
       <Input
         value={tagInput}
         onChange={(event) => setTagInput(event.target.value)}
@@ -290,17 +288,17 @@ export function TaskSheet({
 
   const panelContent = (
     <form onSubmit={submit} className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-          <SheetHeader className={cn("shrink-0 border-b border-slate-100 bg-white pr-14", task ? "px-6 pb-4 pt-5" : "px-5 py-4 sm:px-6")}>
+          <SheetHeader className={cn("shrink-0 border-b border-slate-100 bg-white pr-14", task ? "px-5 pb-3.5 pt-4" : "px-5 py-4")}>
             <div className={cn("flex items-start", task ? "gap-3.5" : "gap-3")}>
               <div className={cn(
-                "grid shrink-0 place-items-center rounded-xl text-[#694ce1] ring-1 ring-[#7657ff]/10",
-                task ? "mt-0.5 size-10 bg-[#f5f3ff]" : "size-9 bg-gradient-to-br from-[#f1edff] to-[#e9efff]",
+                "grid shrink-0 place-items-center rounded-lg text-[#694ce1] ring-1 ring-[#7657ff]/10",
+                task ? "mt-0.5 size-9 bg-[#f5f3ff]" : "size-9 bg-gradient-to-br from-[#f1edff] to-[#e9efff]",
               )}>
                 {task ? <FileText className="size-5" /> : <CirclePlus className="size-4" />}
               </div>
               <div>
-                <SheetTitle className={cn("tracking-[-0.01em] text-slate-900", task ? "text-lg font-bold leading-snug" : "text-[15px]")}>{task ? "Gerenciar demanda" : "Nova demanda"}</SheetTitle>
-                <SheetDescription className={cn("mt-0.5 leading-4 text-slate-500", task ? "text-xs" : "text-[11px]")}>
+                <SheetTitle className={cn("tracking-[-0.01em] text-slate-900", task ? "text-[16px] font-semibold leading-snug" : "text-[16px] font-semibold")}>{task ? "Gerenciar demanda" : "Nova demanda"}</SheetTitle>
+                <SheetDescription className="mt-0.5 text-[11px] leading-4 text-slate-500">
                   {task ? "Edite os detalhes. As alterações são salvas automaticamente." : "Crie agora e organize os detalhes quando precisar."}
                 </SheetDescription>
               </div>
@@ -311,17 +309,17 @@ export function TaskSheet({
           </SheetHeader>
 
           {!task ? (
-            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-              <div className="space-y-4.5">
+            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="space-y-5">
                 <div>
                   <FieldLabel>O que precisa ser feito?</FieldLabel>
-                  <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Digite o título da demanda..." className="h-10 rounded-xl bg-white px-3.5 text-sm shadow-none focus-visible:border-[#7657ff] focus-visible:ring-2 focus-visible:ring-[#7657ff]/15" />
+                  <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Digite o título da demanda..." className="h-9 rounded-lg bg-white px-3 text-[13px] shadow-none focus-visible:border-[#7657ff] focus-visible:ring-2 focus-visible:ring-[#7657ff]/15" />
                 </div>
 
                 <div>
-                  <FieldLabel optional>Cliente</FieldLabel>
+                  <FieldLabel>Cliente</FieldLabel>
                   <Select value={draft.clientId ?? "__none"} onValueChange={(value) => setDraft((current) => ({ ...current, clientId: value === "__none" ? null : value }))}>
-                    <SelectTrigger className="h-10 w-full rounded-xl bg-white px-3.5 shadow-none"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full rounded-lg bg-white px-3 text-[13px] shadow-none"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">Sem cliente</SelectItem>
                       {clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}
@@ -330,52 +328,52 @@ export function TaskSheet({
                 </div>
 
                 <div>
-                  <FieldLabel optional>Quando?</FieldLabel>
-                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100/80 p-1">
-                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: todayKey })); setShowDatePicker(false); }} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === todayKey && !showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Hoje</button>
-                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: tomorrowKey })); setShowDatePicker(false); }} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === tomorrowKey && !showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Amanhã</button>
-                    <button type="button" onClick={() => setShowDatePicker(true)} className={cn("h-8 rounded-lg px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", showDatePicker && "bg-white text-[#6548df] shadow-sm")}>Escolher data</button>
+                  <FieldLabel>Quando?</FieldLabel>
+                  <div className="grid grid-cols-3 gap-0.5 rounded-lg border border-slate-200/70 bg-slate-100/80 p-0.5">
+                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: todayKey })); setShowDatePicker(false); }} className={cn("h-7 rounded-md px-2 text-[11px] font-medium text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === todayKey && !showDatePicker && "bg-white font-semibold text-[#6548df] shadow-sm")}>Hoje</button>
+                    <button type="button" onClick={() => { setDraft((current) => ({ ...current, scheduledDate: tomorrowKey })); setShowDatePicker(false); }} className={cn("h-7 rounded-md px-2 text-[11px] font-medium text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", draft.scheduledDate === tomorrowKey && !showDatePicker && "bg-white font-semibold text-[#6548df] shadow-sm")}>Amanhã</button>
+                    <button type="button" onClick={() => setShowDatePicker(true)} className={cn("h-7 rounded-md px-2 text-[11px] font-medium text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20", showDatePicker && "bg-white font-semibold text-[#6548df] shadow-sm")}>Escolher data</button>
                   </div>
                   {showDatePicker && <DatePicker value={draft.scheduledDate} onChange={(value) => setDraft((current) => ({ ...current, scheduledDate: value || null }))} className="mt-2" />}
                 </div>
 
                 <div>
-                  <FieldLabel optional>Horário</FieldLabel>
-                  <Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-10 rounded-xl bg-white shadow-none" />
+                  <FieldLabel>Horário</FieldLabel>
+                  <Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-9 rounded-lg bg-white px-3 text-[13px] shadow-none" />
                 </div>
 
-                <button type="button" onClick={() => setAdvancedOpen((current) => !current)} className="flex h-9 items-center gap-2 rounded-lg px-1 text-xs font-semibold text-[#674bdd] transition hover:text-[#4f35c3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20">
+                <button type="button" onClick={() => setAdvancedOpen((current) => !current)} className="flex h-8 items-center gap-1.5 rounded-md px-0.5 text-[11px] font-medium text-[#674bdd] transition hover:text-[#4f35c3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20">
                   <CirclePlus className="size-3.5" />
                   <span>{advancedOpen ? "Ocultar opções" : "Mais opções"}</span>
                   <ChevronDown className={cn("ml-0.5 size-3.5 transition", advancedOpen && "rotate-180")} />
                 </button>
 
                 {advancedOpen && (
-                  <div className="space-y-6 border-t pt-5">
+                  <div className="space-y-5 border-t border-slate-100 pt-4">
                     <div>
-                      <FieldLabel optional>Descrição</FieldLabel>
+                      <FieldLabel>Descrição</FieldLabel>
                       <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} placeholder="Contexto, orientações ou resultado esperado..." />
                     </div>
                     <div>
                       <FieldLabel>Prioridade</FieldLabel>
                       <Select value={draft.priority} onValueChange={(value) => setDraft((current) => ({ ...current, priority: value as TaskPriority }))}>
-                        <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-9 w-full rounded-lg bg-white px-3 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{Object.entries(PRIORITY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     {renderEstimate()}
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div><FieldLabel optional>Prazo</FieldLabel><DatePicker value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} /></div>
-                      <div><FieldLabel optional>Horário limite</FieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="bg-white" /></div>
+                      <div><FieldLabel>Prazo</FieldLabel><DatePicker value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} /></div>
+                      <div><FieldLabel>Horário limite</FieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="h-9 rounded-lg bg-white px-3 text-xs" /></div>
                     </div>
                     <div>
-                      <FieldLabel optional>Repetição</FieldLabel>
+                      <FieldLabel>Repetição</FieldLabel>
                       <Select value={draft.recurrence.type} onValueChange={(value) => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, type: value as RecurrenceType } }))}>
-                        <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-9 w-full rounded-lg bg-white px-3 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{Object.entries(RECURRENCE_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                       </Select>
                       {draft.recurrence.type === "custom" && (
-                        <div className="mt-3 space-y-4 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="mt-2.5 space-y-3 rounded-lg border border-slate-200 bg-white p-2.5">
                           <div>
                             <p className="mb-2 text-xs font-medium text-slate-500">Repetir nestes dias</p>
                             <div className="flex flex-wrap gap-2">{weekDays.map((day) => { const active = draft.recurrence.days.includes(day.value); return <button key={day.label} type="button" title={day.label} onClick={() => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, days: active ? current.recurrence.days.filter((value) => value !== day.value) : [...current.recurrence.days, day.value] } }))} className={cn("grid size-8 place-items-center rounded-lg border text-xs font-semibold transition", active ? "border-[#7657ff] bg-[#7657ff] text-white" : "bg-white text-slate-500 hover:border-[#9b88ef]")}>{day.short}</button>; })}</div>
@@ -394,27 +392,27 @@ export function TaskSheet({
             </div>
           ) : (
             <Tabs defaultValue="details" className="min-h-0 flex-1 gap-0 overflow-hidden">
-              <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-5 py-4">
                 <div>
                   <ModalFieldLabel>Título</ModalFieldLabel>
-                  <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-[52px] rounded-xl border-[#8b5cf6] bg-white px-3.5 text-sm font-medium text-slate-900 shadow-sm focus-visible:border-[#7c3aed] focus-visible:ring-4 focus-visible:ring-[#8b5cf6]/10" />
+                  <Input autoFocus value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Título da demanda" className="h-10 rounded-lg border-[#9d8df0] bg-white px-3 text-[13px] font-medium text-slate-900 shadow-sm focus-visible:border-[#7c3aed] focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/10" />
                 </div>
 
-                <div className="-mx-5 mt-4 border-b border-slate-200 px-5 sm:-mx-6 sm:px-6">
-                  <TabsList variant="line" className="-mb-px flex h-12 w-full justify-start gap-2 rounded-none bg-transparent p-0 text-slate-500 sm:gap-4">
-                    <TabsTrigger value="details" className="h-12 flex-none gap-2 rounded-none border-0 px-1 text-[11px] font-semibold after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:text-[#7c3aed] sm:text-xs"><FileText className="size-4" />Detalhes</TabsTrigger>
-                    <TabsTrigger value="checklist" className="h-12 flex-none gap-2 rounded-none border-0 px-1 text-[11px] font-semibold after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:text-[#7c3aed] sm:text-xs"><CheckCircle2 className="size-4" />Checklist</TabsTrigger>
-                    <TabsTrigger value="files" className="h-12 flex-none gap-2 rounded-none border-0 px-1 text-[11px] font-semibold after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:text-[#7c3aed] sm:text-xs"><Paperclip className="size-4" />Anexos</TabsTrigger>
-                    <TabsTrigger value="activity" className="h-12 flex-none gap-2 rounded-none border-0 px-1 text-[11px] font-semibold after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:text-[#7c3aed] sm:text-xs"><History className="size-4" />Atividade</TabsTrigger>
+                <div className="-mx-5 mt-3 border-b border-slate-200 px-5">
+                  <TabsList variant="line" className="-mb-px flex h-10 w-full justify-start gap-3 rounded-none bg-transparent p-0 text-slate-500">
+                    <TabsTrigger value="details" className="h-10 flex-none gap-1.5 rounded-none border-0 px-0.5 text-[11px] font-medium after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:font-semibold data-[state=active]:text-[#7c3aed]"><FileText className="size-3.5" />Detalhes</TabsTrigger>
+                    <TabsTrigger value="checklist" className="h-10 flex-none gap-1.5 rounded-none border-0 px-0.5 text-[11px] font-medium after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:font-semibold data-[state=active]:text-[#7c3aed]"><CheckCircle2 className="size-3.5" />Checklist</TabsTrigger>
+                    <TabsTrigger value="files" className="h-10 flex-none gap-1.5 rounded-none border-0 px-0.5 text-[11px] font-medium after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:font-semibold data-[state=active]:text-[#7c3aed]"><Paperclip className="size-3.5" />Anexos</TabsTrigger>
+                    <TabsTrigger value="activity" className="h-10 flex-none gap-1.5 rounded-none border-0 px-0.5 text-[11px] font-medium after:bottom-0 after:bg-[#7c3aed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]/20 data-[state=active]:font-semibold data-[state=active]:text-[#7c3aed]"><History className="size-3.5" />Atividade</TabsTrigger>
                   </TabsList>
                 </div>
 
-                  <TabsContent value="details" className="m-0 space-y-6 pt-5">
+                  <TabsContent value="details" className="m-0 space-y-5 pt-4">
                     <section>
                       <SectionTitle title="Organização" icon={BriefcaseBusiness} />
-                      <div className="grid gap-3.5 sm:grid-cols-2">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         <div>
-                          <ModalFieldLabel optional>Cliente</ModalFieldLabel>
+                          <ModalFieldLabel>Cliente</ModalFieldLabel>
                           <Select value={draft.clientId ?? "__none"} onValueChange={(value) => setDraft((current) => ({ ...current, clientId: value === "__none" ? null : value }))}>
                             <SelectTrigger className="h-9 w-full rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm"><SelectValue /></SelectTrigger>
                             <SelectContent><SelectItem value="__none">Sem cliente</SelectItem>{clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
@@ -444,17 +442,17 @@ export function TaskSheet({
 
                     <section>
                       <SectionTitle title="Agendamento" icon={CalendarClock} />
-                      <div className="grid gap-3.5 sm:grid-cols-2">
-                        <div><ModalFieldLabel optional>Data</ModalFieldLabel><DatePicker value={draft.scheduledDate} onChange={(value) => setDraft((current) => ({ ...current, scheduledDate: value || null }))} /></div>
-                        <div><ModalFieldLabel optional>Horário</ModalFieldLabel><Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div><ModalFieldLabel>Data</ModalFieldLabel><DatePicker value={draft.scheduledDate} onChange={(value) => setDraft((current) => ({ ...current, scheduledDate: value || null }))} /></div>
+                        <div><ModalFieldLabel>Horário</ModalFieldLabel><Input type="time" value={draft.scheduledTime} onChange={(event) => setDraft((current) => ({ ...current, scheduledTime: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
                       </div>
                     </section>
 
                     <section>
                       <SectionTitle title="Prazo" description="Até quando precisa estar pronto?" icon={Clock3} />
-                      <div className="grid gap-3.5 sm:grid-cols-2">
-                        <div><ModalFieldLabel optional>Data</ModalFieldLabel><DatePicker value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} /></div>
-                        <div><ModalFieldLabel optional>Horário limite</ModalFieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div><ModalFieldLabel>Data</ModalFieldLabel><DatePicker value={draft.dueDate} min={draft.scheduledDate ?? undefined} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} /></div>
+                        <div><ModalFieldLabel>Horário limite</ModalFieldLabel><Input type="time" value={draft.dueTime} onChange={(event) => setDraft((current) => ({ ...current, dueTime: event.target.value }))} className="h-9 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium shadow-sm" /></div>
                       </div>
                     </section>
 
@@ -467,7 +465,7 @@ export function TaskSheet({
                         <SelectContent>{Object.entries(RECURRENCE_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                       </Select>
                       {draft.recurrence.type === "custom" && (
-                        <div className="mt-2.5 space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                        <div className="mt-2.5 space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5">
                           <div>
                             <p className="mb-2 text-[11px] font-semibold text-slate-600">Repetir nestes dias</p>
                             <div className="flex flex-wrap gap-1.5">{weekDays.map((day) => { const active = draft.recurrence.days.includes(day.value); return <button key={day.label} type="button" title={day.label} onClick={() => setDraft((current) => ({ ...current, recurrence: { ...current.recurrence, days: active ? current.recurrence.days.filter((value) => value !== day.value) : [...current.recurrence.days, day.value] } }))} className={cn("grid size-7 place-items-center rounded-full border text-xs font-medium shadow-sm transition", active ? "border-[#7c3aed] bg-[#7c3aed] font-semibold text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100")}>{day.short}</button>; })}</div>
@@ -483,27 +481,27 @@ export function TaskSheet({
                     <section>{renderTags(true)}</section>
                   </TabsContent>
 
-                  <TabsContent value="checklist" className="m-0 py-5">
-                    <div className="mb-5">
-                      <div className="mb-2 flex items-center justify-between text-sm"><span className="font-semibold text-slate-800">Progresso</span><span className="font-semibold text-[#6246d8]">{checklistProgress}%</span></div>
+                  <TabsContent value="checklist" className="m-0 py-4">
+                    <div className="mb-4">
+                      <div className="mb-2 flex items-center justify-between text-xs"><span className="font-semibold text-slate-800">Progresso</span><span className="font-semibold text-[#6246d8]">{checklistProgress}%</span></div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#7657ff] to-[#2f80ed] transition-all" style={{ width: `${checklistProgress}%` }} /></div>
                     </div>
                     <div className="space-y-2">
-                      {draft.checklist.map((item) => <div key={item.id} className="group flex items-center gap-3 rounded-xl border bg-white px-3 py-3"><Checkbox checked={item.completed} onCheckedChange={(checked) => setDraft((current) => ({ ...current, checklist: current.checklist.map((currentItem) => currentItem.id === item.id ? { ...currentItem, completed: checked === true } : currentItem) }))} /><span className={cn("flex-1 text-sm", item.completed && "text-slate-400 line-through")}>{item.label}</span><button type="button" onClick={() => setDraft((current) => ({ ...current, checklist: current.checklist.filter((currentItem) => currentItem.id !== item.id) }))} className="text-slate-300 opacity-0 transition hover:text-rose-500 group-hover:opacity-100" aria-label={`Excluir ${item.label}`}><Trash2 className="size-4" /></button></div>)}
+                      {draft.checklist.map((item) => <div key={item.id} className="group flex items-center gap-2.5 rounded-lg border bg-white px-3 py-2.5"><Checkbox checked={item.completed} onCheckedChange={(checked) => setDraft((current) => ({ ...current, checklist: current.checklist.map((currentItem) => currentItem.id === item.id ? { ...currentItem, completed: checked === true } : currentItem) }))} /><span className={cn("flex-1 text-xs", item.completed && "text-slate-400 line-through")}>{item.label}</span><button type="button" onClick={() => setDraft((current) => ({ ...current, checklist: current.checklist.filter((currentItem) => currentItem.id !== item.id) }))} className="text-slate-300 opacity-0 transition hover:text-rose-500 group-hover:opacity-100" aria-label={`Excluir ${item.label}`}><Trash2 className="size-4" /></button></div>)}
                     </div>
                     <div className="mt-3 flex gap-2"><Input value={checklistInput} onChange={(event) => setChecklistInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addChecklistItem(); } }} placeholder="Adicionar item ao checklist" className="bg-white" /><Button type="button" variant="outline" onClick={addChecklistItem}><Plus className="size-4" /><span className="sr-only sm:not-sr-only">Adicionar</span></Button></div>
                   </TabsContent>
 
-                  <TabsContent value="files" className="m-0 py-5">
-                    <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center transition hover:border-[#8b73ef] hover:bg-[#faf9ff]">
-                      <span className="mb-3 grid size-11 place-items-center rounded-xl bg-[#eeeaff] text-[#6b50df]"><Paperclip className="size-5" /></span>
-                      <span className="text-sm font-semibold text-slate-800">Adicionar arquivos</span>
-                      <span className="mt-1 text-xs leading-5 text-slate-500">Selecione documentos ou imagens do seu computador.</span>
+                  <TabsContent value="files" className="m-0 py-4">
+                    <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-5 text-center transition hover:border-[#8b73ef] hover:bg-[#faf9ff]">
+                      <span className="mb-2.5 grid size-9 place-items-center rounded-lg bg-[#eeeaff] text-[#6b50df]"><Paperclip className="size-4" /></span>
+                      <span className="text-xs font-semibold text-slate-800">Adicionar arquivos</span>
+                      <span className="mt-1 text-[11px] leading-4 text-slate-500">Selecione documentos ou imagens do seu computador.</span>
                       <input type="file" multiple className="sr-only" onChange={(event) => { const files = Array.from(event.target.files ?? []); setDraft((current) => ({ ...current, attachments: [...current.attachments, ...files.map((file) => ({ id: makeId(), name: file.name, size: file.size, type: file.type }))] })); event.target.value = ""; }} />
                     </label>
                     <div className="mt-4 space-y-2">{draft.attachments.map((file) => <div key={file.id} className="flex items-center gap-3 rounded-xl border bg-white p-3"><span className="grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-500"><FileText className="size-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-800">{file.name}</p><p className="text-xs text-slate-400">{file.size ? `${Math.max(1, Math.round(file.size / 1024))} KB` : "Arquivo"}</p></div><button type="button" onClick={() => setDraft((current) => ({ ...current, attachments: current.attachments.filter((item) => item.id !== file.id) }))} className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Remover ${file.name}`}><Trash2 className="size-4" /></button></div>)}</div>
                     <div className="mt-4">
-                      <FieldLabel optional>Adicionar por link</FieldLabel>
+                      <FieldLabel>Adicionar por link</FieldLabel>
                       <div className="flex gap-2">
                         <div className="relative min-w-0 flex-1">
                           <Link2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -514,27 +512,27 @@ export function TaskSheet({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="activity" className="m-0 py-5">
+                  <TabsContent value="activity" className="m-0 py-4">
                     <div className="relative space-y-5 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-slate-200">{task.activity.map((item) => <div key={item.id} className="relative flex gap-4"><span className="relative z-10 mt-1.5 size-[15px] shrink-0 rounded-full border-[4px] border-white bg-[#7a60eb]" /><div><p className="text-sm font-medium text-slate-700">{item.text}</p><p className="mt-1 text-xs text-slate-400">{format(parseISO(item.createdAt), "dd MMM, HH:mm", { locale: ptBR })}</p></div></div>)}</div>
                   </TabsContent>
               </div>
             </Tabs>
           )}
 
-          <SheetFooter className={cn("shrink-0 flex-row items-center border-t", task ? "gap-4 border-slate-200/80 bg-slate-50/80 px-5 py-3.5 sm:px-6" : "gap-1.5 border-slate-100 bg-white px-5 py-2.5 sm:px-6")}>
+          <SheetFooter className={cn("shrink-0 flex-row items-center border-t", task ? "gap-3 border-slate-200/80 bg-slate-50/80 px-5 py-2.5" : "gap-1.5 border-slate-100 bg-slate-50/60 px-5 py-2.5")}>
             {task ? (
               <>
                 <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 rounded-lg px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive className="size-4" /> <span>Arquivar</span></Button>
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="hidden text-[11px] font-medium text-slate-400 sm:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
-                  <Button type="button" variant="outline" size="sm" className="h-9 rounded-lg border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-100/80" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                  <Button type="submit" size="sm" className="h-9 rounded-lg bg-[#7c3aed] px-4 text-xs font-semibold text-white shadow-sm hover:bg-[#6d28d9]">Salvar</Button>
+                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-md border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-100/80" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                  <Button type="submit" size="sm" className="h-8 rounded-md bg-[#7c3aed] px-3.5 text-[11px] font-semibold text-white shadow-sm hover:bg-[#6d28d9]">Salvar</Button>
                 </div>
               </>
             ) : (
               <>
-                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 px-2 text-xs text-slate-500" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" size="sm" className="h-8 rounded-lg bg-gradient-to-r from-[#7657ff] to-[#6548df] px-3.5 text-xs shadow-[0_4px_14px_rgba(105,78,226,0.18)] hover:opacity-90"><Plus className="size-3.5" />Criar demanda</Button>
+                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 rounded-md px-2 text-[11px] text-slate-500" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button type="submit" size="sm" className="h-8 rounded-md bg-[#5b46e8] px-3 text-[11px] shadow-[0_4px_14px_rgba(105,78,226,0.16)] hover:bg-[#4f3bd5]"><Plus className="size-3.5" />Criar demanda</Button>
               </>
             )}
           </SheetFooter>
@@ -544,7 +542,7 @@ export function TaskSheet({
   if (task) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent showCloseButton={false} className="flex h-[calc(100dvh-24px)] max-h-[1016px] w-[calc(100vw-24px)] max-w-xl gap-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-0 shadow-[0_25px_50px_-12px_rgba(15,23,42,0.25),0_0_0_1px_rgba(15,23,42,0.06)] sm:h-[92vh] sm:max-w-xl">
+        <DialogContent showCloseButton={false} className="flex h-[calc(100dvh-24px)] max-h-[960px] w-[calc(100vw-24px)] max-w-xl gap-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-0 shadow-[0_24px_48px_-14px_rgba(15,23,42,0.22),0_0_0_1px_rgba(15,23,42,0.05)] sm:h-[90vh] sm:max-w-xl">
           {panelContent}
         </DialogContent>
       </Dialog>
@@ -552,10 +550,10 @@ export function TaskSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[calc(100vw-8px)] max-w-[680px] gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-[-20px_0_60px_rgba(22,24,35,0.1)] sm:w-[680px] sm:max-w-[calc(100vw-16px)]" showCloseButton={false}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton={false} className="flex max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[600px] gap-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-0 shadow-[0_24px_48px_-14px_rgba(15,23,42,0.2),0_0_0_1px_rgba(15,23,42,0.05)] sm:max-h-[90vh]">
         {panelContent}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

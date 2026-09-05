@@ -227,8 +227,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-2.5 border-y border-slate-200/80 bg-white py-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="week-board-scroll mt-4 flex items-center justify-between gap-3 overflow-x-auto border-y border-slate-200/80 bg-white py-2.5">
+            <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
               <div className="flex w-fit items-center gap-0.5 rounded-lg border bg-slate-50 p-0.5 shadow-sm">
                 <button onClick={() => setWeekStart((current) => addWeeks(current, -1))} className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 hover:bg-white" aria-label="Semana anterior"><ChevronLeft className="size-4" /></button>
                 <button onClick={() => setWeekStart(initialWeek())} className="focus-ring h-7 rounded-md px-2.5 text-xs font-semibold text-slate-700 hover:bg-white">Hoje</button>
@@ -236,38 +236,38 @@ export default function Home() {
               </div>
 
               <div className="flex items-center rounded-lg border bg-slate-100 p-0.5" aria-label="Agrupar demandas por semana ou cliente">
-                <button type="button" onClick={() => setViewMode("week")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition", viewMode === "week" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><CalendarDays className="size-3.5" /> Semana</button>
-                <button type="button" onClick={() => setViewMode("clients")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition", viewMode === "clients" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><UsersRound className="size-3.5" /> Clientes</button>
+                <button type="button" onClick={() => setViewMode("week")} className={cn("focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition", viewMode === "week" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><CalendarDays className="size-3" /> Semana</button>
+                <button type="button" onClick={() => setViewMode("clients")} className={cn("focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition", viewMode === "clients" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><UsersRound className="size-3" /> Clientes</button>
               </div>
 
               <div className="flex items-center rounded-lg border bg-slate-100 p-0.5" aria-label="Layout das demandas">
-                <button type="button" onClick={() => changeLayoutMode("board")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition", layoutMode === "board" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><Columns3 className="size-3.5" /> Painel</button>
-                <button type="button" onClick={() => changeLayoutMode("list")} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition", layoutMode === "list" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><LayoutList className="size-3.5" /> Lista</button>
+                <button type="button" onClick={() => changeLayoutMode("board")} className={cn("focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition", layoutMode === "board" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><Columns3 className="size-3" /> Painel</button>
+                <button type="button" onClick={() => changeLayoutMode("list")} className={cn("focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition", layoutMode === "list" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><LayoutList className="size-3" /> Lista</button>
               </div>
 
-              <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("focus-ring flex h-8 items-center gap-2 rounded-lg border bg-white px-2.5 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300", showWeekend && "border-[#c9c2ff] bg-[#f5f3ff] text-[#4f46e5]")}>
+              <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-lg border bg-white px-2 text-[11px] font-semibold text-slate-500 shadow-sm transition hover:border-slate-300", showWeekend && "border-[#c9c2ff] bg-[#f5f3ff] text-[#4f46e5]")}>
                 <span className={cn("relative h-4 w-7 rounded-full bg-slate-200 transition", showWeekend && "bg-[#7657ff]")}><span className={cn("absolute left-0.5 top-0.5 size-3 rounded-full bg-white shadow-sm transition", showWeekend && "translate-x-3")} /></span>
                 Sáb e dom
               </button>
             </div>
 
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <div className="relative min-w-[170px] flex-1 sm:flex-none">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-8 rounded-lg bg-white pl-9 text-xs shadow-sm sm:w-[210px]" />
+            <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
+              <div className="relative w-[170px] shrink-0">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-7 rounded-lg bg-white pl-8 pr-2.5 text-[11px] shadow-sm" />
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-8 bg-white sm:hidden"><SlidersHorizontal /> Filtros</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-7 rounded-lg bg-white px-2 text-[11px] sm:hidden"><SlidersHorizontal /> Filtros</Button>
               <div className={cn("contents", !mobileFiltersOpen && "max-sm:hidden")}>
                 <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}>
-                  <SelectTrigger className="h-8 min-w-[126px] flex-1 rounded-lg bg-white text-xs shadow-sm sm:flex-none"><SlidersHorizontal className="size-3.5" /><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-7 w-[138px] shrink-0 rounded-lg bg-white px-2.5 text-[11px] shadow-sm"><SlidersHorizontal className="size-3" /><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="all">Todos os status</SelectItem>{Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger className="h-8 min-w-[116px] flex-1 rounded-lg bg-white text-xs shadow-sm sm:flex-none"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-7 w-[132px] shrink-0 rounded-lg bg-white px-2.5 text-[11px] shadow-sm"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{CLIENTS.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-slate-400"><X /> Limpar</Button>}
+              {hasActiveFilters && <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-7 px-2 text-[11px] text-slate-400"><X /> Limpar</Button>}
             </div>
           </div>
 

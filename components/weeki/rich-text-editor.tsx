@@ -102,8 +102,8 @@ export function RichTextEditor({
   };
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.02)] focus-within:border-[#9a86ee] focus-within:ring-2 focus-within:ring-[#7657ff]/10", className)}>
-      <div className="flex min-h-10 flex-wrap items-center gap-0.5 border-b border-slate-100 bg-[#fbfbfd] px-2 py-1.5">
+    <div className={cn("overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.02)] focus-within:border-[#9a86ee] focus-within:ring-2 focus-within:ring-[#7657ff]/10", className)}>
+      <div className="flex min-h-9 flex-wrap items-center gap-0.5 border-b border-slate-100 bg-[#fbfbfd] px-2 py-1">
         {tools.slice(0, 3).map(({ command, label, icon: Icon }) => (
           <button
             key={command}
@@ -199,9 +199,9 @@ export function RichTextEditor({
         onBeforeInput={(event) => {
           if (event.nativeEvent.inputType.startsWith("insert") && characterCount >= maxLength && !window.getSelection()?.toString()) event.preventDefault();
         }}
-        className="rich-text-editor min-h-32 px-4 py-3 text-sm leading-6 text-slate-700 outline-none"
+        className="rich-text-editor min-h-24 px-3 py-2.5 text-[13px] leading-5 text-slate-700 outline-none"
       />
-      <div className="flex justify-end border-t border-slate-100 px-3 py-1.5 text-[11px] tabular-nums text-slate-400">
+      <div className="flex justify-end border-t border-slate-100 px-3 py-1 text-[10px] tabular-nums text-slate-400">
         {characterCount}/{maxLength}
       </div>
     </div>
