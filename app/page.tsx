@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Toaster } from "@/components/ui/sonner";
 import { AppointmentsScreen } from "@/components/weeki/appointments-screen";
 import { ClientsScreen } from "@/components/weeki/clients-screen";
+import { FinanceScreen } from "@/components/weeki/finance-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar, type WeekiArea } from "@/components/weeki/sidebar";
 import { TaskCard } from "@/components/weeki/task-card";
@@ -36,6 +37,12 @@ import { cn } from "@/lib/utils";
 
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
 const subscribeToHydration = () => () => undefined;
+const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
+  week: { group: "Planejamento", page: "Minha Semana" },
+  clients: { group: "Relacionamento", page: "Clientes" },
+  appointments: { group: "Atendimentos", page: "Agenda" },
+  finance: { group: "Gestão", page: "Financeiro" },
+};
 
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
@@ -200,7 +207,7 @@ export default function Home() {
             <span className="size-2 rounded-full bg-gradient-to-br from-[#8d6cff] to-[#2f80ed]" />
           </div>
           <div className="hidden items-center gap-2 text-sm text-slate-400 md:flex">
-            <span>{activeArea === "week" ? "Planejamento" : activeArea === "clients" ? "Relacionamento" : "Atendimentos"}</span><span>/</span><span className="font-medium text-slate-700">{activeArea === "week" ? "Minha Semana" : activeArea === "clients" ? "Clientes" : "Agenda"}</span>
+            <span>{areaHeader[activeArea].group}</span><span>/</span><span className="font-medium text-slate-700">{areaHeader[activeArea].page}</span>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <button onClick={() => setCommandOpen(true)} className="focus-ring hidden h-9 min-w-[240px] items-center gap-2 rounded-lg border bg-[#f8f8fa] px-3 text-left text-sm text-slate-400 transition hover:border-slate-300 hover:bg-white lg:flex">
@@ -224,6 +231,8 @@ export default function Home() {
           />
         ) : activeArea === "appointments" ? (
           <AppointmentsScreen clients={clients} />
+        ) : activeArea === "finance" ? (
+          <FinanceScreen clients={clients} />
         ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 68px)" }}>
           <div className="flex items-center justify-between gap-3">

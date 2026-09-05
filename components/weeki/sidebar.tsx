@@ -12,6 +12,7 @@ import {
   ListTodo,
   Settings,
   Users,
+  WalletCards,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const primaryItems = [
   { label: "Demandas", icon: ListTodo },
   { label: "Clientes", icon: Users, area: "clients" as const },
   { label: "Agendamentos", icon: CalendarClock, area: "appointments" as const },
+  { label: "Financeiro", icon: WalletCards, area: "finance" as const },
 ];
 
 const secondaryItems = [
@@ -28,7 +30,7 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients" | "appointments";
+export type WeekiArea = "week" | "clients" | "appointments" | "finance";
 
 export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
   return (
@@ -93,7 +95,7 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCoun
 export function MobileNavigation({ activeArea, onNavigate }: { activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
   return (
     <nav className="fixed inset-x-3 bottom-3 z-40 flex h-[62px] items-center justify-around rounded-2xl border border-white/10 bg-[#101014]/95 px-2 text-white shadow-2xl backdrop-blur md:hidden" aria-label="Navegação móvel">
-      {primaryItems.map((item) => (
+      {primaryItems.filter((item) => item.area).map((item) => (
         <button key={item.label} type="button" onClick={() => item.area && onNavigate(item.area)} className={cn("flex min-w-14 flex-col items-center gap-1 text-[10px] text-white/50", item.area === activeArea && "text-white")}>
           <item.icon className={cn("size-5", item.area === activeArea && "text-[#9a84ff]")} />
           <span>{item.label === "Minha Semana" ? "Semana" : item.label === "Agendamentos" ? "Agenda" : item.label}</span>
