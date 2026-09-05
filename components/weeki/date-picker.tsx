@@ -67,7 +67,7 @@ export function DatePicker({
           type="button"
           aria-label={selectedDate ? `Alterar data ${format(selectedDate, "dd/MM/yyyy")}` : placeholder}
           className={cn(
-            "focus-ring flex h-9 w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-medium shadow-sm transition hover:border-slate-300",
+            "focus-ring flex h-8 w-full items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-left text-xs font-medium shadow-none transition hover:border-slate-300",
             selectedDate ? "text-slate-800" : "text-slate-400",
             className,
           )}
@@ -109,7 +109,7 @@ export function DatePicker({
                     "focus-ring grid size-8 place-items-center rounded-md text-xs font-medium tabular-nums text-slate-700 transition hover:bg-[#f1efff] hover:text-[#5b3fd3] disabled:pointer-events-none disabled:opacity-25",
                     !isSameMonth(day, visibleMonth) && "text-slate-300",
                     today && !selected && "bg-slate-100 font-semibold text-slate-900",
-                    selected && "bg-[#5b46e8] font-semibold text-white shadow-sm hover:bg-[#4f3bd5] hover:text-white",
+                    selected && "bg-[#5b46e8] font-semibold text-white hover:bg-[#4f3bd5] hover:text-white",
                   )}
                   aria-pressed={selected}
                   aria-label={format(day, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}

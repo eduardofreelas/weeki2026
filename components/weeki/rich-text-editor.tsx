@@ -102,7 +102,7 @@ export function RichTextEditor({
   };
 
   return (
-    <div className={cn("overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.02)] focus-within:border-[#9a86ee] focus-within:ring-2 focus-within:ring-[#7657ff]/10", className)}>
+    <div className={cn("overflow-hidden rounded-md border border-slate-200 bg-white shadow-none focus-within:border-[#9a86ee] focus-within:ring-2 focus-within:ring-[#7657ff]/10", className)}>
       <div className="flex min-h-9 flex-wrap items-center gap-0.5 border-b border-slate-100 bg-[#fbfbfd] px-2 py-1">
         {tools.slice(0, 3).map(({ command, label, icon: Icon }) => (
           <button
@@ -112,7 +112,7 @@ export function RichTextEditor({
             aria-label={label}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => runCommand(command)}
-            className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df] hover:shadow-sm"
+            className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df]"
           >
             <Icon className="size-3.5" />
           </button>
@@ -126,7 +126,7 @@ export function RichTextEditor({
             aria-label={label}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => runCommand(command)}
-            className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df] hover:shadow-sm"
+            className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df]"
           >
             <Icon className="size-3.5" />
           </button>
@@ -138,7 +138,7 @@ export function RichTextEditor({
           aria-label="Adicionar link"
           onMouseDown={(event) => event.preventDefault()}
           onClick={openLinkEditor}
-          className={cn("focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df] hover:shadow-sm", linkOpen && "bg-white text-[#6548df] shadow-sm")}
+          className={cn("focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df]", linkOpen && "bg-white text-[#6548df]")}
         >
           <Link2 className="size-3.5" />
         </button>
@@ -150,7 +150,7 @@ export function RichTextEditor({
             aria-label={label}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => runCommand(command)}
-            className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df] hover:shadow-sm"
+            className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#6548df]"
           >
             <Icon className="size-3.5" />
           </button>
