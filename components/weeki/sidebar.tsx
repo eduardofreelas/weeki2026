@@ -10,6 +10,7 @@ import {
   Inbox,
   LayoutDashboard,
   ListTodo,
+  ReceiptText,
   Settings,
   Users,
   WalletCards,
@@ -23,6 +24,7 @@ const primaryItems = [
   { label: "Clientes", icon: Users, area: "clients" as const },
   { label: "Agendamentos", icon: CalendarClock, area: "appointments" as const },
   { label: "Financeiro", icon: WalletCards, area: "finance" as const },
+  { label: "Cobranças", icon: ReceiptText, area: "billing" as const },
 ];
 
 const secondaryItems = [
@@ -30,7 +32,7 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients" | "appointments" | "finance";
+export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing";
 
 export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
   return (

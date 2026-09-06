@@ -42,5 +42,5 @@ export const PAYMENT_METHOD_LABELS: Record<FinancePaymentMethod, string> = {
   other: "Outro",
 };
 
-export const INCOME_CATEGORIES = ["Serviços recorrentes", "Projeto avulso", "Consultoria", "Comissão", "Outras receitas"];
+export const INCOME_CATEGORIES = ["Serviços recorrentes", "Receita de cobrança", "Projeto avulso", "Consultoria", "Comissão", "Outras receitas"];
 export const EXPENSE_CATEGORIES = ["Software e ferramentas", "Marketing", "Infraestrutura", "Impostos", "Serviços terceirizados", "Outras despesas"];

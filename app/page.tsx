@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { AppointmentsScreen } from "@/components/weeki/appointments-screen";
+import { BillingScreen } from "@/components/weeki/billing-screen";
 import { ClientsScreen } from "@/components/weeki/clients-screen";
 import { FinanceScreen } from "@/components/weeki/finance-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
@@ -42,6 +43,7 @@ const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   clients: { group: "Relacionamento", page: "Clientes" },
   appointments: { group: "Atendimentos", page: "Agenda" },
   finance: { group: "Gestão", page: "Financeiro" },
+  billing: { group: "Gestão", page: "Cobranças" },
 };
 
 export default function Home() {
@@ -233,6 +235,8 @@ export default function Home() {
           <AppointmentsScreen clients={clients} />
         ) : activeArea === "finance" ? (
           <FinanceScreen clients={clients} />
+        ) : activeArea === "billing" ? (
+          <BillingScreen clients={clients} />
         ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 68px)" }}>
           <div className="flex items-center justify-between gap-3">
