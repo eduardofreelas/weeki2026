@@ -73,7 +73,7 @@
   --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 6px);
-  --font-sans: Inter, "SF Pro Text", "Segoe UI", Arial, sans-serif;
+  --font-sans: var(--font-montserrat), "Segoe UI", Arial, sans-serif;
 }
 
 * { border-color: var(--border); }
