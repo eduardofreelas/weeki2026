@@ -28,12 +28,14 @@ import { ClientsScreen } from "@/components/weeki/clients-screen";
 import { FinanceScreen } from "@/components/weeki/finance-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar, type WeekiArea } from "@/components/weeki/sidebar";
+import { SettingsScreen } from "@/components/weeki/settings-screen";
 import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import { WeekBoard, type WeekLayoutMode, type WeekViewMode } from "@/components/weeki/week-board";
 import { useWeekiClients } from "@/features/clients/use-weeki-clients";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
+import { useWeekiSettings } from "@/features/settings/use-weeki-settings";
 import { cn } from "@/lib/utils";
 
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -44,12 +46,29 @@ const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   appointments: { group: "Atendimentos", page: "Agenda" },
   finance: { group: "Gestão", page: "Financeiro" },
   billing: { group: "Gestão", page: "Cobranças" },
+  settings: { group: "Conta", page: "Configurações" },
 };
 
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const { clients, addClient, updateClient } = useWeekiClients();
+  const { settings, updateSettings } = useWeekiSettings();
   const [activeArea, setActiveArea] = useState<WeekiArea>("week");
+  const [initialPayments, setInitialPayments] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const area = params.get("area");
+    if (area === "billing" || area === "settings") {
+      // Restore the target after an authenticated provider callback.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveArea(area);
+      setInitialPayments(params.get("section") === "payments");
+      if (params.has("payment_error")) toast.error("Não foi possível concluir a conexão. Verifique a autorização e tente novamente.");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+  const openPayments = () => { setInitialPayments(true); setActiveArea("settings"); };
+
   const [weekStart, setWeekStart] = useState(initialWeek);
   const [viewMode, setViewMode] = useState<WeekViewMode>("week");
   const [layoutMode, setLayoutMode] = useState<WeekLayoutMode>(() => {
@@ -70,6 +89,7 @@ export default function Home() {
   const [initialTime, setInitialTime] = useState("");
   const [initialClientId, setInitialClientId] = useState<string | null>(null);
   const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  const profileInitials = settings.profile.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "WK";
 
   const changeLayoutMode = (mode: WeekLayoutMode) => {
     setLayoutMode(mode);
@@ -199,7 +219,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={setActiveArea} onInbox={() => { setActiveArea("week"); setInboxOpen(true); }} />
+      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={setActiveArea} onInbox={() => { setActiveArea("week"); setInboxOpen(true); }} profileName={settings.profile.name} profileInitials={profileInitials} />
       <MobileNavigation activeArea={activeArea} onNavigate={setActiveArea} />
 
       <main className="min-h-screen md:ml-64">
@@ -209,7 +229,7 @@ export default function Home() {
             <span className="size-2 rounded-full bg-ring" />
           </div>
           <div className="hidden items-center gap-2 text-sm text-slate-400 md:flex">
-            <span>{areaHeader[activeArea].group}</span><span>/</span><span className="font-medium text-slate-700">{areaHeader[activeArea].page}</span>
+            <span>{areaHeader[activeArea].group}</span><span>/</span><span className="font-medium text-slate-700 dark:text-slate-200">{areaHeader[activeArea].page}</span>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <button onClick={() => setCommandOpen(true)} className="focus-ring hidden h-9 min-w-[240px] items-center gap-2 rounded-lg border bg-[#f8f8fa] px-3 text-left text-sm text-slate-400 transition hover:border-slate-300 hover:bg-white lg:flex">
@@ -217,7 +237,7 @@ export default function Home() {
             </button>
             <button onClick={() => setCommandOpen(true)} className="focus-ring grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 lg:hidden" aria-label="Buscar"><Search className="size-[18px]" /></button>
             <button className="focus-ring relative grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Notificações"><Bell className="size-[18px]" /></button>
-            <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#202026] to-[#3a3a45] text-xs font-semibold text-white">EV</span>
+            <button type="button" onClick={() => setActiveArea("settings")} aria-label="Abrir configurações do perfil" className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#202026] to-[#3a3a45] text-xs font-semibold text-white transition hover:ring-2 hover:ring-[#7657ff]/30">{profileInitials}</button>
           </div>
         </header>
 
@@ -236,7 +256,9 @@ export default function Home() {
         ) : activeArea === "finance" ? (
           <FinanceScreen clients={clients} />
         ) : activeArea === "billing" ? (
-          <BillingScreen clients={clients} />
+          <BillingScreen clients={clients} onPayments={openPayments} />
+        ) : activeArea === "settings" ? (
+          <SettingsScreen key={String(initialPayments)} initialPayments={initialPayments} settings={settings} onUpdateSettings={updateSettings} />
         ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 4rem)" }}>
           <div className="flex items-center justify-between gap-3">

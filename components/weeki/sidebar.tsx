@@ -32,9 +32,9 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing";
+export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing" | "settings";
 
-export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void; onInbox?: () => void }) {
+export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, profileName, profileInitials }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void; onInbox?: () => void; profileName: string; profileInitials: string }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar px-3 py-4 text-sidebar-foreground md:flex">
       <div className="flex h-12 items-center px-3">
@@ -42,9 +42,9 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox }: { 
         <span className="ml-1.5 size-2 rounded-full bg-sidebar-primary" />
       </div>
 
-      <button className="mt-4 flex h-11 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/[0.045] px-3 text-left transition hover:bg-white/[0.08]">
-        <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-[#7657ff] to-[#327fe5] text-xs font-semibold">EV</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">Eduardo Vieira</span>
+      <button type="button" onClick={() => onNavigate("settings")} className="mt-4 flex h-11 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/[0.045] px-3 text-left transition hover:bg-white/[0.08]">
+        <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-[#7657ff] to-[#327fe5] text-xs font-semibold">{profileInitials}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{profileName}</span>
         <ChevronDown className="size-4 text-white/45" />
       </button>
 
@@ -88,7 +88,8 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox }: { 
         <button type="button" disabled title="Em breve" className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 disabled:cursor-not-allowed disabled:opacity-40">
           <CircleHelp className="size-[18px]" /> Ajuda
         </button>
-        <button type="button" disabled title="Em breve" className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 disabled:cursor-not-allowed disabled:opacity-40">
+        <button type="button" onClick={() => onNavigate("settings")} className={cn("relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 hover:bg-white/[0.06] hover:text-white", activeArea === "settings" && "bg-white/[0.09] text-white")}>
+          {activeArea === "settings" && <span className="absolute -left-3 h-6 w-[3px] rounded-r-full bg-[#8065ff]" />}
           <Settings className="size-[18px]" /> Configurações
         </button>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectedFinance } from "@/components/payments/finance";
 import { useMemo, useState } from "react";
 import { endOfMonth, format, isAfter, isBefore, isSameMonth, parseISO, startOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -59,7 +60,9 @@ const sumTransactions = (transactions: FinanceTransaction[], type: FinanceTransa
   .filter((transaction) => transaction.type === type && (!statuses || statuses.includes(transaction.status)))
   .reduce((total, transaction) => total + transaction.amount, 0);
 
-export function FinanceScreen({ clients }: { clients: Client[] }) {
+export function FinanceScreen({ clients }: { clients: Client[] }) { return <ConnectedFinance legacy={<LocalFinanceScreen clients={clients} />} />; }
+
+function LocalFinanceScreen({ clients }: { clients: Client[] }) {
   const { transactions, addTransaction, updateTransaction, setTransactionStatus, duplicateTransaction } = useWeekiFinance();
   const [view, setView] = useState<FinanceView>("overview");
   const [rangeMonths, setRangeMonths] = useState("6");
