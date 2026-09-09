@@ -7,6 +7,7 @@
 | `npm run test:payments` | 35 testes aprovados; nenhum erro, skip ou transação real |
 | `npm run lint` | Sem erros ou warnings em todo o repositório; o script antigo, que apontava para um arquivo inexistente, foi corrigido |
 | `npm run build:full` | Frontend Next.js, verificação de tipos, exportação estática e backend TypeScript compilados |
+| `npm audit` | Zero vulnerabilidades após atualizar Next.js/ESLint para 16.3.4 e remover ferramentas antigas sem uso |
 | `git diff --check` | Sem erros de whitespace |
 
 A branch também incorpora a `main` em `f72f2a7615e1a3e72deebc82635356e17c1c4e3f`, preservando as correções posteriores de UX, sanitização, confirmações, sincronização local e build.
