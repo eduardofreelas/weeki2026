@@ -66,6 +66,7 @@ function syncPaidChargeToFinance(charge: BillingCharge) {
       updatedAt: now,
     });
     window.localStorage.setItem(FINANCE_KEY, JSON.stringify(current));
+    window.dispatchEvent(new Event("weeki-storage"));
   } catch {
     // Financial synchronization is best-effort while data is stored locally.
   }

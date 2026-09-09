@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/weeki/date-picker";
+import { ConfirmActionDialog } from "@/components/weeki/confirm-action-dialog";
 import { RichTextEditor } from "@/components/weeki/rich-text-editor";
 import type { Client } from "@/features/clients/types";
 import type { RecurrenceType, Task, TaskDraft, TaskPriority, TaskStatus } from "@/features/tasks/types";
@@ -161,6 +162,7 @@ export function TaskSheet({
   const [tagInput, setTagInput] = useState("");
   const [checklistInput, setChecklistInput] = useState("");
   const [linkInput, setLinkInput] = useState("");
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [autoSaveState, setAutoSaveState] = useState<"saving" | "saved" | null>(task ? "saved" : null);
   const lastSavedRef = useRef(JSON.stringify(initialDraft));
   const advancedSectionRef = useRef<HTMLDivElement>(null);
@@ -296,6 +298,7 @@ export function TaskSheet({
   );
 
   const panelContent = (
+    <>
     <form onSubmit={submit} className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
           <SheetHeader className={cn("shrink-0 border-b border-slate-100 bg-white pr-14", task ? "px-5 pb-3.5 pt-4" : "px-5 py-4")}>
             <div className={cn("flex items-start", task ? "gap-3.5" : "gap-3")}>
@@ -531,21 +534,35 @@ export function TaskSheet({
           <SheetFooter className={cn("shrink-0 flex-row items-center border-t", task ? "gap-3 border-slate-200/80 bg-slate-50/80 px-5 py-2.5" : "gap-1.5 border-slate-100 bg-slate-50/60 px-5 py-2.5")}>
             {task ? (
               <>
-                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 rounded-lg px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => { onArchive(task.id); onOpenChange(false); }}><Archive className="size-4" /> <span>Arquivar</span></Button>
+                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 rounded-lg px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => setConfirmArchive(true)}><Archive className="size-4" /> <span>Arquivar</span></Button>
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="hidden text-[11px] font-medium text-slate-400 sm:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
-                  <Button type="button" variant="outline" size="sm" className="h-8 rounded-md border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 shadow-none hover:bg-slate-100/80" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                  <Button type="submit" size="sm" className="h-8 rounded-md bg-[#7c3aed] px-3.5 text-[11px] font-semibold text-white shadow-none hover:bg-[#6d28d9]">Salvar</Button>
+                  <span className="hidden text-xs font-medium text-slate-400 sm:inline">{autoSaveState === "saving" ? "Salvando..." : "Alterações salvas"}</span>
+                  <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                  <Button type="submit" size="sm" className="h-8">Salvar</Button>
                 </div>
               </>
             ) : (
               <>
-                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8 rounded-md px-2 text-[11px] text-slate-500" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" size="sm" className="h-8 rounded-md bg-[#5b46e8] px-3 text-[11px] shadow-none hover:bg-[#4f3bd5]"><Plus className="size-3.5" />Criar demanda</Button>
+                <Button type="button" variant="ghost" size="sm" className="mr-auto h-8" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button type="submit" size="sm" className="h-8"><Plus className="size-3.5" />Criar demanda</Button>
               </>
             )}
           </SheetFooter>
     </form>
+    <ConfirmActionDialog
+      open={confirmArchive}
+      onOpenChange={setConfirmArchive}
+      title="Arquivar demanda?"
+      description="A demanda sai da semana ativa. Esta ação não apaga o histórico da atividade."
+      confirmLabel="Arquivar"
+      destructive
+      onConfirm={() => {
+        if (!task) return;
+        onArchive(task.id);
+        onOpenChange(false);
+      }}
+    />
+    </>
   );
 
   if (task) {

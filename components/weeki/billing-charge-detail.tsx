@@ -10,12 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import type { Client } from "@/features/clients/types";
 import { BILLING_METHOD_LABELS, BILLING_STATUS_LABELS, type BillingCharge, type BillingMethod, type BillingSendChannel, type BillingStatus } from "@/features/billing/types";
-import { cn } from "@/lib/utils";
+import { ConfirmActionDialog } from "@/components/weeki/confirm-action-dialog";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function BillingChargeDetail({ charge, charges, client, gatewayConnected, onBack, onEdit, onStatusChange, onDispatch, onExtendDueDate }: { charge: BillingCharge; charges: BillingCharge[]; client?: Client; gatewayConnected: boolean; onBack: () => void; onEdit: () => void; onStatusChange: (status: BillingStatus) => void; onDispatch: (channel: BillingSendChannel) => void; onExtendDueDate: (dueDate: string) => void }) {
   const [extendOpen, setExtendOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [newDueDate, setNewDueDate] = useState(charge.dueDate);
   const publicLink = `https://weeki.com.br${charge.paymentLink}`;
   const discountedAmount = charge.discountEnabled ? charge.amount * (1 - charge.discountPercent / 100) : charge.amount;
@@ -43,7 +44,7 @@ export function BillingChargeDetail({ charge, charges, client, gatewayConnected,
     <div className="mx-auto w-full max-w-[1500px] px-4 pb-24 pt-5 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-900"><ArrowLeft className="size-3.5" /> Voltar para Cobranças</button><span className="hidden text-slate-300 sm:inline">/</span><h1 className="text-sm font-bold text-slate-900">#{charge.code}</h1><StatusBadge status={charge.status} />{charge.accessCount > 0 && <span className="inline-flex w-fit items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[9px] text-slate-500"><Eye className="size-3" /> Acessado {charge.accessCount}x</span>}
-        <div className="flex gap-2 sm:ml-auto"><Button type="button" variant="outline" size="sm" onClick={onEdit} className="h-8 rounded-md bg-white px-2.5 text-[11px] shadow-none"><Pencil className="size-3.5" /> Editar</Button>{charge.status !== "cancelled" && charge.status !== "paid" && <Button type="button" variant="ghost" size="sm" onClick={() => { onStatusChange("cancelled"); toast.success("Cobrança cancelada."); }} className="h-8 rounded-md px-2 text-[11px] text-rose-600"><XCircle className="size-3.5" /> Cancelar</Button>}</div>
+        <div className="flex gap-2 sm:ml-auto"><Button type="button" variant="outline" size="sm" onClick={onEdit}><Pencil className="size-3.5" /> Editar</Button>{charge.status !== "cancelled" && charge.status !== "paid" && <Button type="button" variant="ghost" size="sm" onClick={() => setCancelOpen(true)} className="text-rose-600"><XCircle className="size-3.5" /> Cancelar</Button>}</div>
       </div>
 
       <section className="mt-5 rounded-xl bg-gradient-to-br from-[#0d1729] to-[#151c42] p-5 text-white sm:p-6">
@@ -73,7 +74,19 @@ export function BillingChargeDetail({ charge, charges, client, gatewayConnected,
         </aside>
       </div>
 
-      <Dialog open={extendOpen} onOpenChange={setExtendOpen}><DialogContent className="max-w-sm gap-0 rounded-xl p-0"><DialogHeader className="border-b border-slate-100 px-5 py-4 text-left"><DialogTitle className="text-base">Estender vencimento</DialogTitle><DialogDescription className="mt-1 text-[11px]">Defina uma nova data para esta cobrança.</DialogDescription></DialogHeader><div className="px-5 py-5"><label className="text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">Nova data</label><Input type="date" value={newDueDate} onChange={(event) => setNewDueDate(event.target.value)} className="mt-1.5 h-9 rounded-md text-xs shadow-none" /></div><DialogFooter className="flex-row border-t border-slate-100 bg-slate-50/70 px-5 py-3"><Button type="button" variant="ghost" size="sm" onClick={() => setExtendOpen(false)} className="h-8 rounded-md text-xs">Cancelar</Button><Button type="button" size="sm" onClick={saveDueDate} className="h-8 rounded-md bg-[#5140df] px-3 text-xs shadow-none">Salvar data</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={extendOpen} onOpenChange={setExtendOpen}><DialogContent className="max-w-sm gap-0 rounded-xl p-0"><DialogHeader className="border-b border-slate-100 px-5 py-4 text-left"><DialogTitle className="text-base">Estender vencimento</DialogTitle><DialogDescription className="mt-1 text-sm">Defina uma nova data para esta cobrança.</DialogDescription></DialogHeader><div className="px-5 py-5"><label htmlFor="billing-new-due-date" className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500">Nova data</label><Input id="billing-new-due-date" type="date" value={newDueDate} onChange={(event) => setNewDueDate(event.target.value)} className="mt-1.5 h-9" /></div><DialogFooter className="flex-row border-t border-slate-100 bg-slate-50/70 px-5 py-3"><Button type="button" variant="ghost" size="sm" onClick={() => setExtendOpen(false)}>Cancelar</Button><Button type="button" size="sm" onClick={saveDueDate}>Salvar data</Button></DialogFooter></DialogContent></Dialog>
+      <ConfirmActionDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Cancelar cobrança?"
+        description="O link deixa de ser válido. O registro permanece no histórico com status cancelado."
+        confirmLabel="Cancelar cobrança"
+        destructive
+        onConfirm={() => {
+          onStatusChange("cancelled");
+          toast.success("Cobrança cancelada.");
+        }}
+      />
     </div>
   );
 }

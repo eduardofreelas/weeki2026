@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeRichHtml } from "@/lib/sanitize";
 
 type EditorCommand = "bold" | "italic" | "underline" | "insertUnorderedList" | "insertOrderedList" | "removeFormat";
 
@@ -48,7 +49,7 @@ export function RichTextEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || document.activeElement === editor || editor.innerHTML === value) return;
-    editor.innerHTML = value;
+    editor.innerHTML = sanitizeRichHtml(value);
     setCharacterCount(editor.innerText.length);
   }, [value]);
 
@@ -56,7 +57,7 @@ export function RichTextEditor({
     const editor = editorRef.current;
     if (!editor) return;
     setCharacterCount(editor.innerText.length);
-    onChange(editor.innerHTML === "<br>" ? "" : editor.innerHTML);
+    onChange(sanitizeRichHtml(editor.innerHTML === "<br>" ? "" : editor.innerHTML));
   };
 
   const runCommand = (command: EditorCommand) => {

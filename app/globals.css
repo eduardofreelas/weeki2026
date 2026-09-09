@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: #d7d8df transparent;
@@ -33,7 +31,7 @@
   --chart-3: #16a47a;
   --chart-4: #f59e0b;
   --chart-5: #ef476f;
-  --radius: 0.875rem;
+  --radius: 0.5rem;
   --sidebar: #101014;
   --sidebar-foreground: #f8f8fb;
   --sidebar-primary: #7657ff;
@@ -42,28 +40,6 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #2a2a32;
   --sidebar-ring: #8d76ff;
-}
-
-.dark {
-  color-scheme: dark;
-  --background: #0d0d12;
-  --foreground: #f5f5f7;
-  --card: #15151b;
-  --card-foreground: #f5f5f7;
-  --popover: #1b1b22;
-  --popover-foreground: #f5f5f7;
-  --primary: #f5f5f7;
-  --primary-foreground: #15151b;
-  --secondary: #23232b;
-  --secondary-foreground: #eeeeF2;
-  --muted: #23232b;
-  --muted-foreground: #a1a1aa;
-  --accent: #28233d;
-  --accent-foreground: #c9bfff;
-  --destructive: #e34d6b;
-  --border: #2b2b34;
-  --input: #353540;
-  --ring: #8d76ff;
 }
 
 @theme inline {
@@ -111,28 +87,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-.dark body { background: #0d0d12; color: #f5f5f7; }
-.dark .bg-white { background-color: #15151b; }
-.dark .bg-slate-50 { background-color: #191920; }
-.dark .bg-slate-100 { background-color: #23232b; }
-.dark .bg-slate-200 { background-color: #30303a; }
-.dark .text-slate-900,
-.dark .text-slate-800 { color: #f5f5f7; }
-.dark .text-slate-700 { color: #dedee5; }
-.dark .text-slate-600 { color: #c2c2cc; }
-.dark .text-slate-500 { color: #a2a2ad; }
-.dark .text-slate-400 { color: #858591; }
-.dark .border-slate-100,
-.dark .border-slate-200,
-.dark .border-slate-200\/80,
-.dark .border-slate-300 { border-color: #2b2b34; }
-.dark .divide-slate-100 > :not(:last-child),
-.dark .divide-slate-200 > :not(:last-child) { border-color: #2b2b34; }
-.dark [class~="bg-[#f8fafc]"],
-.dark [class~="bg-[#f6f7fb]"] { background-color: #0d0d12; }
-.dark [class~="bg-[#f8f8fa]"],
-.dark [class~="bg-[#fbfbfd]"] { background-color: #191920; }
-
 button, input, textarea { font: inherit; }
 ::selection { background: #dcd4ff; color: #281b64; }
 
@@ -151,7 +105,7 @@ button, input, textarea { font: inherit; }
   grid-auto-columns: minmax(215px, 1fr);
   grid-auto-flow: column;
   align-items: start;
-  gap: 0.875rem;
+  gap: 0.75rem;
   min-width: max-content;
   width: 100%;
   padding: 0.5rem 0;

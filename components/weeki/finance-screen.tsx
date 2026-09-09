@@ -51,8 +51,8 @@ type FinanceView = "overview" | "transactions";
 type TransactionTab = "all" | "income" | "expense" | "pending";
 type PeriodFilter = "month" | "quarter" | "all";
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const preciseCurrency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const preciseCurrency = currency;
 
 const transactionTime = (transaction: FinanceTransaction) => parseISO(transaction.dueDate).getTime();
 const sumTransactions = (transactions: FinanceTransaction[], type: FinanceTransactionType, statuses?: FinanceTransactionStatus[]) => transactions
@@ -103,19 +103,19 @@ export function FinanceScreen({ clients }: { clients: Client[] }) {
     <div className="mx-auto w-full max-w-[1500px] px-4 pb-24 pt-5 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="flex items-center gap-2.5"><span className="grid size-8 place-items-center rounded-lg bg-[#efedff] text-[#5b44df]"><WalletCards className="size-4" /></span><h1 className="text-[23px] font-bold tracking-[-0.035em] text-slate-900 sm:text-[25px]">Financeiro</h1></div>
+          <div className="flex items-center gap-2.5"><span className="grid size-8 place-items-center rounded-lg bg-accent text-accent-foreground"><WalletCards className="size-4" /></span><h1 className="text-2xl font-semibold tracking-tight text-slate-900">Financeiro</h1></div>
           <p className="mt-1.5 text-xs leading-5 text-slate-500">Receitas, despesas e previsões para decidir com mais clareza.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {view === "overview" && <Select value={rangeMonths} onValueChange={setRangeMonths}><SelectTrigger className="h-8 w-[142px] rounded-md bg-white text-[11px] shadow-none"><CalendarRange className="size-3.5" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="3">Últimos 3 meses</SelectItem><SelectItem value="6">Últimos 6 meses</SelectItem><SelectItem value="12">Últimos 12 meses</SelectItem></SelectContent></Select>}
           <Button type="button" variant="outline" size="sm" onClick={() => openCreate("expense")} className="h-8 rounded-md border-rose-200 bg-white px-2.5 text-[11px] text-rose-600 shadow-none hover:bg-rose-50"><ArrowUpRight className="size-3.5" /> Nova despesa</Button>
-          <Button type="button" size="sm" onClick={() => openCreate("income")} className="h-8 rounded-md bg-[#5140df] px-3 text-[11px] shadow-none hover:bg-[#4432cf]"><Plus className="size-3.5" /> Nova receita</Button>
+          <Button type="button" size="sm" onClick={() => openCreate("income")}><Plus className="size-3.5" /> Nova receita</Button>
         </div>
       </div>
 
       <nav className="mt-6 flex border-b border-slate-200" aria-label="Seções do financeiro">
         {([{ value: "overview", label: "Visão geral" }, { value: "transactions", label: "Transações" }] as const).map((item) => (
-          <button key={item.value} type="button" onClick={() => setView(item.value)} className={cn("flex h-10 items-center border-b-2 border-transparent px-1 text-xs font-medium text-slate-500 transition [&+button]:ml-7", view === item.value && "border-[#654ff0] font-semibold text-[#5945df]")}>{item.label}{item.value === "transactions" && <span className="ml-2 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">{transactions.length}</span>}</button>
+          <button key={item.value} type="button" onClick={() => setView(item.value)} className={cn("flex h-10 items-center border-b-2 border-transparent px-1 text-sm font-medium text-slate-500 transition [&+button]:ml-8", view === item.value && "border-foreground font-semibold text-foreground")}>{item.label}{item.value === "transactions" && <span className="ml-2 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">{transactions.length}</span>}</button>
         ))}
       </nav>
 
