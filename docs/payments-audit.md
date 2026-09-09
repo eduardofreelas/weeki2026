@@ -3,6 +3,8 @@
 Base publicada: `01b19df6b3f3e80e2f1dce75a0bb02d4fb943b31`, árvore `5fd0b0b561622dd00346782fa0dc9c5c40be0de8`.
 Backup Git local e no GitHub: `backup/before-multiprovider-20260909` (mesma árvore publicada; a branch remota aponta para o commit publicado acima).
 
+Após a auditoria, a `main` avançou até `f72f2a7615e1a3e72deebc82635356e17c1c4e3f` com correções de UX, sanitização, confirmações e build. Essas mudanças foram incorporadas à branch multiprovider e validadas em conjunto; o backup acima permanece como retrato exato da base originalmente auditada.
+
 ## Constatações antes da alteração
 
 - Next.js 16 / React 19 / TypeScript / Tailwind 4 / Montserrat. Exportação estática (`out`).

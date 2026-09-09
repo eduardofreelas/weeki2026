@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { Client, ClientDraft, ClientFile, ClientLink, ClientStatus, ContractKind, PaymentStatus } from "@/features/clients/types";
+import { formatCpfCnpj, formatPhoneBR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const makeId = () =>
@@ -74,8 +75,8 @@ const toDraft = (client: Client): ClientDraft => ({
   links: client.links.map((link) => ({ ...link })),
 });
 
-function FieldLabel({ children, required = false }: { children: React.ReactNode; required?: boolean }) {
-  return <Label className="mb-1.5 block text-[11px] font-semibold text-slate-700">{children}{required && <span className="ml-1 text-[#6d4ce8]">*</span>}</Label>;
+function FieldLabel({ children, required = false, htmlFor }: { children: React.ReactNode; required?: boolean; htmlFor?: string }) {
+  return <Label htmlFor={htmlFor} className="mb-1.5 block text-xs font-semibold text-slate-700">{children}{required && <span className="ml-1 text-destructive">*</span>}</Label>;
 }
 
 function FormSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -197,8 +198,8 @@ export function ClientForm({
               </div>
 
               <div>
-                <FieldLabel required>Nome ou razão social</FieldLabel>
-                <Input autoFocus value={draft.name} onChange={(event) => update("name", event.target.value)} placeholder="Ex.: Clínica Lumi" className="h-9 rounded-md bg-white px-3 text-xs shadow-none" />
+                <FieldLabel htmlFor="client-name" required>Nome ou razão social</FieldLabel>
+                <Input id="client-name" autoFocus value={draft.name} onChange={(event) => update("name", event.target.value)} placeholder="Ex.: Clínica Lumi" className="h-9" />
               </div>
 
               <div>
@@ -216,10 +217,10 @@ export function ClientForm({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><FieldLabel>{draft.kind === "company" ? "CNPJ" : "CPF"}</FieldLabel><Input value={draft.document} onChange={(event) => update("document", event.target.value)} placeholder={draft.kind === "company" ? "00.000.000/0001-00" : "000.000.000-00"} className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
-                <div><FieldLabel>Responsável</FieldLabel><Input value={draft.contactName} onChange={(event) => update("contactName", event.target.value)} placeholder="Nome do contato" className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
-                <div><FieldLabel>E-mail</FieldLabel><Input type="email" value={draft.email} onChange={(event) => update("email", event.target.value)} placeholder="contato@empresa.com" className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
-                <div><FieldLabel>Telefone / WhatsApp</FieldLabel><Input type="tel" value={draft.phone} onChange={(event) => update("phone", event.target.value)} placeholder="(00) 00000-0000" className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
+                <div><FieldLabel htmlFor="client-document">{draft.kind === "company" ? "CNPJ" : "CPF"}</FieldLabel><Input id="client-document" inputMode="numeric" value={draft.document} onChange={(event) => update("document", formatCpfCnpj(event.target.value))} placeholder={draft.kind === "company" ? "00.000.000/0001-00" : "000.000.000-00"} className="h-9" /></div>
+                <div><FieldLabel htmlFor="client-contact">Responsável</FieldLabel><Input id="client-contact" value={draft.contactName} onChange={(event) => update("contactName", event.target.value)} placeholder="Nome do contato" className="h-9" /></div>
+                <div><FieldLabel htmlFor="client-email">E-mail</FieldLabel><Input id="client-email" type="email" value={draft.email} onChange={(event) => update("email", event.target.value)} placeholder="contato@empresa.com" className="h-9" /></div>
+                <div><FieldLabel htmlFor="client-phone">Telefone / WhatsApp</FieldLabel><Input id="client-phone" type="tel" inputMode="numeric" value={draft.phone} onChange={(event) => update("phone", formatPhoneBR(event.target.value))} placeholder="(00) 00000-0000" className="h-9" /></div>
                 <div><FieldLabel>Cargo do responsável</FieldLabel><Input value={draft.contactRole} onChange={(event) => update("contactRole", event.target.value)} placeholder="Ex.: Diretora de Operações" className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
                 <div><FieldLabel>Segmento</FieldLabel><Input value={draft.segment} onChange={(event) => update("segment", event.target.value)} placeholder="Ex.: Saúde, indústria, turismo" className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
               </div>
@@ -275,7 +276,7 @@ export function ClientForm({
 
         <footer className="mt-6 flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
           <Button type="button" variant="ghost" size="sm" onClick={onCancel} className="h-8 rounded-md px-3 text-xs text-slate-500">Cancelar</Button>
-          <Button type="submit" size="sm" className="h-8 rounded-md bg-[#5542e2] px-3.5 text-xs text-white shadow-none hover:bg-[#4935d1]"><Check className="size-3.5" /> {client ? "Salvar alterações" : "Salvar cliente"}</Button>
+          <Button type="submit" size="sm"><Check className="size-3.5" /> {client ? "Salvar alterações" : "Salvar cliente"}</Button>
         </footer>
       </form>
     </div>

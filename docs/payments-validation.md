@@ -5,9 +5,11 @@
 | Verificação | Resultado |
 | --- | --- |
 | `npm run test:payments` | 35 testes aprovados; nenhum erro, skip ou transação real |
-| `npm run lint:payments` | Sem erros ou warnings nos arquivos do módulo e pontos de integração alterados |
+| `npm run lint` | Sem erros ou warnings em todo o repositório; o script antigo, que apontava para um arquivo inexistente, foi corrigido |
 | `npm run build:full` | Frontend Next.js, verificação de tipos, exportação estática e backend TypeScript compilados |
 | `git diff --check` | Sem erros de whitespace |
+
+A branch também incorpora a `main` em `f72f2a7615e1a3e72deebc82635356e17c1c4e3f`, preservando as correções posteriores de UX, sanitização, confirmações, sincronização local e build.
 
 Os testes usam PGlite (PostgreSQL embarcado), sessões HTTP de teste e transportes simulados. Cobrem conexão/desconexão, padrão, criação idempotente, pagamento confirmado/recusado, cancelamento, refund integral/parcial, evento duplicado/fora de ordem, timeout, indisponibilidade, credencial expirada, ownership de conexão/cobrança, FKs entre workspaces, OAuth de uso único, assinatura de webhook, CSRF, conciliação e histórico após desconexão.
 

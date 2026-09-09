@@ -160,7 +160,7 @@ export function WeekBoard({
             key={column.id}
             {...dropProps(column)}
             className={cn(
-              "group/column flex min-h-[540px] flex-col rounded-[14px] border border-slate-200/90 bg-white/60 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.025)] transition-colors hover:bg-white/85",
+              "group/column flex min-h-[540px] flex-col rounded-lg border border-slate-200/90 bg-white/60 p-3 transition-colors hover:bg-white/85",
               column.isToday && "border-[#d5ceff] bg-[#f6f5ff] ring-1 ring-[#645efb]/10",
               dragTarget === column.id && "border-[#b8adff] bg-[#f5f3ff]",
             )}
@@ -180,7 +180,7 @@ export function WeekBoard({
                 <TaskCard key={task.id} {...cardProps(task)} contextLabel={viewMode === "clients" && task.scheduledDate ? format(parseISO(task.scheduledDate), "EEE, dd MMM", { locale: ptBR }) : undefined} />
               ))}
               {!column.tasks.length && (
-                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-24 w-full items-center justify-center rounded-lg border border-dashed border-transparent px-3 text-center text-[11px] text-slate-300 opacity-0 transition hover:border-slate-200 hover:bg-white/60 hover:text-[#5b46e8] group-hover/column:opacity-100 focus:opacity-100"><Plus className="mr-1.5 size-3.5" /> Adicionar demanda</button>
+                <button type="button" onClick={() => createForColumn(column)} className="flex min-h-24 w-full items-center justify-center rounded-lg border border-dashed border-slate-200 px-3 text-center text-xs text-slate-400 opacity-100 transition hover:border-slate-300 hover:bg-white/60 hover:text-foreground md:border-transparent md:opacity-0 md:group-hover/column:opacity-100 focus:opacity-100"><Plus className="mr-1.5 size-3.5" /> Adicionar demanda</button>
               )}
             </div>
           </div>

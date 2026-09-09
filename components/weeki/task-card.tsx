@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlignLeft,
   Archive,
@@ -12,6 +13,7 @@ import {
   Pencil,
   Repeat2,
 } from "lucide-react";
+import { ConfirmActionDialog } from "@/components/weeki/confirm-action-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -59,6 +61,8 @@ export function TaskCard({
     ? `${task.scheduledTime}${task.dueTime ? ` – ${task.dueTime}` : ""}`
     : "";
 
+  const [confirmArchive, setConfirmArchive] = useState(false);
+
   const actionMenu = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -70,9 +74,21 @@ export function TaskCard({
         <DropdownMenuItem onSelect={onOpen}><Pencil /> Editar</DropdownMenuItem>
         <DropdownMenuItem onSelect={onDuplicate}><Copy /> Duplicar</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={onArchive}><Archive /> Arquivar</DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onSelect={() => setConfirmArchive(true)}><Archive /> Arquivar</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+
+  const archiveDialog = (
+    <ConfirmActionDialog
+      open={confirmArchive}
+      onOpenChange={setConfirmArchive}
+      title="Arquivar demanda?"
+      description="A demanda sai da semana ativa. Você poderá recuperá-la depois, quando o arquivo estiver disponível."
+      confirmLabel="Arquivar"
+      destructive
+      onConfirm={onArchive}
+    />
   );
 
   const commonProps = {
@@ -113,6 +129,7 @@ export function TaskCard({
           </div>
         </div>
         {actionMenu}
+        {archiveDialog}
       </article>
     );
   }
@@ -147,6 +164,7 @@ export function TaskCard({
         </div>
       </div>
       {actionMenu}
+      {archiveDialog}
     </article>
   );
 }

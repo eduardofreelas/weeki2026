@@ -29,6 +29,16 @@ export function useWeekiFinance() {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions)); } catch { /* Browser storage is optional. */ }
   }, [transactions]);
 
+  useEffect(() => {
+    const reload = () => setTransactions(loadTransactions());
+    window.addEventListener("storage", reload);
+    window.addEventListener("weeki-storage", reload);
+    return () => {
+      window.removeEventListener("storage", reload);
+      window.removeEventListener("weeki-storage", reload);
+    };
+  }, []);
+
   const addTransaction = useCallback((draft: FinanceTransactionDraft) => {
     const now = new Date().toISOString();
     const transaction: FinanceTransaction = { ...draft, id: makeId(), createdAt: now, updatedAt: now };

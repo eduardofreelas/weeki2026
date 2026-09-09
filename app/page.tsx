@@ -208,25 +208,25 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#101014] text-white">
+      <div className="grid min-h-screen place-items-center bg-sidebar text-sidebar-foreground">
         <div className="flex items-center gap-2">
-          <span className="text-[30px] font-semibold tracking-[-0.055em]">weeki</span>
-          <span className="size-2.5 rounded-full bg-gradient-to-br from-[#8d6cff] to-[#2f80ed] shadow-[0_0_20px_#7657ff]" />
+          <span className="text-3xl font-semibold tracking-tight">weeki</span>
+          <span className="size-2.5 rounded-full bg-sidebar-primary" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] transition-colors dark:bg-[#0d0d12]">
-      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={setActiveArea} profileName={settings.profile.name} profileInitials={profileInitials} />
+    <div className="min-h-screen bg-background">
+      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={setActiveArea} onInbox={() => { setActiveArea("week"); setInboxOpen(true); }} profileName={settings.profile.name} profileInitials={profileInitials} />
       <MobileNavigation activeArea={activeArea} onNavigate={setActiveArea} />
 
-      <main className="min-h-screen md:ml-[252px]">
-        <header className="flex h-[68px] items-center border-b border-slate-200/80 bg-white px-4 transition-colors dark:border-white/10 dark:bg-[#15151b] sm:px-6 lg:px-8">
+      <main className="min-h-screen md:ml-64">
+        <header className="flex h-16 items-center border-b border-border bg-card px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 md:hidden">
-            <span className="text-[23px] font-semibold tracking-[-0.055em] text-[#17171c]">weeki</span>
-            <span className="size-2 rounded-full bg-gradient-to-br from-[#8d6cff] to-[#2f80ed]" />
+            <span className="text-xl font-semibold tracking-tight text-foreground">weeki</span>
+            <span className="size-2 rounded-full bg-ring" />
           </div>
           <div className="hidden items-center gap-2 text-sm text-slate-400 md:flex">
             <span>{areaHeader[activeArea].group}</span><span>/</span><span className="font-medium text-slate-700 dark:text-slate-200">{areaHeader[activeArea].page}</span>
@@ -236,7 +236,7 @@ export default function Home() {
               <Search className="size-4" /><span className="flex-1">Buscar no Weeki</span><kbd className="rounded-md border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">Ctrl K</kbd>
             </button>
             <button onClick={() => setCommandOpen(true)} className="focus-ring grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 lg:hidden" aria-label="Buscar"><Search className="size-[18px]" /></button>
-            <button className="focus-ring relative grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Notificações"><Bell className="size-[18px]" /><span className="absolute right-2 top-2 size-1.5 rounded-full bg-[#7657ff] ring-2 ring-white" /></button>
+            <button className="focus-ring relative grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Notificações"><Bell className="size-[18px]" /></button>
             <button type="button" onClick={() => setActiveArea("settings")} aria-label="Abrir configurações do perfil" className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#202026] to-[#3a3a45] text-xs font-semibold text-white transition hover:ring-2 hover:ring-[#7657ff]/30">{profileInitials}</button>
           </div>
         </header>
@@ -260,22 +260,22 @@ export default function Home() {
         ) : activeArea === "settings" ? (
           <SettingsScreen key={String(initialPayments)} initialPayments={initialPayments} settings={settings} onUpdateSettings={updateSettings} />
         ) : (
-        <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 68px)" }}>
+        <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 4rem)" }}>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="truncate text-[23px] font-bold tracking-[-0.035em] text-slate-900 sm:text-[25px]">Minha Semana</h1>
-                <span className="inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-100 px-2 text-[11px] font-medium tabular-nums text-slate-600">
+                <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900">Minha Semana</h1>
+                <span className="inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-100 px-2 text-xs font-medium tabular-nums text-slate-600">
                   {format(weekStart, "dd MMM", { locale: ptBR })} — {format(weekEnd, "dd MMM yyyy", { locale: ptBR })}
                 </span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setInboxOpen((current) => !current)} className={cn("rounded-lg bg-white px-3 shadow-sm", inboxOpen && "border-[#b9abf2] bg-[#f4f1ff] text-[#6548df]")}>
+              <Button variant="outline" size="sm" onClick={() => setInboxOpen((current) => !current)} className={cn("bg-white", inboxOpen && "border-ring bg-accent text-accent-foreground")}>
                 <Inbox /><span className="hidden sm:inline">Caixa de Entrada</span><span className="sm:hidden">Caixa</span>
-                {inboxTasks.length > 0 && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{inboxTasks.length}</span>}
+                {inboxTasks.length > 0 && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-500">{inboxTasks.length}</span>}
               </Button>
-              <Button size="sm" onClick={() => openNewTask(todayKey)} className="rounded-lg bg-[#4f46e5] px-3 shadow-[0_4px_12px_rgba(79,70,229,0.2)] hover:bg-[#4338ca] sm:px-4"><Plus /><span className="hidden sm:inline">Nova demanda</span><span className="sm:hidden">Nova</span></Button>
+              <Button size="sm" onClick={() => openNewTask(todayKey)}><Plus /><span className="hidden sm:inline">Nova demanda</span><span className="sm:hidden">Nova</span></Button>
             </div>
           </div>
 
@@ -297,7 +297,7 @@ export default function Home() {
                 <button type="button" onClick={() => changeLayoutMode("list")} className={cn("focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition", layoutMode === "list" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-200/70")}><LayoutList className="size-3" /> Lista</button>
               </div>
 
-              <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("focus-ring flex h-7 items-center gap-1.5 rounded-lg border bg-white px-2 text-[11px] font-semibold text-slate-500 shadow-sm transition hover:border-slate-300", showWeekend && "border-[#c9c2ff] bg-[#f5f3ff] text-[#4f46e5]")}>
+                <button type="button" onClick={() => setShowWeekend((current) => !current)} aria-pressed={showWeekend} className={cn("focus-ring flex h-8 items-center gap-1.5 rounded-lg border bg-white px-2 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300", showWeekend && "border-ring bg-accent text-accent-foreground")}>
                 <span className={cn("relative h-4 w-7 rounded-full bg-slate-200 transition", showWeekend && "bg-[#7657ff]")}><span className={cn("absolute left-0.5 top-0.5 size-3 rounded-full bg-white shadow-sm transition", showWeekend && "translate-x-3")} /></span>
                 Sáb e dom
               </button>
@@ -306,7 +306,7 @@ export default function Home() {
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
               <div className="relative w-[170px] shrink-0">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" className="h-7 rounded-lg bg-white pl-8 pr-2.5 text-[11px] shadow-sm" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar demandas" aria-label="Buscar demandas" className="h-8 rounded-lg bg-white pl-8 pr-2.5 text-xs shadow-sm" />
               </div>
               <Button type="button" variant="outline" size="sm" onClick={() => setMobileFiltersOpen((current) => !current)} className="h-7 rounded-lg bg-white px-2 text-[11px] sm:hidden"><SlidersHorizontal /> Filtros</Button>
               <div className={cn("contents", !mobileFiltersOpen && "max-sm:hidden")}>
@@ -330,7 +330,7 @@ export default function Home() {
                   <h2 className="text-sm font-semibold text-slate-800">Caixa de Entrada</h2>
                   <p className="text-xs text-slate-400">Arraste uma demanda para um dia da semana.</p>
                 </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => openNewTask(null)} className="text-[#674bdd]"><Plus /> Capturar</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => openNewTask(null)}><Plus /> Capturar</Button>
               </div>
               {inboxTasks.length > 0 ? (
                 <div className="week-board-scroll flex gap-2 overflow-x-auto pb-1">

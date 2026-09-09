@@ -1,55 +1,70 @@
 # Weeki
 
-Primeira versão funcional do workspace operacional Weeki, com foco na tela **Minha Semana**.
+Workspace operacional para prestadores de serviços. O frontend Next.js continua compatível com exportação estática; o domínio de pagamentos integrado acrescenta um processo Node, PostgreSQL e autenticação OIDC.
 
 ## O que já funciona
 
-- visão semanal de segunda a sexta, com fim de semana opcional;
-- criação rápida de demanda (apenas o título é obrigatório);
-- edição de descrição, cliente, status, prioridade, datas, horários e tempo estimado;
-- tags, checklist, recorrência, observações, anexos e histórico de atividade;
-- conclusão, duplicação, arquivamento e movimentação por arrastar e soltar;
-- filtros por status e cliente, busca e command bar (`Ctrl/Cmd + K`);
-- Caixa de Entrada para demandas ainda não planejadas;
-- persistência local no navegador;
-- layout responsivo para desktop e dispositivos móveis.
+- Minha Semana (quadro e lista), Caixa de Entrada, command bar (`Ctrl/Cmd + K`);
+- demandas com cliente, status, prioridade, datas, tags, checklist, recorrência e anexos (metadados);
+- cadastro de clientes;
+- agenda interna e página pública `/agendar` (grava no **mesmo navegador**);
+- financeiro e cobranças locais preservados em abas próprias;
+- pagamentos conectados por Asaas, Mercado Pago ou Stripe após configuração do backend e homologação externa.
 
 ## Arquitetura
 
-O projeto usa Next.js, React e TypeScript com exportação estática. A camada de estado está isolada em `features/tasks/use-weeki-tasks.ts`, permitindo trocar o armazenamento local por uma API sem reescrever a interface.
-
 ```text
-app/                  rota e tema global
-components/ui/        componentes de interface reutilizáveis
-components/weeki/     componentes próprios do produto
-features/tasks/       domínio, dados iniciais e persistência de demandas
-public/               arquivos públicos e configuração Apache
+app/                 rotas (home SPA + /agendar)
+components/ui/       primitivos shadcn (Button, Input, Dialog, Sheet…)
+components/weeki/    telas e widgets do produto
+features/*/          tipos, seed e hooks de persistência local
+lib/                 cn, formatadores BR, sanitização
+public/              favicon e .htaccess (Hostinger)
+shared/              contratos compartilhados do domínio de pagamentos
+server/              API, autenticação, migrations, adapters, webhooks e workers
 ```
 
-## Desenvolvimento
+Os módulos anteriores ainda usam hooks `use-weeki-*.ts` e chaves `weeki.*.v1`. Pagamentos conectados usam exclusivamente a API autenticada e não tratam dados locais como recebimentos confirmados.
 
-Requer Node.js 22 ou superior.
+### Variáveis de ambiente
+
+Nenhuma é necessária para executar somente o protótipo estático. O backend de pagamentos exige as variáveis privadas listadas em `.env.example`; nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
+
+### Design system
+
+Tokens em `app/globals.css` (`--background`, `--primary`, `--radius` 8px, `--ring`). Botões: variantes `default | secondary | outline | ghost | destructive` e tamanhos `sm | default | lg`. Preferir essas classes a hex avulso.
+
+### Execução local
+
+Node.js 22+.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-## Build para Hostinger
+### Build
 
 ```bash
-npm run build:hostinger
+npm run build
 ```
 
-O conteúdo da pasta `out/` deve ser enviado para `public_html/`. O arquivo `.htaccess` já acompanha o build para suportar futuras rotas do aplicativo.
+A pasta `out/` pode ser publicada em `public_html/`, mas esse modo não disponibiliza pagamentos conectados. Para a aplicação completa:
 
-## Próxima evolução recomendada
+```bash
+npm run test:payments
+npm run build:full
+npm run db:migrate:payments
+npm run start:payments
+```
 
-1. API e banco de dados PostgreSQL.
-2. Autenticação e workspaces por usuário.
-3. Cadastro completo de clientes.
-4. Sincronização de anexos com armazenamento de objetos.
-5. Testes automatizados do fluxo de demandas.
+## Limitações conhecidas (propositalmente não “fingidas”)
+
+- tarefas, clientes, agenda e configurações gerais ainda persistem localmente;
+- `/agendar` não entrega o pedido a outro dispositivo;
+- anexos são metadados, sem armazenamento de objetos;
+- pagamentos dependem de PostgreSQL, OIDC, HTTPS e credenciais sandbox configurados externamente;
+- os itens Início, Demandas, Relatórios, Arquivados e Ajuda permanecem “Em breve”.
 
 ## Pagamentos multiprovider
 

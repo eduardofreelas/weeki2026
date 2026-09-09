@@ -17,5 +17,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:payments
-      - run: npm run lint:payments
+      - run: npm run lint
       - run: npm run build:full
