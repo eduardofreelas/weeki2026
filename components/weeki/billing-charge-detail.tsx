@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import type { Client } from "@/features/clients/types";
 import { BILLING_METHOD_LABELS, BILLING_STATUS_LABELS, type BillingCharge, type BillingMethod, type BillingSendChannel, type BillingStatus } from "@/features/billing/types";
 import { ConfirmActionDialog } from "@/components/weeki/confirm-action-dialog";
+import { cn } from "@/lib/utils";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 

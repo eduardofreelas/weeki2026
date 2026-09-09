@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { Client, ClientDraft, ClientFile, ClientLink, ClientStatus, ContractKind, PaymentStatus } from "@/features/clients/types";
 import { formatCpfCnpj, formatPhoneBR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 const makeId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
