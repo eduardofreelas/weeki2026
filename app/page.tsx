@@ -54,6 +54,21 @@ export default function Home() {
   const { clients, addClient, updateClient } = useWeekiClients();
   const { settings, updateSettings } = useWeekiSettings();
   const [activeArea, setActiveArea] = useState<WeekiArea>("week");
+  const [initialPayments, setInitialPayments] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const area = params.get("area");
+    if (area === "billing" || area === "settings") {
+      // Restore the target after an authenticated provider callback.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveArea(area);
+      setInitialPayments(params.get("section") === "payments");
+      if (params.has("payment_error")) toast.error("Não foi possível concluir a conexão. Verifique a autorização e tente novamente.");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+  const openPayments = () => { setInitialPayments(true); setActiveArea("settings"); };
+
   const [weekStart, setWeekStart] = useState(initialWeek);
   const [viewMode, setViewMode] = useState<WeekViewMode>("week");
   const [layoutMode, setLayoutMode] = useState<WeekLayoutMode>(() => {
@@ -241,9 +256,9 @@ export default function Home() {
         ) : activeArea === "finance" ? (
           <FinanceScreen clients={clients} />
         ) : activeArea === "billing" ? (
-          <BillingScreen clients={clients} />
+          <BillingScreen clients={clients} onPayments={openPayments} />
         ) : activeArea === "settings" ? (
-          <SettingsScreen settings={settings} onUpdateSettings={updateSettings} />
+          <SettingsScreen key={String(initialPayments)} initialPayments={initialPayments} settings={settings} onUpdateSettings={updateSettings} />
         ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 68px)" }}>
           <div className="flex items-center justify-between gap-3">

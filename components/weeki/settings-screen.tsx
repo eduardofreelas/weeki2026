@@ -39,7 +39,9 @@ import { Switch } from "@/components/ui/switch";
 import type { IntegrationId, WeekiProfileSettings, WeekiRegionalSettings, WeekiSettings, WeekiTheme } from "@/features/settings/types";
 import { cn } from "@/lib/utils";
 
-type SettingsView = "profile" | "workspace" | "appearance" | "notifications" | "integrations" | "security" | "privacy";
+import { SettingsPayments } from "@/components/payments/settings-payments";
+
+type SettingsView = "payments" | "profile" | "workspace" | "appearance" | "notifications" | "integrations" | "security" | "privacy";
 
 const navigation: Array<{ id: SettingsView; label: string; icon: typeof UserRound }> = [
   { id: "profile", label: "Perfil", icon: UserRound },
@@ -47,6 +49,7 @@ const navigation: Array<{ id: SettingsView; label: string; icon: typeof UserRoun
   { id: "appearance", label: "Aparência", icon: Palette },
   { id: "notifications", label: "Notificações", icon: Bell },
   { id: "integrations", label: "Integrações", icon: Plug },
+  { id: "payments", label: "Pagamentos", icon: Link2 },
   { id: "security", label: "Segurança", icon: ShieldCheck },
   { id: "privacy", label: "Dados e conta", icon: Database },
 ];
@@ -67,8 +70,8 @@ const integrationMeta: Record<IntegrationId, { title: string; description: strin
   asaas: { title: "Asaas", description: "Receba cobranças diretamente na sua conta.", icon: Link2, tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300" },
 };
 
-export function SettingsScreen({ settings, onUpdateSettings }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void }) {
-  const [view, setView] = useState<SettingsView>("profile");
+export function SettingsScreen({ settings, onUpdateSettings, initialPayments = false }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void; initialPayments?: boolean }) {
+  const [view, setView] = useState<SettingsView>(initialPayments ? "payments" : "profile");
   const [profileDraft, setProfileDraft] = useState(settings.profile);
   const [regionalDraft, setRegionalDraft] = useState(settings.regional);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -131,11 +134,12 @@ export function SettingsScreen({ settings, onUpdateSettings }: { settings: Weeki
         </nav>
 
         <div className="min-w-0">
+          {view === "payments" && <SettingsPayments />}
           {view === "profile" && <ProfileSettings profile={profileDraft} initials={initials} onChange={setProfileDraft} onSubmit={saveProfile} />}
           {view === "workspace" && <RegionalSettings regional={regionalDraft} onChange={setRegionalDraft} onSubmit={saveRegional} />}
           {view === "appearance" && <AppearanceSettings settings={settings} onUpdateSettings={onUpdateSettings} onThemeChange={changeTheme} />}
           {view === "notifications" && <NotificationSettings settings={settings} onChange={setNotification} />}
-          {view === "integrations" && <IntegrationsSettings settings={settings} onChange={setIntegration} />}
+          {view === "integrations" && <><button type="button" onClick={() => setView("payments")} className="mb-4 text-xs font-medium text-violet-500">Asaas, Mercado Pago e Stripe → Pagamentos</button><IntegrationsSettings settings={settings} onChange={setIntegration} /></>}
           {view === "security" && <SecuritySettings settings={settings} onUpdateSettings={onUpdateSettings} onPassword={() => setPasswordOpen(true)} />}
           {view === "privacy" && <PrivacySettings settings={settings} onUpdateSettings={onUpdateSettings} onExport={exportData} onDelete={() => setDeleteOpen(true)} />}
         </div>
@@ -201,7 +205,7 @@ function NotificationSettings({ settings, onChange }: { settings: WeekiSettings;
 }
 
 function IntegrationsSettings({ settings, onChange }: { settings: WeekiSettings; onChange: (id: IntegrationId, connected: boolean) => void }) {
-  return <SettingsPanel title="Integrações" description="Conecte as ferramentas que já fazem parte da sua rotina."><div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{(Object.keys(integrationMeta) as IntegrationId[]).map((id) => { const item = integrationMeta[id]; const connected = settings.integrations[id]; return <article key={id} className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><div className="flex items-start gap-3"><span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", item.tone)}><item.icon className="size-[18px]" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="text-xs font-semibold text-slate-800 dark:text-slate-100">{item.title}</h3>{connected && <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><span className="size-1 rounded-full bg-current" />Conectado</span>}</div><p className="mt-1 text-[10px] leading-4 text-slate-400">{item.description}</p></div></div><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/8"><span className="text-[9px] text-slate-400">{connected ? "Sincronização ativa" : "Não conectado"}</span><Button type="button" variant={connected ? "ghost" : "outline"} size="xs" onClick={() => onChange(id, !connected)} className={cn("h-7 rounded-md px-2 text-[9px] shadow-none", connected && "text-rose-500")}>{connected ? "Desconectar" : "Conectar"}{!connected && <ExternalLink className="size-3" />}</Button></div></article>; })}</div></SettingsPanel>;
+  return <SettingsPanel title="Integrações" description="Conecte as ferramentas que já fazem parte da sua rotina."><div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{(Object.keys(integrationMeta) as IntegrationId[]).filter(id => id !== "asaas").map((id) => { const item = integrationMeta[id]; const connected = settings.integrations[id]; return <article key={id} className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><div className="flex items-start gap-3"><span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", item.tone)}><item.icon className="size-[18px]" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="text-xs font-semibold text-slate-800 dark:text-slate-100">{item.title}</h3>{connected && <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><span className="size-1 rounded-full bg-current" />Conectado</span>}</div><p className="mt-1 text-[10px] leading-4 text-slate-400">{item.description}</p></div></div><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/8"><span className="text-[9px] text-slate-400">{connected ? "Sincronização ativa" : "Não conectado"}</span><Button type="button" variant={connected ? "ghost" : "outline"} size="xs" onClick={() => onChange(id, !connected)} className={cn("h-7 rounded-md px-2 text-[9px] shadow-none", connected && "text-rose-500")}>{connected ? "Desconectar" : "Conectar"}{!connected && <ExternalLink className="size-3" />}</Button></div></article>; })}</div></SettingsPanel>;
 }
 
 function SecuritySettings({ settings, onUpdateSettings, onPassword }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void; onPassword: () => void }) {

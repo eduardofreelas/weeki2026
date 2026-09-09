@@ -50,3 +50,9 @@ O conteúdo da pasta `out/` deve ser enviado para `public_html/`. O arquivo `.ht
 3. Cadastro completo de clientes.
 4. Sincronização de anexos com armazenamento de objetos.
 5. Testes automatizados do fluxo de demandas.
+
+## Pagamentos multiprovider
+
+A evolução de Cobranças com backend, autenticação e adapters está documentada em [docs/payments.md](docs/payments.md), incluindo implantação Node, migration, webhooks, variáveis privadas e homologação. Leia também a [auditoria e estratégia de preservação](docs/payments-audit.md). O frontend estático continua compilável; o recebimento integrado exige a configuração externa descrita no documento.
+
+Para ativação, siga a [checklist externa](docs/payments-external-checklist.md). Os testes executados e os limites da verificação estão no [registro de validação](docs/payments-validation.md).

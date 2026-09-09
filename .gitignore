@@ -40,3 +40,8 @@ next-env.d.ts
 /.sites-runtime/
 /outputs/
 /work/
+
+/build/
+!.env.example
+
+*.tsbuildinfo
