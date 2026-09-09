@@ -32,9 +32,9 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing";
+export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing" | "settings";
 
-export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
+export function WeekiSidebar({ inboxCount, activeArea, onNavigate, profileName, profileInitials }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void; profileName: string; profileInitials: string }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[252px] flex-col bg-[#101014] px-3 py-4 text-white md:flex">
       <div className="flex h-12 items-center px-3">
@@ -42,9 +42,9 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCoun
         <span className="ml-1.5 size-2 rounded-full bg-gradient-to-br from-[#8d6cff] to-[#2f80ed] shadow-[0_0_16px_#7657ff]" />
       </div>
 
-      <button className="mt-4 flex h-11 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/[0.045] px-3 text-left transition hover:bg-white/[0.08]">
-        <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-[#7657ff] to-[#327fe5] text-xs font-semibold">EV</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">Eduardo Vieira</span>
+      <button type="button" onClick={() => onNavigate("settings")} className="mt-4 flex h-11 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/[0.045] px-3 text-left transition hover:bg-white/[0.08]">
+        <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-[#7657ff] to-[#327fe5] text-xs font-semibold">{profileInitials}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{profileName}</span>
         <ChevronDown className="size-4 text-white/45" />
       </button>
 
@@ -86,7 +86,8 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCoun
         <button className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-white/58 hover:bg-white/[0.06] hover:text-white">
           <CircleHelp className="size-[18px]" /> Ajuda
         </button>
-        <button className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-white/58 hover:bg-white/[0.06] hover:text-white">
+        <button type="button" onClick={() => onNavigate("settings")} className={cn("relative flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-white/58 hover:bg-white/[0.06] hover:text-white", activeArea === "settings" && "bg-white/[0.09] text-white")}>
+          {activeArea === "settings" && <span className="absolute -left-3 h-6 w-[3px] rounded-r-full bg-[#8065ff]" />}
           <Settings className="size-[18px]" /> Configurações
         </button>
       </div>
@@ -95,12 +96,13 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate }: { inboxCoun
 }
 
 export function MobileNavigation({ activeArea, onNavigate }: { activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
+  const mobileItems = [...primaryItems.filter((item) => item.area), { label: "Configurações", icon: Settings, area: "settings" as const }];
   return (
     <nav className="fixed inset-x-3 bottom-3 z-40 flex h-[62px] items-center justify-around rounded-2xl border border-white/10 bg-[#101014]/95 px-2 text-white shadow-2xl backdrop-blur md:hidden" aria-label="Navegação móvel">
-      {primaryItems.filter((item) => item.area).map((item) => (
-        <button key={item.label} type="button" onClick={() => item.area && onNavigate(item.area)} className={cn("flex min-w-14 flex-col items-center gap-1 text-[10px] text-white/50", item.area === activeArea && "text-white")}>
+      {mobileItems.map((item) => (
+        <button key={item.label} type="button" onClick={() => item.area && onNavigate(item.area)} className={cn("flex min-w-0 flex-1 flex-col items-center gap-1 text-[9px] text-white/50", item.area === activeArea && "text-white")}>
           <item.icon className={cn("size-5", item.area === activeArea && "text-[#9a84ff]")} />
-          <span>{item.label === "Minha Semana" ? "Semana" : item.label === "Agendamentos" ? "Agenda" : item.label}</span>
+          <span>{item.label === "Minha Semana" ? "Semana" : item.label === "Agendamentos" ? "Agenda" : item.label === "Configurações" ? "Ajustes" : item.label}</span>
         </button>
       ))}
     </nav>
