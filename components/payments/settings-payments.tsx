@@ -42,7 +42,7 @@ const auditLabels: Record<string, string> = {
   "integration.failed": "Falha de conexão",
 };
 export function SettingsPayments() {
-  const { overview, error, loading, reload } = usePayments();
+  const { overview, error, loading, visualOnly, reload } = usePayments();
   const [busy, setBusy] = useState(false);
   const [disconnect, setDisconnect] = useState<PublicConnection | null>(null);
   const [manage, setManage] = useState<PublicConnection | null>(null);
@@ -61,6 +61,10 @@ export function SettingsPayments() {
     }
   };
   const connect = (provider: ProviderId, mode: string, configured: boolean) => {
+    if (visualOnly)
+      return setSetup(
+        `A interface da ${PROVIDER_NAMES[provider]} está pronta. A autorização real será disponibilizada quando o ambiente seguro de pagamentos for ativado.`,
+      );
     if (!configured)
       return setSetup(
         `A conexão com ${PROVIDER_NAMES[provider]} precisa ser habilitada pela equipe Weeki antes da autorização da sua conta.`,
@@ -94,7 +98,7 @@ export function SettingsPayments() {
             Conecte suas contas e escolha como receber pelas suas cobranças.
           </p>
         </div>
-        {overview && (
+        {overview && !visualOnly && (
           <div className={s.actions}>
             <span className={s.status}>
               {overview.environment === "sandbox"
@@ -243,8 +247,9 @@ export function SettingsPayments() {
           </div>
           <p className={s.muted}>
             <ShieldCheck size={14} className="mr-1.5 inline" />
-            Os pagamentos são processados na sua conta do provedor. A Weeki
-            acompanha as cobranças.
+            {visualOnly
+              ? "Nenhuma conta será conectada e nenhuma cobrança será enviada nesta versão visual."
+              : "Os pagamentos são processados na sua conta do provedor. A Weeki acompanha as cobranças."}
           </p>
         </>
       )}

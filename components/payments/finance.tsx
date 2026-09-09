@@ -20,14 +20,15 @@ import {
   dateLabel,
 } from "./common";
 export function ConnectedFinance({ legacy }: { legacy: ReactNode }) {
-  const { overview, error, loading, reload } = usePayments();
+  const { overview, error, loading, visualOnly, reload } = usePayments();
   const [page, setPage] = useState(0);
   const [tab, setTab] = useState("connected"),
     [entries, setEntries] = useState<PaymentFinanceEntry[]>([]),
     [failure, setFailure] = useState("");
   const refresh = useCallback(async () => {
-    if (!overview) {
+    if (!overview || visualOnly) {
       setEntries([]);
+      setFailure("");
       return;
     }
     try {
@@ -41,16 +42,17 @@ export function ConnectedFinance({ legacy }: { legacy: ReactNode }) {
       setEntries([]);
       setFailure(paymentMessage(e));
     }
-  }, [overview, page]);
+  }, [overview, page, visualOnly]);
   // Fetch authenticated server state on mount; no credentials or payment data are persisted in the browser.
   useEffect(() => {
+    if (visualOnly) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void refresh();
     }, 30000);
     return () => clearInterval(timer);
-  }, [refresh]);
+  }, [refresh, visualOnly]);
   const receipts = entries
       .filter((e) => e.kind === "receipt")
       .reduce((n, e) => n + e.amountMinor, 0),
@@ -68,6 +70,7 @@ export function ConnectedFinance({ legacy }: { legacy: ReactNode }) {
             </p>
           </div>
           <PayButton
+            disabled={visualOnly}
             onClick={() => {
               void reload();
               void refresh();
@@ -110,11 +113,9 @@ export function ConnectedFinance({ legacy }: { legacy: ReactNode }) {
         ) : (
           <>
             <p className={s.muted}>
-              {overview.environment === "sandbox"
-                ? "Ambiente de testes"
-                : "Produção"}{" "}
-              · Valores brutos; taxas e saldo bancário são consultados no
-              provedor.
+              {visualOnly
+                ? "As movimentações integradas aparecerão aqui após a ativação de um provedor."
+                : `${overview.environment === "sandbox" ? "Ambiente de testes" : "Produção"} · Valores brutos; taxas e saldo bancário são consultados no provedor.`}
             </p>
             <p className={`${s.muted} mt-4!`}>Valores da página atual</p>
             <div className={`${s.stats} mt-5`}>

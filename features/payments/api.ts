@@ -1,6 +1,21 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { PaymentsOverview } from "@/shared/payments";
+
+export const paymentsApiEnabled =
+  process.env.NEXT_PUBLIC_PAYMENTS_API_ENABLED === "true";
+
+const visualPaymentsOverview: PaymentsOverview = {
+  connections: [],
+  providers: [
+    { id: "asaas", configured: false, connectionMode: "server_provisioned" },
+    { id: "mercadopago", configured: false, connectionMode: "oauth" },
+    { id: "stripe", configured: false, connectionMode: "oauth" },
+  ],
+  workspaceId: "",
+  environment: "sandbox",
+};
+
 export class PaymentsApiError extends Error {
   constructor(
     public code: string,
@@ -13,6 +28,12 @@ export async function paymentRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  if (!paymentsApiEnabled)
+    throw new PaymentsApiError(
+      "VISUAL_ONLY",
+      "As conexões de pagamento ainda não estão ativadas nesta versão.",
+    );
+
   let response: Response;
   try {
     response = await fetch(`/api/payments${path}`, {
@@ -50,14 +71,26 @@ export const paymentPost = <T>(path: string, body?: unknown, key?: string) =>
     headers: key ? { "Idempotency-Key": key } : undefined,
   });
 export function usePayments() {
-  const [overview, setOverview] = useState<PaymentsOverview | null>(null);
+  const [overview, setOverview] = useState<PaymentsOverview | null>(() =>
+    paymentsApiEnabled ? null : visualPaymentsOverview,
+  );
   const [error, setError] = useState<PaymentsApiError | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(paymentsApiEnabled);
+  const [visualOnly, setVisualOnly] = useState(!paymentsApiEnabled);
   const reload = useCallback(async () => {
+    if (!paymentsApiEnabled) {
+      setOverview(visualPaymentsOverview);
+      setError(null);
+      setVisualOnly(true);
+      setLoading(false);
+      return;
+    }
+
     try {
       const data = await paymentRequest<PaymentsOverview>("/connections");
       setOverview(data);
       setError(null);
+      setVisualOnly(false);
     } catch (e) {
       setOverview(null);
       setError(e as PaymentsApiError);
@@ -72,7 +105,7 @@ export function usePayments() {
     window.addEventListener("focus", reload);
     return () => window.removeEventListener("focus", reload);
   }, [reload]);
-  return { overview, error, loading, reload };
+  return { overview, error, loading, visualOnly, reload };
 }
 export function paymentMessage(e: unknown) {
   return e instanceof PaymentsApiError

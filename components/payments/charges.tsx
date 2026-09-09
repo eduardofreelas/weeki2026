@@ -53,7 +53,7 @@ export function ConnectedCharges({
   onSettings: () => void;
   legacy: ReactNode;
 }) {
-  const { overview, loading, error, reload } = usePayments();
+  const { overview, loading, error, visualOnly, reload } = usePayments();
   const [page, setPage] = useState(0);
   const [tab, setTab] = useState("connected"),
     [charges, setCharges] = useState<PaymentCharge[]>([]),
@@ -64,8 +64,9 @@ export function ConnectedCharges({
     [busy, setBusy] = useState(false),
     [loadError, setLoadError] = useState<string | null>(null);
   const loadCharges = useCallback(async () => {
-    if (!overview) {
+    if (!overview || visualOnly) {
       setCharges([]);
+      setLoadError(null);
       return;
     }
     try {
@@ -79,16 +80,17 @@ export function ConnectedCharges({
       setCharges([]);
       setLoadError(paymentMessage(e));
     }
-  }, [overview, page]);
+  }, [overview, page, visualOnly]);
   // Fetch authenticated server state on mount; no credentials or payment data are persisted in the browser.
   useEffect(() => {
+    if (visualOnly) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCharges();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void loadCharges();
     }, 30000);
     return () => clearInterval(timer);
-  }, [loadCharges]);
+  }, [loadCharges, visualOnly]);
   const refresh = async () => {
     setBusy(true);
     await reload();
@@ -170,19 +172,27 @@ export function ConnectedCharges({
           <PaymentAccess error={error} retry={reload} />
         ) : (
           <>
-            <p className={s.muted}>
-              {overview.environment === "sandbox"
-                ? "Ambiente de testes · nenhum recebimento real"
-                : "Produção · recebimento direto nas contas conectadas"}
-            </p>
+            {!visualOnly && (
+              <p className={s.muted}>
+                {overview.environment === "sandbox"
+                  ? "Ambiente de testes · nenhum recebimento real"
+                  : "Produção · recebimento direto nas contas conectadas"}
+              </p>
+            )}
             {!connected.length && (
               <div className={s.notice}>
-                <h3>Conecte uma conta para começar</h3>
+                <h3>
+                  {visualOnly
+                    ? "Provedores prontos para configuração"
+                    : "Conecte uma conta para começar"}
+                </h3>
                 <p className={s.muted}>
-                  Escolha seu provedor em Configurações → Pagamentos.
+                  {visualOnly
+                    ? "Conheça Asaas, Mercado Pago e Stripe em Configurações → Pagamentos. As conexões permanecem inativas nesta versão visual."
+                    : "Escolha seu provedor em Configurações → Pagamentos."}
                 </p>
                 <div className={s.actions}>
-                  <PayButton onClick={onSettings}>Conectar provedor</PayButton>
+                  <PayButton onClick={onSettings}>Ver provedores</PayButton>
                 </div>
               </div>
             )}
@@ -234,7 +244,7 @@ export function ConnectedCharges({
                   ))}
                 </select>
                 <PayButton
-                  disabled={busy}
+                  disabled={busy || visualOnly}
                   onClick={() => void refresh()}
                   aria-label="Atualizar cobranças"
                 >

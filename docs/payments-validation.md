@@ -10,6 +10,8 @@
 | `npm audit` | Zero vulnerabilidades após atualizar Next.js/ESLint para 16.3.4 e remover ferramentas antigas sem uso |
 | `git diff --check` | Sem erros de whitespace |
 
+O build estático usa o modo visual de pagamentos por padrão: exibe Asaas, Mercado Pago e Stripe, mas não chama APIs, não simula contas conectadas e não envia cobranças. A ativação futura é explícita com `NEXT_PUBLIC_PAYMENTS_API_ENABLED=true` e o backend seguro configurado.
+
 A branch também incorpora a `main` em `f72f2a7615e1a3e72deebc82635356e17c1c4e3f`, preservando as correções posteriores de UX, sanitização, confirmações, sincronização local e build.
 
 Os testes usam PGlite (PostgreSQL embarcado), sessões HTTP de teste e transportes simulados. Cobrem conexão/desconexão, padrão, criação idempotente, pagamento confirmado/recusado, cancelamento, refund integral/parcial, evento duplicado/fora de ordem, timeout, indisponibilidade, credencial expirada, ownership de conexão/cobrança, FKs entre workspaces, OAuth de uso único, assinatura de webhook, CSRF, conciliação e histórico após desconexão.

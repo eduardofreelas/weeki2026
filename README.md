@@ -9,7 +9,8 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - cadastro de clientes;
 - agenda interna e página pública `/agendar` (grava no **mesmo navegador**);
 - financeiro e cobranças locais preservados em abas próprias;
-- pagamentos conectados por Asaas, Mercado Pago ou Stripe após configuração do backend e homologação externa.
+- interface multiprovider com Asaas, Mercado Pago e Stripe no modo visual estático;
+- pagamentos conectados após ativação explícita do backend e homologação externa.
 
 ## Arquitetura
 
@@ -28,7 +29,7 @@ Os módulos anteriores ainda usam hooks `use-weeki-*.ts` e chaves `weeki.*.v1`. 
 
 ### Variáveis de ambiente
 
-Nenhuma é necessária para executar somente o protótipo estático. O backend de pagamentos exige as variáveis privadas listadas em `.env.example`; nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
+Nenhuma é necessária para executar o protótipo estático. Sem configuração, a área de pagamentos abre em modo visual, não faz chamadas externas e não simula conexões. Para ativar a API no build, use `NEXT_PUBLIC_PAYMENTS_API_ENABLED=true`; o backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
 
 ### Design system
 
@@ -49,7 +50,7 @@ npm run dev
 npm run build
 ```
 
-A pasta `out/` pode ser publicada em `public_html/`, mas esse modo não disponibiliza pagamentos conectados. Para a aplicação completa:
+A pasta `out/` pode ser publicada em `public_html/`; ela inclui toda a interface de pagamentos em modo visual. Para habilitar conexões reais, cobranças integradas e sincronização:
 
 ```bash
 npm run test:payments
