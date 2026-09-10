@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Archive,
   BarChart3,
@@ -7,14 +8,20 @@ import {
   CalendarDays,
   ChevronDown,
   CircleHelp,
+  FileCheck2,
+  FilePlus2,
+  Files,
   Inbox,
   LayoutDashboard,
   ListTodo,
+  MoreHorizontal,
   ReceiptText,
   Settings,
   Users,
   WalletCards,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { FISCAL_FLAGS } from "@/features/fiscal/config";
 import { cn } from "@/lib/utils";
 
 const primaryItems = [
@@ -25,6 +32,7 @@ const primaryItems = [
   { label: "Agendamentos", icon: CalendarClock, area: "appointments" as const },
   { label: "Financeiro", icon: WalletCards, area: "finance" as const },
   { label: "Cobranças", icon: ReceiptText, area: "billing" as const },
+  { label: "Fiscal", icon: FileCheck2, area: "fiscal" as const },
 ];
 
 const secondaryItems = [
@@ -32,9 +40,10 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing" | "settings";
+export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing" | "fiscal" | "settings";
+export type FiscalSidebarView = "overview" | "notes" | "issue" | "settings";
 
-export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, profileName, profileInitials }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void; onInbox?: () => void; profileName: string; profileInitials: string }) {
+export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, profileName, profileInitials, fiscalView = "overview", onFiscalNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void; onInbox?: () => void; profileName: string; profileInitials: string; fiscalView?: FiscalSidebarView; onFiscalNavigate?: (view: FiscalSidebarView) => void }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar px-3 py-4 text-sidebar-foreground md:flex">
       <div className="flex h-12 items-center px-3">
@@ -48,11 +57,12 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, prof
         <ChevronDown className="size-4 text-white/45" />
       </button>
 
-      <nav className="mt-6 space-y-1" aria-label="Navegação principal">
+      <div className="week-board-scroll mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+      <nav className="space-y-1" aria-label="Navegação principal">
         <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">Workspace</p>
-        {primaryItems.map((item) => (
+        {primaryItems.filter((item) => item.area !== "fiscal" || FISCAL_FLAGS.moduleEnabled).map((item) => (
+          <div key={item.label}>
           <button
-            key={item.label}
             type="button"
             disabled={!item.area}
             title={!item.area ? "Em breve" : undefined}
@@ -66,6 +76,13 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, prof
             <item.icon className="size-[18px]" strokeWidth={1.8} />
             <span>{item.label}</span>
           </button>
+          {item.area === "fiscal" && activeArea === "fiscal" && <div className="mb-1 ml-7 mt-1 space-y-0.5 border-l border-white/10 pl-2">{[
+            { id: "overview" as const, label: "Visão geral", icon: LayoutDashboard },
+            { id: "notes" as const, label: "Notas fiscais", icon: Files },
+            { id: "issue" as const, label: "Emitir NFS-e", icon: FilePlus2 },
+            { id: "settings" as const, label: "Configurações", icon: Settings },
+          ].map((subitem) => <button key={subitem.id} type="button" onClick={() => onFiscalNavigate?.(subitem.id)} className={cn("flex h-7 w-full items-center gap-2 rounded-md px-2 text-[10px] font-medium text-white/42 transition hover:bg-white/[0.05] hover:text-white/80", fiscalView === subitem.id && "bg-white/[0.06] text-white/90")}><subitem.icon className="size-3" /><span>{subitem.label}</span></button>)}</div>}
+          </div>
         ))}
         <button type="button" onClick={onInbox} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.06] hover:text-white">
           <Inbox className="size-[18px]" strokeWidth={1.8} />
@@ -83,6 +100,7 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, prof
           </button>
         ))}
       </nav>
+      </div>
 
       <div className="mt-auto space-y-1 border-t border-white/8 pt-4">
         <button type="button" disabled title="Em breve" className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 disabled:cursor-not-allowed disabled:opacity-40">
@@ -98,14 +116,50 @@ export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, prof
 }
 
 export function MobileNavigation({ activeArea, onNavigate }: { activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const main = [
+    { label: "Semana", icon: CalendarDays, area: "week" as const },
+    { label: "Clientes", icon: Users, area: "clients" as const },
+    { label: "Fiscal", icon: FileCheck2, area: "fiscal" as const },
+    { label: "Config.", icon: Settings, area: "settings" as const },
+  ].filter((item) => item.area !== "fiscal" || FISCAL_FLAGS.moduleEnabled);
+  const more = [
+    { label: "Agendamentos", description: "Agenda e disponibilidade", icon: CalendarClock, area: "appointments" as const },
+    { label: "Financeiro", description: "Receitas e despesas", icon: WalletCards, area: "finance" as const },
+    { label: "Cobranças", description: "Links e recebimentos", icon: ReceiptText, area: "billing" as const },
+  ];
+  const moreActive = more.some((item) => item.area === activeArea);
+  const navigate = (area: WeekiArea) => {
+    setMoreOpen(false);
+    onNavigate(area);
+  };
+
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-40 flex h-16 items-center justify-around rounded-xl border border-white/10 bg-sidebar/95 px-1 text-white md:hidden" aria-label="Navegação móvel">
-      {primaryItems.filter((item) => item.area).map((item) => (
-        <button key={item.label} type="button" onClick={() => item.area && onNavigate(item.area)} className={cn("flex min-w-0 flex-1 flex-col items-center gap-1 px-1 text-[11px] text-white/50", item.area === activeArea && "text-white")}>
-          <item.icon className={cn("size-5", item.area === activeArea && "text-sidebar-primary-foreground")} />
-          <span className="truncate">{item.label === "Minha Semana" ? "Semana" : item.label === "Agendamentos" ? "Agenda" : item.label}</span>
+    <>
+      <nav className="fixed inset-x-3 bottom-3 z-40 flex h-16 items-center justify-around rounded-xl border border-white/10 bg-sidebar/95 px-1 text-white shadow-xl backdrop-blur md:hidden" aria-label="Navegação móvel">
+        {main.map((item) => (
+          <button key={item.label} type="button" onClick={() => navigate(item.area)} aria-label={item.area === "settings" ? "Configurações" : item.label} className={cn("flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-medium text-white/50 transition", item.area === activeArea && "bg-white/[0.07] text-white")}>
+            <item.icon className={cn("size-[18px]", item.area === activeArea && "text-violet-300")} />
+            <span className="truncate">{item.label}</span>
+          </button>
+        ))}
+        <button type="button" onClick={() => setMoreOpen(true)} className={cn("flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-medium text-white/50 transition", moreActive && "bg-white/[0.07] text-white")} aria-label="Abrir mais áreas">
+          <MoreHorizontal className={cn("size-[18px]", moreActive && "text-violet-300")} />
+          <span>Mais</span>
         </button>
-      ))}
-    </nav>
+      </nav>
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl border-slate-200 px-4 pb-7 pt-2 dark:border-white/10" showCloseButton={false}>
+          <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-slate-200 dark:bg-white/15" />
+          <SheetHeader className="px-1 pb-2 pt-3 text-left">
+            <SheetTitle className="text-base">Mais áreas</SheetTitle>
+            <SheetDescription className="text-[11px]">Acesse os demais recursos do seu workspace.</SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-2">
+            {more.map((item) => <button key={item.area} type="button" onClick={() => navigate(item.area)} className={cn("flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-violet-200 hover:bg-violet-50/40 dark:border-white/10 dark:bg-card dark:hover:bg-white/[0.04]", item.area === activeArea && "border-violet-300 bg-violet-50 dark:border-violet-500/30 dark:bg-violet-500/10")}><span className="grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-slate-300"><item.icon className="size-4" /></span><span><span className="block text-[11px] font-bold text-slate-800 dark:text-slate-100">{item.label}</span><span className="mt-0.5 block text-[9px] text-slate-400">{item.description}</span></span></button>)}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

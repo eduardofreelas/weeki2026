@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { createSeedBillingCharges } from "./seed";
 import type { FinanceTransaction } from "@/features/finance/types";
 import type { BillingCharge, BillingChargeDraft, BillingEvent, BillingGatewaySettings, BillingSendChannel, BillingStatus } from "./types";
+import { publishPaymentConfirmed } from "@/features/fiscal/events";
 
 const CHARGES_KEY = "weeki.billing.charges.v1";
 const SETTINGS_KEY = "weeki.billing.gateway.v1";
@@ -122,7 +123,16 @@ export function useWeekiBilling() {
       if (charge.id !== id) return charge;
       const title = status === "paid" ? "Pagamento confirmado" : status === "cancelled" ? "Cobrança cancelada" : "Status atualizado";
       const updated = { ...charge, status, paidAt: status === "paid" ? new Date().toISOString() : charge.paidAt, updatedAt: new Date().toISOString(), events: [...charge.events, eventFor(status === "paid" ? "paid" : status === "cancelled" ? "cancelled" : "updated", title, status === "paid" ? "Recebimento registrado e enviado ao Financeiro." : `Novo status: ${status}.`)] };
-      if (status === "paid") syncPaidChargeToFinance(updated);
+      if (status === "paid") {
+        syncPaidChargeToFinance(updated);
+        publishPaymentConfirmed({
+          chargeId: updated.id,
+          clientId: updated.clientId,
+          description: updated.description,
+          amount: updated.amount,
+          paidAt: updated.paidAt,
+        });
+      }
       return updated;
     }));
   }, []);

@@ -18,14 +18,30 @@ const initialsFromName = (name: string) => name
   .map((part) => part[0]?.toLocaleUpperCase("pt-BR") ?? "")
   .join("") || "CL";
 
+const normalizeFiscal = (client: Pick<Client, "email" | "fiscal">) => ({
+  municipalRegistration: "",
+  zipCode: "",
+  city: "",
+  cityCode: "",
+  state: "",
+  fiscalEmail: client.email || "",
+  ...client.fiscal,
+});
+
+const normalizeClient = (client: Client): Client => ({
+  ...client,
+  fiscal: normalizeFiscal(client),
+});
+
 export function useWeekiClients() {
   const [clients, setClients] = useState<Client[]>(() => {
-    if (typeof window === "undefined") return createSeedClients();
+    if (typeof window === "undefined") return createSeedClients().map(normalizeClient);
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) as Client[] : createSeedClients();
+      const loaded = saved ? JSON.parse(saved) as Client[] : createSeedClients();
+      return loaded.map(normalizeClient);
     } catch {
-      return createSeedClients();
+      return createSeedClients().map(normalizeClient);
     }
   });
 
@@ -41,6 +57,7 @@ export function useWeekiClients() {
     const now = new Date().toISOString();
     const client: Client = {
       ...draft,
+      fiscal: normalizeFiscal(draft),
       id: makeId(),
       initials: initialsFromName(draft.name),
       createdAt: now,
@@ -57,6 +74,7 @@ export function useWeekiClients() {
       updatedClient = {
         ...client,
         ...draft,
+        fiscal: normalizeFiscal(draft),
         initials: initialsFromName(draft.name),
         updatedAt: new Date().toISOString(),
       };

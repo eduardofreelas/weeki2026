@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft,
   BriefcaseBusiness,
+  Building2,
   CalendarDays,
   CheckCircle2,
   Clipboard,
@@ -196,6 +197,16 @@ export function ClientDetail({
               <ContactRow icon={Mail} label="E-mail" value={client.email} action={client.email ? <button type="button" onClick={() => copy(client.email, "E-mail")} className="text-[#6548df]" aria-label="Copiar e-mail"><Copy className="size-3.5" /></button> : undefined} />
               <ContactRow icon={Phone} label="Telefone / WhatsApp" value={client.phone} action={client.phone ? <a href={`https://wa.me/${client.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="text-emerald-600" aria-label="Abrir WhatsApp"><MessageCircle className="size-3.5" /></a> : undefined} />
               <ContactRow icon={MapPin} label="Endereço" value={client.address} />
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-900">Dados fiscais</h2><FileText className="size-4 text-[#6548df]" /></div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <ContactRow icon={FileText} label={client.kind === "company" ? "CNPJ" : "CPF"} value={client.document} />
+              <ContactRow icon={Building2} label="Inscrição municipal" value={client.fiscal?.municipalRegistration ?? ""} />
+              <ContactRow icon={MapPin} label="Município / UF" value={[client.fiscal?.city, client.fiscal?.state].filter(Boolean).join(" — ")} />
+              <ContactRow icon={Mail} label="E-mail fiscal" value={client.fiscal?.fiscalEmail || client.email} />
             </div>
           </section>
 

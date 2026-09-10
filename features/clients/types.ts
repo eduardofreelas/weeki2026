@@ -17,6 +17,15 @@ export interface ClientLink {
   url: string;
 }
 
+export interface ClientFiscalData {
+  municipalRegistration: string;
+  zipCode: string;
+  city: string;
+  cityCode: string;
+  state: string;
+  fiscalEmail: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -31,6 +40,7 @@ export interface Client {
   phone: string;
   website: string;
   address: string;
+  fiscal?: ClientFiscalData;
   notes: string;
   status: ClientStatus;
   segment: string;

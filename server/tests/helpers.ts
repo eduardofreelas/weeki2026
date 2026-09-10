@@ -138,6 +138,7 @@ export class FakeProvider extends ProviderBase implements PaymentProvider {
 export async function fixture() {
   const pg = new PGlite();
   await pg.exec(await readFile("server/migrations/001_payments.sql", "utf8"));
+  await pg.exec(await readFile("server/migrations/002_fiscal.sql", "utf8"));
   const wrap = (sql: Pick<PGlite, "query">): Sql => ({
     query: async <T>(text: string, values?: unknown[]) => ({
       rows: (await sql.query(text, values)).rows as T[],

@@ -4,6 +4,10 @@ A Weeki está em uma transição controlada. O frontend Next.js pode ser exporta
 
 O domínio de pagamentos conectados é separado e servidor-first. `server/` fornece API Node, sessões OIDC, PostgreSQL, autorização por workspace, adapters Asaas/Mercado Pago/Stripe, webhooks e workers. `shared/payments.ts` define o contrato público consumido por `features/payments/` e `components/payments/`. Credenciais e efeitos financeiros nunca são confiados ao perfil ou ao `localStorage`.
 
-Publicar somente `out/` mantém o protótipo estático, mas deixa pagamentos conectados indisponíveis. A implantação completa serve frontend e API na mesma origem por `npm run start:payments`. Consulte [payments.md](payments.md) para topologia, segurança, migrations e homologação.
+O domínio Fiscal segue a mesma fronteira de segurança: DTOs compartilhados, `FiscalProvider`, service/repository escopados por workspace e schema privado `weeki_fiscal`. No frontend estático, a experiência NFS-e é um sandbox visual local claramente identificado. Certificado, DPS/XML oficial, API Nacional, documentos e notificações permanecem server-only e em standby. O pagamento apenas publica `payment.confirmed`; não conhece nem chama o módulo fiscal.
+
+Publicar somente `out/` mantém o protótipo estático, mas deixa pagamentos conectados e emissão fiscal real indisponíveis. A implantação completa serve frontend e APIs na mesma origem por `npm run start:payments`. Consulte [payments.md](payments.md) e [fiscal.md](fiscal.md) para topologia, segurança, migrations e homologação.
 
 Google Drive, Trello, Zoom e demais integrações continuam apenas como interface. A migração futura dos outros módulos deve preservar os tipos existentes quando adequado e substituir os hooks por clientes HTTP com ownership validado no backend.
+
+Configurações é uma área permanente da aplicação. Ela possui visão geral, busca, acesso fixo no desktop, acesso direto no mobile e estados explícitos para diferenciar preferências locais de recursos que exigem o backend autenticado.

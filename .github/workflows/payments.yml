@@ -1,8 +1,8 @@
-name: Payments checks
+name: Weeki quality checks
 on:
   pull_request:
   push:
-    branches: [codex/payment-providers]
+    branches: [main, "codex/**"]
 permissions:
   contents: read
 jobs:
@@ -16,6 +16,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run test:payments
+      - run: npm run test:server
       - run: npm run lint
       - run: npm run build:full
