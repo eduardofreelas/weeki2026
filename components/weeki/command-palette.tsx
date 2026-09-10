@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, CirclePlus, Inbox, Search, UserRound } from "lucide-react";
+import { CalendarDays, CheckCircle2, CirclePlus, FileCheck2, Inbox, Search, Settings, UserRound } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/command";
 import type { Client } from "@/features/clients/types";
 import type { Task } from "@/features/tasks/types";
+import { FISCAL_FLAGS } from "@/features/fiscal/config";
+import type { WeekiArea } from "./sidebar";
 
 export function WeekiCommandPalette({
   open,
@@ -22,6 +24,7 @@ export function WeekiCommandPalette({
   onCreate,
   onOpenTask,
   onToday,
+  onNavigate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +33,7 @@ export function WeekiCommandPalette({
   onCreate: (date: string | null) => void;
   onOpenTask: (task: Task) => void;
   onToday: () => void;
+  onNavigate: (area: WeekiArea) => void;
 }) {
   const run = (callback: () => void) => {
     callback();
@@ -45,6 +49,8 @@ export function WeekiCommandPalette({
           <CommandItem onSelect={() => run(() => onCreate(new Date().toISOString().slice(0, 10)))}><CirclePlus /> Criar demanda para hoje <CommandShortcut>N</CommandShortcut></CommandItem>
           <CommandItem onSelect={() => run(() => onCreate(null))}><Inbox /> Capturar na Caixa de Entrada</CommandItem>
           <CommandItem onSelect={() => run(onToday)}><CalendarDays /> Ir para a semana atual</CommandItem>
+          {FISCAL_FLAGS.moduleEnabled && <CommandItem onSelect={() => run(() => onNavigate("fiscal"))}><FileCheck2 /> Abrir módulo Fiscal</CommandItem>}
+          <CommandItem onSelect={() => run(() => onNavigate("settings"))}><Settings /> Abrir Configurações</CommandItem>
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Demandas">

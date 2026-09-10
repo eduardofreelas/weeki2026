@@ -7,6 +7,9 @@ import { SessionAuth } from "./auth.js";
 import { PaymentService } from "./payments/service.js";
 import { providers } from "./payments/registry.js";
 import { paymentApi, json } from "./api.js";
+import { FiscalService } from "./fiscal/service.js";
+import { fiscalProviders } from "./fiscal/registry.js";
+import { fiscalApi } from "./fiscal/api.js";
 const conf = config(),
   db = database(conf.databaseUrl),
   registry = providers(conf),
@@ -16,6 +19,11 @@ const api = paymentApi(
   new SessionAuth(db, conf.origin, conf.key),
   conf.origin,
   conf.key,
+);
+const fiscal = fiscalApi(
+  new FiscalService(db, fiscalProviders().get("national_nfse")),
+  new SessionAuth(db, conf.origin, conf.key),
+  conf.origin,
 );
 const root = resolve("out"),
   mime: Record<string, string> = {
@@ -30,6 +38,7 @@ const root = resolve("out"),
   };
 const server = createServer(async (req, res) => {
   try {
+    if (await fiscal(req, res)) return;
     if (await api(req, res)) return;
   } catch {
     json(res, 500, {

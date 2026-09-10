@@ -26,6 +26,8 @@ import { AppointmentsScreen } from "@/components/weeki/appointments-screen";
 import { BillingScreen } from "@/components/weeki/billing-screen";
 import { ClientsScreen } from "@/components/weeki/clients-screen";
 import { FinanceScreen } from "@/components/weeki/finance-screen";
+import { FiscalAutomationDialog } from "@/components/fiscal/fiscal-automation-dialog";
+import { FiscalScreen, type FiscalView } from "@/components/fiscal/fiscal-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar, type WeekiArea } from "@/components/weeki/sidebar";
 import { SettingsScreen } from "@/components/weeki/settings-screen";
@@ -33,6 +35,9 @@ import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import { WeekBoard, type WeekLayoutMode, type WeekViewMode } from "@/components/weeki/week-board";
 import { useWeekiClients } from "@/features/clients/use-weeki-clients";
+import { publishServiceCompleted } from "@/features/fiscal/events";
+import { FISCAL_FLAGS } from "@/features/fiscal/config";
+import { useWeekiFiscal } from "@/features/fiscal/use-weeki-fiscal";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { useWeekiSettings } from "@/features/settings/use-weeki-settings";
@@ -46,26 +51,37 @@ const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   appointments: { group: "Atendimentos", page: "Agenda" },
   finance: { group: "Gestão", page: "Financeiro" },
   billing: { group: "Gestão", page: "Cobranças" },
+  fiscal: { group: "Gestão", page: "Fiscal" },
   settings: { group: "Conta", page: "Configurações" },
 };
 
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const { clients, addClient, updateClient } = useWeekiClients();
+  const fiscal = useWeekiFiscal(clients);
   const { settings, updateSettings } = useWeekiSettings();
   const [activeArea, setActiveArea] = useState<WeekiArea>("week");
   const [initialPayments, setInitialPayments] = useState(false);
+  const [fiscalView, setFiscalView] = useState<FiscalView>("overview");
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const area = params.get("area");
-    if (area === "billing" || area === "settings") {
+    if (area === "billing" || area === "settings" || (area === "fiscal" && FISCAL_FLAGS.moduleEnabled)) {
       // Restore the target after an authenticated provider callback.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveArea(area);
       setInitialPayments(params.get("section") === "payments");
+      if (area === "fiscal") {
+        const section = params.get("section");
+        if (section === "notes" || section === "issue" || section === "settings") setFiscalView(section);
+      }
       if (params.has("payment_error")) toast.error("Não foi possível concluir a conexão. Verifique a autorização e tente novamente.");
       window.history.replaceState(null, "", window.location.pathname);
     }
+  }, []);
+  const navigateArea = useCallback((area: WeekiArea) => {
+    if (area === "settings") setInitialPayments(false);
+    setActiveArea(area);
   }, []);
   const openPayments = () => { setInitialPayments(true); setActiveArea("settings"); };
 
@@ -185,6 +201,15 @@ export default function Home() {
     const task = tasks.find((item) => item.id === taskId);
     const wasCompleted = task?.status === "completed";
     toggleComplete(taskId);
+    if (task && !wasCompleted) {
+      publishServiceCompleted({
+        taskId: task.id,
+        clientId: task.clientId,
+        title: task.title,
+        description: task.description,
+        completedAt: new Date().toISOString(),
+      });
+    }
     toast.success(wasCompleted ? "Demanda reaberta." : "Demanda concluída.", {
       action: { label: "Desfazer", onClick: () => toggleComplete(taskId) },
     });
@@ -219,8 +244,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={setActiveArea} onInbox={() => { setActiveArea("week"); setInboxOpen(true); }} profileName={settings.profile.name} profileInitials={profileInitials} />
-      <MobileNavigation activeArea={activeArea} onNavigate={setActiveArea} />
+      <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={navigateArea} onInbox={() => { setActiveArea("week"); setInboxOpen(true); }} profileName={settings.profile.name} profileInitials={profileInitials} fiscalView={fiscalView} onFiscalNavigate={(view) => { setFiscalView(view); setActiveArea("fiscal"); }} />
+      <MobileNavigation activeArea={activeArea} onNavigate={navigateArea} />
 
       <main className="min-h-screen md:ml-64">
         <header className="flex h-16 items-center border-b border-border bg-card px-4 sm:px-6 lg:px-8">
@@ -237,7 +262,7 @@ export default function Home() {
             </button>
             <button onClick={() => setCommandOpen(true)} className="focus-ring grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 lg:hidden" aria-label="Buscar"><Search className="size-[18px]" /></button>
             <button className="focus-ring relative grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Notificações"><Bell className="size-[18px]" /></button>
-            <button type="button" onClick={() => setActiveArea("settings")} aria-label="Abrir configurações do perfil" className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#202026] to-[#3a3a45] text-xs font-semibold text-white transition hover:ring-2 hover:ring-[#7657ff]/30">{profileInitials}</button>
+            <button type="button" onClick={() => navigateArea("settings")} aria-label="Abrir configurações do perfil" className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#202026] to-[#3a3a45] text-xs font-semibold text-white transition hover:ring-2 hover:ring-[#7657ff]/30">{profileInitials}</button>
           </div>
         </header>
 
@@ -257,8 +282,10 @@ export default function Home() {
           <FinanceScreen clients={clients} />
         ) : activeArea === "billing" ? (
           <BillingScreen clients={clients} onPayments={openPayments} />
+        ) : activeArea === "fiscal" && FISCAL_FLAGS.moduleEnabled ? (
+          <FiscalScreen controller={fiscal} clients={clients} view={fiscalView} onViewChange={setFiscalView} onNavigateArea={navigateArea} />
         ) : activeArea === "settings" ? (
-          <SettingsScreen key={String(initialPayments)} initialPayments={initialPayments} settings={settings} onUpdateSettings={updateSettings} />
+          <SettingsScreen key={String(initialPayments)} initialPayments={initialPayments} settings={settings} onUpdateSettings={updateSettings} fiscalController={fiscal} />
         ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 4rem)" }}>
           <div className="flex items-center justify-between gap-3">
@@ -368,7 +395,8 @@ export default function Home() {
       </main>
 
       <TaskSheet key={`${sheetOpen ? "open" : "closed"}-${selectedTask?.id ?? "new"}-${initialDate ?? "inbox"}-${initialTime}-${initialClientId ?? "none"}`} open={sheetOpen} onOpenChange={setSheetOpen} task={selectedTask} initialDate={initialDate} initialTime={initialTime} initialClientId={initialClientId} clients={clients} onSave={saveTask} onArchive={handleArchive} />
-      <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} clients={clients} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} />
+      <WeekiCommandPalette open={commandOpen} onOpenChange={setCommandOpen} tasks={tasks} clients={clients} onCreate={openNewTask} onOpenTask={openTask} onToday={() => setWeekStart(initialWeek())} onNavigate={navigateArea} />
+      {FISCAL_FLAGS.moduleEnabled && <FiscalAutomationDialog controller={fiscal} onOpenFiscal={() => { setFiscalView("notes"); setActiveArea("fiscal"); }} onOpenSettings={() => { setFiscalView("settings"); setActiveArea("fiscal"); }} />}
       <Toaster position="bottom-right" richColors />
     </div>
   );

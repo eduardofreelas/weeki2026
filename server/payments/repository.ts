@@ -8,6 +8,7 @@ import type {
   PaymentFinanceEntry,
 } from "../../shared/payments.js";
 import { PaymentError } from "./errors.js";
+import { publishDomainEvent } from "../domain/events.js";
 export interface Scope {
   userId: string;
   workspaceId: string;
@@ -130,10 +131,20 @@ export async function reconcile(
       provider: c.provider,
       paymentMethod: c.paymentMethod,
     };
-    await sql.query(
-      "INSERT INTO weeki_payments.finance_entries(id,workspace_id,charge_id,kind,total_minor,data) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING",
+    const inserted = await sql.query<{ id: string }>(
+      "INSERT INTO weeki_payments.finance_entries(id,workspace_id,charge_id,kind,total_minor,data) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING id",
       [e.id, workspaceId, c.id, kind, total, JSON.stringify(e)],
     );
+    if (kind === "receipt" && inserted.rows[0]) {
+      await publishDomainEvent(sql, workspaceId, "payment.confirmed", c.id, {
+        chargeId: c.id,
+        customerId: c.customerId,
+        customerName: c.customerName,
+        description: c.description,
+        amountMinor: c.amountMinor,
+        paidAt: c.paidAt,
+      });
+    }
   }
 }
 export async function inWorkspace<T>(

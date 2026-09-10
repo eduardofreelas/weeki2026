@@ -10,8 +10,7 @@ import {
   Database,
   Download,
   ExternalLink,
-  Eye,
-  EyeOff,
+  FileText,
   HardDrive,
   KeyRound,
   Laptop,
@@ -21,7 +20,9 @@ import {
   Moon,
   Palette,
   Plug,
+  ReceiptText,
   Save,
+  Search,
   Settings2,
   ShieldCheck,
   Smartphone,
@@ -38,18 +39,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { IntegrationId, WeekiProfileSettings, WeekiRegionalSettings, WeekiSettings, WeekiTheme } from "@/features/settings/types";
 import { cn } from "@/lib/utils";
+import { FiscalSettings } from "@/components/fiscal/fiscal-settings";
+import type { WeekiFiscalController } from "@/features/fiscal/use-weeki-fiscal";
+import { FISCAL_FLAGS } from "@/features/fiscal/config";
 
 import { SettingsPayments } from "@/components/payments/settings-payments";
 
-type SettingsView = "payments" | "profile" | "workspace" | "appearance" | "notifications" | "integrations" | "security" | "privacy";
+type SettingsView = "overview" | "payments" | "fiscal" | "profile" | "workspace" | "appearance" | "notifications" | "integrations" | "security" | "privacy";
 
 const navigation: Array<{ id: SettingsView; label: string; icon: typeof UserRound }> = [
+  { id: "overview", label: "Visão geral", icon: Settings2 },
   { id: "profile", label: "Perfil", icon: UserRound },
   { id: "workspace", label: "Preferências", icon: Settings2 },
   { id: "appearance", label: "Aparência", icon: Palette },
   { id: "notifications", label: "Notificações", icon: Bell },
   { id: "integrations", label: "Integrações", icon: Plug },
   { id: "payments", label: "Pagamentos", icon: Link2 },
+  { id: "fiscal", label: "Fiscal", icon: FileText },
   { id: "security", label: "Segurança", icon: ShieldCheck },
   { id: "privacy", label: "Dados e conta", icon: Database },
 ];
@@ -70,14 +76,19 @@ const integrationMeta: Record<IntegrationId, { title: string; description: strin
   asaas: { title: "Asaas", description: "Receba cobranças diretamente na sua conta.", icon: Link2, tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300" },
 };
 
-export function SettingsScreen({ settings, onUpdateSettings, initialPayments = false }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void; initialPayments?: boolean }) {
-  const [view, setView] = useState<SettingsView>(initialPayments ? "payments" : "profile");
+export function SettingsScreen({ settings, onUpdateSettings, fiscalController, initialPayments = false }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void; fiscalController: WeekiFiscalController; initialPayments?: boolean }) {
+  const [view, setView] = useState<SettingsView>(initialPayments ? "payments" : "overview");
+  const [navigationQuery, setNavigationQuery] = useState("");
   const [profileDraft, setProfileDraft] = useState(settings.profile);
   const [regionalDraft, setRegionalDraft] = useState(settings.regional);
-  const [passwordOpen, setPasswordOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const initials = useMemo(() => profileDraft.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "WK", [profileDraft.name]);
+  const visibleNavigation = useMemo(() => {
+    const query = navigationQuery.trim().toLocaleLowerCase("pt-BR");
+    const enabledNavigation = navigation.filter((item) => item.id !== "fiscal" || FISCAL_FLAGS.moduleEnabled);
+    return query ? enabledNavigation.filter((item) => item.label.toLocaleLowerCase("pt-BR").includes(query)) : enabledNavigation;
+  }, [navigationQuery]);
 
   const saveProfile = (event: FormEvent) => {
     event.preventDefault();
@@ -96,11 +107,6 @@ export function SettingsScreen({ settings, onUpdateSettings, initialPayments = f
 
   const setNotification = (key: keyof WeekiSettings["notifications"], checked: boolean) => {
     onUpdateSettings({ notifications: { ...settings.notifications, [key]: checked } });
-  };
-
-  const setIntegration = (id: IntegrationId, connected: boolean) => {
-    onUpdateSettings({ integrations: { ...settings.integrations, [id]: connected } });
-    toast.success(connected ? `${integrationMeta[id].title} conectado.` : `${integrationMeta[id].title} desconectado.`);
   };
 
   const exportData = () => {
@@ -123,32 +129,75 @@ export function SettingsScreen({ settings, onUpdateSettings, initialPayments = f
 
   return (
     <div className="mx-auto w-full max-w-[1450px] px-4 pb-24 pt-5 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-2.5">
-        <span className="grid size-8 place-items-center rounded-lg bg-[#efedff] text-[#5b44df] dark:bg-violet-500/10 dark:text-violet-300"><Settings2 className="size-4" /></span>
-        <div><h1 className="text-[23px] font-bold tracking-[-0.035em] text-slate-900 dark:text-white sm:text-[25px]">Configurações</h1><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Personalize seu espaço de trabalho e proteja sua conta.</p></div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 place-items-center rounded-lg bg-[#efedff] text-[#5b44df] dark:bg-violet-500/10 dark:text-violet-300"><Settings2 className="size-4" /></span>
+          <div><h1 className="text-[23px] font-bold tracking-[-0.035em] text-slate-900 dark:text-white sm:text-[25px]">Configurações</h1><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Centralize sua conta, preferências, integrações, pagamentos e emissão fiscal.</p></div>
+        </div>
+        <div className="relative w-full sm:w-64"><Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" /><Input value={navigationQuery} onChange={(event) => setNavigationQuery(event.target.value)} placeholder="Buscar configuração" className="h-9 rounded-lg bg-white pl-9 text-[11px] shadow-none dark:bg-card" /></div>
       </div>
+
+      <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-[9px] leading-4 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/8 dark:text-blue-200"><HardDrive className="size-3.5 shrink-0" /><span><strong>Modo local protegido pelo dispositivo.</strong> Preferências visuais funcionam neste navegador; recursos de conta, conexões e segurança serão ativados somente pelo backend autenticado.</span></div>
 
       <div className="mt-6 grid items-start gap-5 lg:grid-cols-[210px_minmax(0,1fr)] xl:gap-8">
         <nav className="week-board-scroll flex gap-1 overflow-x-auto border-b border-slate-200 pb-2 dark:border-white/10 lg:sticky lg:top-[88px] lg:block lg:space-y-1 lg:overflow-visible lg:border-0 lg:pb-0" aria-label="Seções das configurações">
-          {navigation.map((item) => <button key={item.id} type="button" onClick={() => setView(item.id)} className={cn("flex h-9 shrink-0 items-center gap-2.5 rounded-md px-3 text-[11px] font-medium text-slate-500 transition hover:bg-white hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/[0.05] dark:hover:text-white lg:w-full", view === item.id && "bg-white text-slate-900 ring-1 ring-slate-200 dark:bg-white/[0.08] dark:text-white dark:ring-white/10")}><item.icon className={cn("size-4", view === item.id && "text-[#6048df]")} /><span>{item.label}</span>{view === item.id && <ChevronRight className="ml-auto hidden size-3.5 text-slate-300 lg:block" />}</button>)}
+          {visibleNavigation.map((item) => <button key={item.id} type="button" onClick={() => { setView(item.id); setNavigationQuery(""); }} className={cn("flex h-9 shrink-0 items-center gap-2.5 rounded-md px-3 text-[11px] font-medium text-slate-500 transition hover:bg-white hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/[0.05] dark:hover:text-white lg:w-full", view === item.id && "bg-white text-slate-900 ring-1 ring-slate-200 dark:bg-white/[0.08] dark:text-white dark:ring-white/10")}><item.icon className={cn("size-4", view === item.id && "text-[#6048df]")} /><span>{item.label}</span>{view === item.id && <ChevronRight className="ml-auto hidden size-3.5 text-slate-300 lg:block" />}</button>)}
+          {!visibleNavigation.length && <p className="px-3 py-2 text-[10px] text-slate-400">Nenhuma seção encontrada.</p>}
         </nav>
 
         <div className="min-w-0">
+          {view === "overview" && <SettingsOverview settings={settings} fiscalController={fiscalController} onNavigate={setView} />}
           {view === "payments" && <SettingsPayments />}
+          {view === "fiscal" && <FiscalSettings controller={fiscalController} embedded />}
           {view === "profile" && <ProfileSettings profile={profileDraft} initials={initials} onChange={setProfileDraft} onSubmit={saveProfile} />}
           {view === "workspace" && <RegionalSettings regional={regionalDraft} onChange={setRegionalDraft} onSubmit={saveRegional} />}
           {view === "appearance" && <AppearanceSettings settings={settings} onUpdateSettings={onUpdateSettings} onThemeChange={changeTheme} />}
           {view === "notifications" && <NotificationSettings settings={settings} onChange={setNotification} />}
-          {view === "integrations" && <><button type="button" onClick={() => setView("payments")} className="mb-4 text-xs font-medium text-violet-500">Asaas, Mercado Pago e Stripe → Pagamentos</button><IntegrationsSettings settings={settings} onChange={setIntegration} /></>}
-          {view === "security" && <SecuritySettings settings={settings} onUpdateSettings={onUpdateSettings} onPassword={() => setPasswordOpen(true)} />}
+          {view === "integrations" && <><button type="button" onClick={() => setView("payments")} className="mb-4 text-xs font-medium text-violet-500">Asaas, Mercado Pago e Stripe → Pagamentos</button><IntegrationsSettings /></>}
+          {view === "security" && <SecuritySettings settings={settings} />}
           {view === "privacy" && <PrivacySettings settings={settings} onUpdateSettings={onUpdateSettings} onExport={exportData} onDelete={() => setDeleteOpen(true)} />}
         </div>
       </div>
 
-      <PasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
       <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} />
     </div>
   );
+}
+
+function SettingsOverview({ settings, fiscalController, onNavigate }: { settings: WeekiSettings; fiscalController: WeekiFiscalController; onNavigate: (view: SettingsView) => void }) {
+  const profileComplete = Boolean(settings.profile.name.trim() && settings.profile.email.trim() && settings.profile.businessName.trim());
+  const fiscalSteps = [
+    Boolean(fiscalController.state.profile.configuredAt),
+    fiscalController.state.serviceConfigs.some((service) => service.active),
+    fiscalController.state.certificate?.status === "active",
+  ];
+  const fiscalProgress = fiscalSteps.filter(Boolean).length;
+  const enabledNotifications = Object.values(settings.notifications).filter(Boolean).length;
+  const timezoneName = timezones.find((item) => item.value === settings.regional.timezone)?.label.split("—")[0].trim() || settings.regional.timezone;
+  const cards: Array<{ id: SettingsView; title: string; description: string; status: string; icon: typeof UserRound; tone: string }> = [
+    { id: "profile", title: "Perfil", description: "Identidade e informações do negócio", status: profileComplete ? "Completo" : "Revisar dados", icon: UserRound, tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300" },
+    { id: "workspace", title: "Preferências", description: "Idioma, fuso, datas e moeda", status: `${timezoneName} · ${settings.regional.currency}`, icon: Settings2, tone: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300" },
+    { id: "appearance", title: "Aparência", description: "Tema e densidade da interface", status: settings.appearance.theme === "system" ? "Automático" : settings.appearance.theme === "dark" ? "Escuro" : "Claro", icon: Palette, tone: "bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/10 dark:text-fuchsia-300" },
+    { id: "notifications", title: "Notificações", description: "Canais e alertas importantes", status: `${enabledNotifications} preferências ativas`, icon: Bell, tone: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300" },
+    { id: "integrations", title: "Integrações", description: "Drive, Calendar e Trello", status: "Em standby", icon: Plug, tone: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300" },
+    { id: "payments", title: "Pagamentos", description: "Asaas, Mercado Pago e Stripe", status: "Modo visual", icon: Link2, tone: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300" },
+    ...(FISCAL_FLAGS.moduleEnabled ? [{ id: "fiscal" as const, title: "Fiscal", description: "Dados, serviços e automações NFS-e", status: `${fiscalProgress}/3 etapas preparadas`, icon: ReceiptText, tone: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300" }] : []),
+    { id: "security", title: "Segurança", description: "Acesso, sessões e proteção", status: "Requer autenticação", icon: ShieldCheck, tone: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300" },
+    { id: "privacy", title: "Dados e conta", description: "Exportação, privacidade e exclusão", status: "Gerenciar", icon: Database, tone: "bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-slate-300" },
+  ];
+
+  return <div className="space-y-4">
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-white via-white to-violet-50/70 dark:border-white/10 dark:from-[#15151b] dark:via-[#15151b] dark:to-violet-500/8">
+      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div><span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-violet-700 dark:bg-violet-500/15 dark:text-violet-200"><Settings2 className="size-3" /> Central de configurações</span><h2 className="mt-3 text-lg font-bold tracking-[-0.025em] text-slate-900 dark:text-white">Tudo do seu workspace em um só lugar</h2><p className="mt-1 max-w-xl text-[10px] leading-4 text-slate-500 dark:text-slate-400">Organize as preferências da Weeki sem formulários desnecessários. Cada área deixa claro o que já funciona e o que depende de ativação segura.</p></div>
+        <Button type="button" size="sm" onClick={() => onNavigate("profile")} className="h-8 shrink-0 bg-[#5944df] text-[10px]"><UserRound className="size-3.5" /> Revisar perfil</Button>
+      </div>
+    </section>
+
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {cards.map((card) => <button key={card.id} type="button" onClick={() => onNavigate(card.id)} className="group flex min-h-28 items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm dark:border-white/10 dark:bg-[#15151b] dark:hover:border-violet-500/30"><span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", card.tone)}><card.icon className="size-4" /></span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{card.title}</span><ChevronRight className="size-3.5 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-violet-500" /></span><span className="mt-1 block text-[9px] leading-4 text-slate-400">{card.description}</span><span className="mt-3 inline-flex rounded-full bg-slate-50 px-2 py-1 text-[8px] font-semibold text-slate-500 dark:bg-white/[0.04] dark:text-slate-400">{card.status}</span></span></button>)}
+    </div>
+  </div>;
 }
 
 function ProfileSettings({ profile, initials, onChange, onSubmit }: { profile: WeekiProfileSettings; initials: string; onChange: (profile: WeekiProfileSettings) => void; onSubmit: (event: FormEvent) => void }) {
@@ -157,7 +206,7 @@ function ProfileSettings({ profile, initials, onChange, onSubmit }: { profile: W
       <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 dark:border-white/8 sm:flex-row sm:items-center sm:px-5">
         <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#202026] to-[#4b3ab8] text-base font-semibold text-white">{initials}</span>
         <div className="min-w-0 flex-1"><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Foto do perfil</p><p className="mt-1 text-[10px] leading-4 text-slate-400">JPG ou PNG de até 5 MB. Recomendado: 400 × 400 px.</p></div>
-        <div className="flex gap-2"><Button type="button" variant="outline" size="sm" onClick={() => toast.info("O envio de imagem será habilitado com o armazenamento do perfil.")} className="h-8 rounded-md px-2.5 text-[10px] shadow-none">Alterar foto</Button><Button type="button" variant="ghost" size="sm" className="h-8 rounded-md px-2 text-[10px] text-slate-400">Remover</Button></div>
+        <div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled title="Disponível após ativar o armazenamento do perfil" className="h-8 rounded-md px-2.5 text-[10px] shadow-none">Alterar foto</Button><Button type="button" variant="ghost" size="sm" disabled title="Nenhuma foto armazenada" className="h-8 rounded-md px-2 text-[10px] text-slate-400">Remover</Button></div>
       </div>
       <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <SettingsField label="Nome completo"><Input value={profile.name} onChange={(event) => onChange({ ...profile, name: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
@@ -204,14 +253,15 @@ function NotificationSettings({ settings, onChange }: { settings: WeekiSettings;
   </div>;
 }
 
-function IntegrationsSettings({ settings, onChange }: { settings: WeekiSettings; onChange: (id: IntegrationId, connected: boolean) => void }) {
-  return <SettingsPanel title="Integrações" description="Conecte as ferramentas que já fazem parte da sua rotina."><div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{(Object.keys(integrationMeta) as IntegrationId[]).filter(id => id !== "asaas").map((id) => { const item = integrationMeta[id]; const connected = settings.integrations[id]; return <article key={id} className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><div className="flex items-start gap-3"><span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", item.tone)}><item.icon className="size-[18px]" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="text-xs font-semibold text-slate-800 dark:text-slate-100">{item.title}</h3>{connected && <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><span className="size-1 rounded-full bg-current" />Conectado</span>}</div><p className="mt-1 text-[10px] leading-4 text-slate-400">{item.description}</p></div></div><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/8"><span className="text-[9px] text-slate-400">{connected ? "Sincronização ativa" : "Não conectado"}</span><Button type="button" variant={connected ? "ghost" : "outline"} size="xs" onClick={() => onChange(id, !connected)} className={cn("h-7 rounded-md px-2 text-[9px] shadow-none", connected && "text-rose-500")}>{connected ? "Desconectar" : "Conectar"}{!connected && <ExternalLink className="size-3" />}</Button></div></article>; })}</div></SettingsPanel>;
+function IntegrationsSettings() {
+  return <div className="space-y-4"><SettingsPanel title="Integrações" description="Conecte as ferramentas que já fazem parte da sua rotina."><div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{(Object.keys(integrationMeta) as IntegrationId[]).filter(id => id !== "asaas").map((id) => { const item = integrationMeta[id]; return <article key={id} className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><div className="flex items-start gap-3"><span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", item.tone)}><item.icon className="size-[18px]" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="text-xs font-semibold text-slate-800 dark:text-slate-100">{item.title}</h3><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">EM BREVE</span></div><p className="mt-1 text-[10px] leading-4 text-slate-400">{item.description}</p></div></div><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/8"><span className="text-[9px] text-slate-400">Integração em standby</span><Button type="button" variant="outline" size="xs" disabled className="h-7 rounded-md px-2 text-[9px] shadow-none">Conectar<ExternalLink className="size-3" /></Button></div></article>; })}</div></SettingsPanel><div className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-[9px] leading-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/8 dark:text-amber-200">Nenhuma conexão é simulada. Os botões serão habilitados somente quando OAuth, backend e verificação de conta estiverem configurados.</div></div>;
 }
 
-function SecuritySettings({ settings, onUpdateSettings, onPassword }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void; onPassword: () => void }) {
+function SecuritySettings({ settings }: { settings: WeekiSettings }) {
   return <div className="space-y-4">
-    <SettingsPanel title="Acesso e autenticação" description="Adicione camadas extras de proteção à sua conta."><div className="divide-y divide-slate-100 dark:divide-white/8"><ActionRow icon={KeyRound} title="Senha" description="Última alteração não registrada" action="Alterar senha" onClick={onPassword} /><ToggleRow icon={Smartphone} title="Autenticação em duas etapas" description="Exige um código adicional ao entrar." checked={settings.security.twoFactorEnabled} onChange={(checked) => onUpdateSettings({ security: { ...settings.security, twoFactorEnabled: checked } })} /><ToggleRow icon={Mail} title="Alertas de novo acesso" description="Receba um e-mail quando sua conta for acessada." checked={settings.security.loginAlerts} onChange={(checked) => onUpdateSettings({ security: { ...settings.security, loginAlerts: checked } })} /></div></SettingsPanel>
-    <SettingsPanel title="Sessões" description="Dispositivos que acessaram sua conta."><div className="p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-white/[0.07] dark:text-slate-300"><Laptop className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Windows · Chrome</p><span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Esta sessão</span></div><p className="mt-1 text-[10px] text-slate-400">Fortaleza, CE · Ativo agora</p></div></div><div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 dark:border-white/8 sm:flex-row sm:items-end sm:justify-between"><SettingsField label="Encerrar sessão após"><Select value={settings.security.sessionTimeout} onValueChange={(sessionTimeout) => onUpdateSettings({ security: { ...settings.security, sessionTimeout: sessionTimeout as WeekiSettings["security"]["sessionTimeout"] } })}><SelectTrigger className="h-8 w-[180px] rounded-md text-[10px] shadow-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="7d">7 dias sem atividade</SelectItem><SelectItem value="30d">30 dias sem atividade</SelectItem><SelectItem value="90d">90 dias sem atividade</SelectItem></SelectContent></Select></SettingsField><Button type="button" variant="outline" size="sm" onClick={() => toast.info("Não há outras sessões ativas.")} className="h-8 rounded-md px-2.5 text-[10px] shadow-none"><LogOut className="size-3.5" /> Encerrar outras sessões</Button></div></div></SettingsPanel>
+    <div className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-[9px] leading-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/8 dark:text-amber-200"><strong>Proteção em standby.</strong> Senha, 2FA, alertas e sessões dependem do login autenticado no servidor. Nenhuma alteração de segurança é simulada neste modo visual.</div>
+    <SettingsPanel title="Acesso e autenticação" description="Camadas de proteção preparadas para a conta autenticada."><div className="divide-y divide-slate-100 dark:divide-white/8"><ActionRow icon={KeyRound} title="Senha" description="Gerenciada pelo provedor de identidade" action="Requer login" onClick={() => undefined} disabled /><ToggleRow icon={Smartphone} title="Autenticação em duas etapas" description="Exigirá um código adicional ao entrar." checked={settings.security.twoFactorEnabled} onChange={() => undefined} disabled /><ToggleRow icon={Mail} title="Alertas de novo acesso" description="Avisos de sessões reconhecidos pelo servidor." checked={settings.security.loginAlerts} onChange={() => undefined} disabled /></div></SettingsPanel>
+    <SettingsPanel title="Sessões" description="Dispositivos autenticados aparecerão aqui."><div className="p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-white/[0.07] dark:text-slate-300"><Laptop className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Este navegador</p><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">MODO LOCAL</span></div><p className="mt-1 text-[10px] text-slate-400">Sem sessão de conta ativa nesta versão visual.</p></div></div><div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 dark:border-white/8 sm:flex-row sm:items-end sm:justify-between"><SettingsField label="Encerrar sessão após"><Select value={settings.security.sessionTimeout} disabled><SelectTrigger className="h-8 w-[180px] rounded-md text-[10px] shadow-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="7d">7 dias sem atividade</SelectItem><SelectItem value="30d">30 dias sem atividade</SelectItem><SelectItem value="90d">90 dias sem atividade</SelectItem></SelectContent></Select></SettingsField><Button type="button" variant="outline" size="sm" disabled className="h-8 rounded-md px-2.5 text-[10px] shadow-none"><LogOut className="size-3.5" /> Encerrar outras sessões</Button></div></div></SettingsPanel>
   </div>;
 }
 
@@ -220,18 +270,6 @@ function PrivacySettings({ settings, onUpdateSettings, onExport, onDelete }: { s
     <SettingsPanel title="Privacidade e dados" description="Controle o uso dos seus dados e mantenha uma cópia local."><div className="divide-y divide-slate-100 dark:divide-white/8"><ToggleRow title="Análises de uso" description="Ajude a melhorar o produto com dados de uso anônimos." checked={settings.privacy.usageAnalytics} onChange={(usageAnalytics) => onUpdateSettings({ privacy: { ...settings.privacy, usageAnalytics } })} /><ToggleRow title="Personalização" description="Use seu histórico para tornar sugestões mais relevantes." checked={settings.privacy.personalization} onChange={(personalization) => onUpdateSettings({ privacy: { ...settings.privacy, personalization } })} /><ActionRow icon={Download} title="Exportar meus dados" description="Baixe demandas, clientes e preferências em JSON." action="Exportar" onClick={onExport} /></div></SettingsPanel>
     <section className="overflow-hidden rounded-xl border border-rose-200 bg-white dark:border-rose-500/25 dark:bg-[#15151b]"><div className="border-b border-rose-100 px-4 py-4 dark:border-rose-500/15 sm:px-5"><h2 className="text-sm font-semibold text-rose-700 dark:text-rose-300">Área de risco</h2><p className="mt-1 text-[10px] leading-4 text-slate-400">Ações permanentes que afetam sua conta e seus dados.</p></div><div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><div><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Excluir conta</p><p className="mt-1 max-w-xl text-[10px] leading-4 text-slate-400">Remove dados locais, preferências, demandas, clientes, agenda, financeiro e cobranças deste navegador.</p></div><Button type="button" variant="outline" size="sm" onClick={onDelete} className="h-8 shrink-0 rounded-md border-rose-200 px-2.5 text-[10px] text-rose-600 shadow-none hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10"><Trash2 className="size-3.5" /> Excluir conta</Button></div></section>
   </div>;
-}
-
-function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [visible, setVisible] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const submit = () => {
-    if (currentPassword.length < 6 || newPassword.length < 8) return toast.error("Confira as senhas informadas.");
-    toast.success("Senha atualizada.");
-    setCurrentPassword(""); setNewPassword(""); onOpenChange(false);
-  };
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-sm gap-0 rounded-xl p-0"><DialogHeader className="border-b border-slate-100 px-5 py-4 text-left dark:border-white/8"><DialogTitle className="text-base">Alterar senha</DialogTitle><DialogDescription className="mt-1 text-[10px]">Use pelo menos 8 caracteres na nova senha.</DialogDescription></DialogHeader><div className="space-y-4 px-5 py-5"><SettingsField label="Senha atual"><Input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="h-9 rounded-md text-xs shadow-none" /></SettingsField><SettingsField label="Nova senha"><div className="relative"><Input type={visible ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-9 rounded-md pr-9 text-xs shadow-none" /><button type="button" onClick={() => setVisible((current) => !current)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">{visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button></div></SettingsField><div className="grid grid-cols-3 gap-1"><span className={cn("h-1 rounded-full", newPassword.length >= 1 ? "bg-amber-400" : "bg-slate-100")} /><span className={cn("h-1 rounded-full", newPassword.length >= 8 ? "bg-amber-400" : "bg-slate-100")} /><span className={cn("h-1 rounded-full", newPassword.length >= 12 ? "bg-emerald-500" : "bg-slate-100")} /></div></div><DialogFooter className="flex-row border-t border-slate-100 bg-slate-50/70 px-5 py-3 dark:border-white/8 dark:bg-white/[0.025]"><Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-8 rounded-md text-[10px]">Cancelar</Button><Button type="button" size="sm" onClick={submit} className="h-8 rounded-md bg-[#5140df] px-3 text-[10px] shadow-none">Atualizar senha</Button></DialogFooter></DialogContent></Dialog>;
 }
 
 function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -249,5 +287,5 @@ function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 function SettingsPanel({ title, description, children }: { title: string; description: string; children: ReactNode }) { return <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#15151b]"><header className="border-b border-slate-100 px-4 py-4 dark:border-white/8 sm:px-5"><h2 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h2><p className="mt-1 text-[10px] leading-4 text-slate-400">{description}</p></header>{children}</section>; }
 function SettingsField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) { return <label className="block"><span className="mb-1.5 block text-[10px] font-semibold text-slate-600 dark:text-slate-300">{label}</span>{children}{hint && <span className="mt-1.5 block text-[9px] leading-4 text-slate-400">{hint}</span>}</label>; }
 function PanelFooter({ children }: { children: ReactNode }) { return <div className="flex justify-end border-t border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-white/8 dark:bg-white/[0.02] sm:px-5">{children}</div>; }
-function ToggleRow({ icon: Icon, title, description, checked, onChange }: { icon?: typeof Bell; title: string; description: string; checked: boolean; onChange: (checked: boolean) => void }) { return <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">{Icon && <span className="grid size-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300"><Icon className="size-3.5" /></span>}<div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">{title}</p><p className="mt-0.5 text-[9px] leading-4 text-slate-400">{description}</p></div><Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#654fe4]" /></div>; }
-function ActionRow({ icon: Icon, title, description, action, onClick }: { icon: typeof Download; title: string; description: string; action: string; onClick: () => void }) { return <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5"><span className="grid size-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300"><Icon className="size-3.5" /></span><div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">{title}</p><p className="mt-0.5 text-[9px] leading-4 text-slate-400">{description}</p></div><Button type="button" variant="outline" size="sm" onClick={onClick} className="h-8 rounded-md px-2.5 text-[10px] shadow-none">{action}</Button></div>; }
+function ToggleRow({ icon: Icon, title, description, checked, onChange, disabled = false }: { icon?: typeof Bell; title: string; description: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) { return <div className={cn("flex items-center gap-3 px-4 py-3.5 sm:px-5", disabled && "opacity-60")}>{Icon && <span className="grid size-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300"><Icon className="size-3.5" /></span>}<div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">{title}</p><p className="mt-0.5 text-[9px] leading-4 text-slate-400">{description}</p></div><Switch checked={checked} onCheckedChange={onChange} disabled={disabled} className="data-[state=checked]:bg-[#654fe4]" /></div>; }
+function ActionRow({ icon: Icon, title, description, action, onClick, disabled = false }: { icon: typeof Download; title: string; description: string; action: string; onClick: () => void; disabled?: boolean }) { return <div className={cn("flex items-center gap-3 px-4 py-3.5 sm:px-5", disabled && "opacity-60")}><span className="grid size-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300"><Icon className="size-3.5" /></span><div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">{title}</p><p className="mt-0.5 text-[9px] leading-4 text-slate-400">{description}</p></div><Button type="button" variant="outline" size="sm" onClick={onClick} disabled={disabled} className="h-8 rounded-md px-2.5 text-[10px] shadow-none">{action}</Button></div>; }

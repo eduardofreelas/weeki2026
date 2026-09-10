@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import type { Client, ClientDraft, ClientFile, ClientLink, ClientStatus, ContractKind, PaymentStatus } from "@/features/clients/types";
+import type { Client, ClientDraft, ClientFile, ClientFiscalData, ClientLink, ClientStatus, ContractKind, PaymentStatus } from "@/features/clients/types";
 import { formatCpfCnpj, formatPhoneBR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +41,14 @@ export const emptyClientDraft = (): ClientDraft => ({
   phone: "",
   website: "",
   address: "",
+  fiscal: {
+    municipalRegistration: "",
+    zipCode: "",
+    city: "",
+    cityCode: "",
+    state: "",
+    fiscalEmail: "",
+  },
   notes: "",
   status: "active",
   segment: "",
@@ -64,6 +72,15 @@ const toDraft = (client: Client): ClientDraft => ({
   phone: client.phone,
   website: client.website,
   address: client.address,
+  fiscal: {
+    municipalRegistration: "",
+    zipCode: "",
+    city: "",
+    cityCode: "",
+    state: "",
+    fiscalEmail: client.email,
+    ...client.fiscal,
+  },
   notes: client.notes,
   status: client.status,
   segment: client.segment,
@@ -110,6 +127,22 @@ export function ClientForm({
 
   const update = <K extends keyof ClientDraft>(key: K, value: ClientDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateFiscal = <K extends keyof ClientFiscalData>(key: K, value: ClientFiscalData[K]) => {
+    setDraft((current) => ({
+      ...current,
+      fiscal: {
+        municipalRegistration: "",
+        zipCode: "",
+        city: "",
+        cityCode: "",
+        state: "",
+        fiscalEmail: current.email,
+        ...current.fiscal,
+        [key]: value,
+      },
+    }));
   };
 
   const addFiles = (fileList: FileList | null) => {
@@ -229,6 +262,18 @@ export function ClientForm({
               <div><FieldLabel>Endereço</FieldLabel><Input value={draft.address} onChange={(event) => update("address", event.target.value)} placeholder="Rua, número, cidade — UF" className="h-9 rounded-md px-3 text-xs shadow-none" /></div>
               <div><FieldLabel>Observações</FieldLabel><Textarea value={draft.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Como esse cliente costuma trabalhar..." className="min-h-24 rounded-md px-3 py-2.5 text-xs shadow-none" /></div>
             </div>
+          </FormSection>
+
+          <FormSection title="Dados fiscais" description="Reutilizados no preenchimento de NFS-e. Complete somente o que se aplicar a este cliente.">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div><FieldLabel>CPF/CNPJ do tomador</FieldLabel><Input inputMode="numeric" value={draft.document} onChange={(event) => update("document", formatCpfCnpj(event.target.value))} placeholder={draft.kind === "company" ? "00.000.000/0001-00" : "000.000.000-00"} className="h-9" /></div>
+              <div><FieldLabel>Inscrição municipal</FieldLabel><Input value={draft.fiscal?.municipalRegistration ?? ""} onChange={(event) => updateFiscal("municipalRegistration", event.target.value)} placeholder="Quando aplicável" className="h-9" /></div>
+              <div><FieldLabel>E-mail fiscal</FieldLabel><Input type="email" value={draft.fiscal?.fiscalEmail ?? ""} onChange={(event) => updateFiscal("fiscalEmail", event.target.value)} placeholder={draft.email || "fiscal@cliente.com.br"} className="h-9" /></div>
+              <div><FieldLabel>CEP</FieldLabel><Input inputMode="numeric" value={draft.fiscal?.zipCode ?? ""} onChange={(event) => updateFiscal("zipCode", event.target.value.replace(/\D/g, "").slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2"))} placeholder="00000-000" className="h-9" /></div>
+              <div><FieldLabel>Município</FieldLabel><Input value={draft.fiscal?.city ?? ""} onChange={(event) => updateFiscal("city", event.target.value)} placeholder="Ex.: Fortaleza" className="h-9" /></div>
+              <div><FieldLabel>UF</FieldLabel><Input maxLength={2} value={draft.fiscal?.state ?? ""} onChange={(event) => updateFiscal("state", event.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 2))} placeholder="CE" className="h-9 uppercase" /></div>
+            </div>
+            <p className="mt-3 text-[10px] leading-4 text-slate-400">Nome, endereço, telefone e documento principal continuam compartilhados com o cadastro do cliente para evitar dados duplicados.</p>
           </FormSection>
 
           <FormSection title="Contrato e acompanhamento" description="Dados rápidos para a visão geral do cliente.">

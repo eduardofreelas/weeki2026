@@ -11,6 +11,9 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - financeiro e cobranças locais preservados em abas próprias;
 - interface multiprovider com Asaas, Mercado Pago e Stripe no modo visual estático;
 - pagamentos conectados após ativação explícita do backend e homologação externa.
+- central profissional de Configurações, acessível no desktop, mobile e busca rápida;
+- módulo Fiscal/NFS-e em sandbox visual, com perfil, serviços, emissão assistida, notas e histórico;
+- backend Fiscal desacoplado e seguro, com a integração nacional real em standby.
 
 ## Arquitetura
 
@@ -21,15 +24,15 @@ components/weeki/    telas e widgets do produto
 features/*/          tipos, seed e hooks de persistência local
 lib/                 cn, formatadores BR, sanitização
 public/              favicon e .htaccess (Hostinger)
-shared/              contratos compartilhados do domínio de pagamentos
-server/              API, autenticação, migrations, adapters, webhooks e workers
+shared/              contratos compartilhados de pagamentos e Fiscal
+server/              API, autenticação, migrations, providers, webhooks e workers
 ```
 
 Os módulos anteriores ainda usam hooks `use-weeki-*.ts` e chaves `weeki.*.v1`. Pagamentos conectados usam exclusivamente a API autenticada e não tratam dados locais como recebimentos confirmados.
 
 ### Variáveis de ambiente
 
-Nenhuma é necessária para executar o protótipo estático. Sem configuração, a área de pagamentos abre em modo visual, não faz chamadas externas e não simula conexões. Para ativar a API no build, use `NEXT_PUBLIC_PAYMENTS_API_ENABLED=true`; o backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
+Nenhuma é necessária para executar o protótipo estático. Sem configuração, Pagamentos e Fiscal abrem em modo visual, não fazem chamadas externas e não simulam conexões, notas autorizadas ou documentos. O backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
 
 ### Design system
 
@@ -55,7 +58,7 @@ A pasta `out/` pode ser publicada em `public_html/`; ela inclui toda a interface
 ```bash
 npm run test:payments
 npm run build:full
-npm run db:migrate:payments
+npm run db:migrate
 npm run start:payments
 ```
 
@@ -65,6 +68,7 @@ npm run start:payments
 - `/agendar` não entrega o pedido a outro dispositivo;
 - anexos são metadados, sem armazenamento de objetos;
 - pagamentos dependem de PostgreSQL, OIDC, HTTPS e credenciais sandbox configurados externamente;
+- emissão NFS-e real depende de credenciamento, documentação oficial fixada, certificado em KMS/Vault e homologação;
 - os itens Início, Demandas, Relatórios, Arquivados e Ajuda permanecem “Em breve”.
 
 ## Pagamentos multiprovider
@@ -72,3 +76,7 @@ npm run start:payments
 A evolução de Cobranças com backend, autenticação e adapters está documentada em [docs/payments.md](docs/payments.md), incluindo implantação Node, migration, webhooks, variáveis privadas e homologação. Leia também a [auditoria e estratégia de preservação](docs/payments-audit.md). O frontend estático continua compilável; o recebimento integrado exige a configuração externa descrita no documento.
 
 Para ativação, siga a [checklist externa](docs/payments-external-checklist.md). Os testes executados e os limites da verificação estão no [registro de validação](docs/payments-validation.md).
+
+## Fiscal / NFS-e
+
+A arquitetura, os estados, as rotas, a migration, os controles de idempotência e tudo que permanece em standby estão em [docs/fiscal.md](docs/fiscal.md). Leia também a [auditoria de preservação](docs/fiscal-audit.md) e a [checklist externa de homologação](docs/fiscal-external-checklist.md).
