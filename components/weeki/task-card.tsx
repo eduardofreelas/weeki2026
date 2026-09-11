@@ -140,10 +140,20 @@ export function TaskCard({
     <article
       {...commonProps}
       className={cn(
-        "group relative cursor-grab rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition duration-150 hover:border-[#c9c2ff] hover:shadow-[0_5px_15px_rgba(15,23,42,0.08)] active:cursor-grabbing",
+        "group relative cursor-grab overflow-hidden rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] transition duration-150 hover:border-[#c9c2ff] hover:shadow-[0_5px_15px_rgba(15,23,42,0.08)] active:cursor-grabbing",
         isCompleted && "border-dashed border-slate-300 bg-slate-50/60 opacity-90 hover:border-slate-400",
       )}
     >
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-1",
+          task.priority === "urgent" && "bg-rose-500",
+          task.priority === "high" && "bg-orange-400",
+          task.priority === "medium" && "bg-violet-300",
+          task.priority === "low" && "bg-slate-200",
+        )}
+        title={`Prioridade ${PRIORITY_LABELS[task.priority].toLowerCase()}`}
+      />
       <div className="flex min-w-0 items-start gap-2.5 pr-4">
         <Checkbox checked={isCompleted} aria-label={isCompleted ? "Reabrir demanda" : "Concluir demanda"} onClick={(event) => event.stopPropagation()} onCheckedChange={onToggleComplete} className="mt-0.5 size-4 shrink-0 rounded-full border-slate-300 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500" />
         <div className="min-w-0 flex-1">

@@ -19,14 +19,17 @@ import { ptBR } from "date-fns/locale";
 import {
   Bell,
   CalendarDays,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   Columns3,
   Inbox,
+  Kanban,
   LayoutList,
   Plus,
   Search,
   SlidersHorizontal,
+  Table2,
   UsersRound,
   X,
 } from "lucide-react";
@@ -67,6 +70,8 @@ import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import {
   WeekBoard,
+  WeekSummary,
+  isWeekLayoutMode,
   type WeekLayoutMode,
   type WeekViewMode,
 } from "@/components/weeki/week-board";
@@ -91,8 +96,10 @@ import type {
 } from "@/features/operations/types";
 import {
   STATUS_LABELS,
+  PRIORITY_LABELS,
   type Task,
   type TaskDraft,
+  type TaskPriority,
   type TaskStatus,
 } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
@@ -124,6 +131,8 @@ export default function Home() {
     updateTask,
     moveTask,
     assignTaskClient,
+    setTaskStatus,
+    setTaskPriority,
     toggleComplete,
     duplicateTask,
     archiveTask,
@@ -236,11 +245,12 @@ export default function Home() {
   const [layoutMode, setLayoutMode] = useState<WeekLayoutMode>(() => {
     if (typeof window === "undefined") return "board";
     const savedLayout = window.localStorage.getItem("weeki.week-layout.v1");
-    return savedLayout === "list" ? "list" : "board";
+    return isWeekLayoutMode(savedLayout) ? savedLayout : "board";
   });
   const [showWeekend, setShowWeekend] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">("all");
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -381,15 +391,16 @@ export default function Home() {
         return (
           matchesQuery &&
           (statusFilter === "all" || task.status === statusFilter) &&
-          (clientFilter === "all" || task.clientId === clientFilter)
+          (clientFilter === "all" || task.clientId === clientFilter) &&
+          (priorityFilter === "all" || task.priority === priorityFilter)
         );
       }),
-    [tasksInWeek, query, statusFilter, clientFilter, clients],
+    [tasksInWeek, query, statusFilter, clientFilter, priorityFilter, clients],
   );
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
   const hasActiveFilters = Boolean(
-    query.trim() || statusFilter !== "all" || clientFilter !== "all",
+    query.trim() || statusFilter !== "all" || clientFilter !== "all" || priorityFilter !== "all",
   );
 
   const openNewTask = useCallback(
@@ -581,6 +592,28 @@ export default function Home() {
     [assignTaskClient, tasks],
   );
 
+  const handleChangeStatus = useCallback(
+    (taskId: string, status: TaskStatus) => {
+      const previous = tasks.find((task) => task.id === taskId);
+      setTaskStatus(taskId, status);
+      toast.success("Status atualizado.", previous ? {
+        action: { label: "Desfazer", onClick: () => setTaskStatus(taskId, previous.status) },
+      } : undefined);
+    },
+    [setTaskStatus, tasks],
+  );
+
+  const handleChangePriority = useCallback(
+    (taskId: string, priority: TaskPriority) => {
+      const previous = tasks.find((task) => task.id === taskId);
+      setTaskPriority(taskId, priority);
+      toast.success("Prioridade atualizada.", previous ? {
+        action: { label: "Desfazer", onClick: () => setTaskPriority(taskId, previous.priority) },
+      } : undefined);
+    },
+    [setTaskPriority, tasks],
+  );
+
   const handleToggleComplete = useCallback(
     (taskId: string) => {
       const task = tasks.find((item) => item.id === taskId);
@@ -622,6 +655,7 @@ export default function Home() {
     setQuery("");
     setStatusFilter("all");
     setClientFilter("all");
+    setPriorityFilter("all");
   };
 
   if (!mounted) {
@@ -883,6 +917,9 @@ export default function Home() {
                     {format(weekEnd, "dd MMM yyyy", { locale: ptBR })}
                   </span>
                 </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Planeje, priorize e acompanhe o trabalho da semana em Kanban, dias, lista, calendário ou tabela.
+                </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Button
@@ -910,6 +947,8 @@ export default function Home() {
                 </Button>
               </div>
             </div>
+
+            <WeekSummary tasks={filteredTasks} todayKey={todayKey} />
 
             <div className="week-board-scroll mt-4 flex items-center justify-between gap-3 overflow-x-auto border-y border-slate-200/80 bg-white py-2.5">
               <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
@@ -974,32 +1013,31 @@ export default function Home() {
                   className="flex items-center rounded-lg border bg-slate-100 p-0.5"
                   aria-label="Layout das demandas"
                 >
-                  <button
-                    type="button"
-                    onClick={() => changeLayoutMode("board")}
-                    className={cn(
-                      "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
-                      layoutMode === "board"
-                        ? "bg-slate-900 text-white shadow-sm"
-                        : "text-slate-500 hover:bg-slate-200/70",
-                    )}
-                  >
-                    <Columns3 className="size-3" /> Painel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => changeLayoutMode("list")}
-                    className={cn(
-                      "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
-                      layoutMode === "list"
-                        ? "bg-slate-900 text-white shadow-sm"
-                        : "text-slate-500 hover:bg-slate-200/70",
-                    )}
-                  >
-                    <LayoutList className="size-3" /> Lista
-                  </button>
+                  {([
+                    { value: "kanban" as const, label: "Kanban", icon: Kanban },
+                    { value: "board" as const, label: "Dias", icon: Columns3 },
+                    { value: "list" as const, label: "Lista", icon: LayoutList },
+                    { value: "calendar" as const, label: "Calendário", icon: CalendarRange },
+                    { value: "table" as const, label: "Tabela", icon: Table2 },
+                  ]).map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => changeLayoutMode(item.value)}
+                      className={cn(
+                        "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
+                        layoutMode === item.value
+                          ? "bg-slate-900 text-white shadow-sm"
+                          : "text-slate-500 hover:bg-slate-200/70",
+                      )}
+                    >
+                      <item.icon className="size-3.5" />
+                      <span className="hidden lg:inline">{item.label}</span>
+                    </button>
+                  ))}
                 </div>
 
+                {layoutMode !== "calendar" && layoutMode !== "kanban" && layoutMode !== "table" && (
                 <button
                   type="button"
                   onClick={() => setShowWeekend((current) => !current)}
@@ -1025,6 +1063,7 @@ export default function Home() {
                   </span>
                   Sáb e dom
                 </button>
+                )}
               </div>
 
               <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
@@ -1085,6 +1124,22 @@ export default function Home() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select
+                    value={priorityFilter}
+                    onValueChange={(value) => setPriorityFilter(value as TaskPriority | "all")}
+                  >
+                    <SelectTrigger className="h-8 w-[132px] shrink-0 rounded-lg bg-white px-2.5 text-xs shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as prioridades</SelectItem>
+                      {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {hasActiveFilters && (
                   <Button
@@ -1111,7 +1166,7 @@ export default function Home() {
                       Caixa de Entrada
                     </h2>
                     <p className="text-xs text-slate-400">
-                      Arraste uma demanda para um dia da semana.
+                      Arraste para o Kanban, os dias ou o calendário para agendar.
                     </p>
                   </div>
                   <Button
@@ -1162,6 +1217,8 @@ export default function Home() {
                 onOpen={openTask}
                 onMove={handleMove}
                 onChangeClient={handleChangeClient}
+                onChangeStatus={handleChangeStatus}
+                onChangePriority={handleChangePriority}
                 onToggleComplete={handleToggleComplete}
                 onDuplicate={handleDuplicate}
                 onArchive={handleArchive}

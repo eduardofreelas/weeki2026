@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSeedTasks } from "./seed";
-import type { Task, TaskDraft } from "./types";
+import type { Task, TaskDraft, TaskPriority, TaskStatus } from "./types";
 import type { ReportActivityCategory } from "@/shared/reports";
 
 const STORAGE_KEY = "weeki.tasks.v1";
@@ -126,6 +126,38 @@ export function useWeekiTasks() {
     }));
   }, []);
 
+  const setTaskStatus = useCallback((id: string, status: TaskStatus) => {
+    setTasks((current) => current.map((task) => {
+      if (task.id !== id || task.status === status) return task;
+      const now = new Date().toISOString();
+      return {
+        ...task,
+        status,
+        updatedAt: now,
+        activity: [
+          { id: makeId(), text: `Status alterado para ${status}`, createdAt: now },
+          ...task.activity,
+        ],
+      };
+    }));
+  }, []);
+
+  const setTaskPriority = useCallback((id: string, priority: TaskPriority) => {
+    setTasks((current) => current.map((task) => {
+      if (task.id !== id || task.priority === priority) return task;
+      const now = new Date().toISOString();
+      return {
+        ...task,
+        priority,
+        updatedAt: now,
+        activity: [
+          { id: makeId(), text: "Prioridade atualizada", createdAt: now },
+          ...task.activity,
+        ],
+      };
+    }));
+  }, []);
+
   const toggleComplete = useCallback((id: string) => {
     setTasks((current) => current.map((task) => {
       if (task.id !== id) return task;
@@ -170,5 +202,5 @@ export function useWeekiTasks() {
 
   const activeTasks = useMemo(() => tasks.filter((task) => !task.archivedAt), [tasks]);
 
-  return { tasks: activeTasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask };
+  return { tasks: activeTasks, addTask, updateTask, moveTask, assignTaskClient, setTaskStatus, setTaskPriority, toggleComplete, duplicateTask, archiveTask };
 }
