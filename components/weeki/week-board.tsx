@@ -136,15 +136,15 @@ export function WeekBoard({
           <div key={column.id} {...dropProps(column)} className={cn("border-b border-slate-200 last:border-b-0", dragTarget === column.id && "bg-[#f8f7ff]")}>
             <header className={cn("flex min-h-12 items-center gap-3 bg-slate-50/70 px-3.5 sm:px-4", column.isToday && "bg-[#f5f3ff]")}>
               {viewMode === "clients" && (column.clientColor ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} /> : <UserRound className="size-4 text-slate-400" />)}
-              <h2 className={cn("text-xs font-bold capitalize text-slate-800", column.isToday && "text-[#4f46e5]")}>{column.title}</h2>
-              {column.longDateLabel && <span className={cn("text-[11px] font-medium text-slate-400", column.isToday && "text-[#7771e9]")}>{column.longDateLabel}</span>}
-              <span className="text-[10px] font-medium text-slate-400">{column.tasks.length} {column.tasks.length === 1 ? "demanda" : "demandas"}</span>
+              <h2 className={cn("text-sm font-semibold capitalize text-slate-800", column.isToday && "text-[#4f46e5]")}>{column.title}</h2>
+              {column.longDateLabel && <span className={cn("text-xs font-medium text-slate-400", column.isToday && "text-[#7771e9]")}>{column.longDateLabel}</span>}
+              <span className="text-xs font-medium text-slate-400">{column.tasks.length} {column.tasks.length === 1 ? "demanda" : "demandas"}</span>
               <button type="button" onClick={() => createForColumn(column)} className="focus-ring ml-auto grid size-7 place-items-center rounded-md text-slate-400 transition hover:bg-white hover:text-[#4f46e5]" aria-label={`Criar demanda em ${column.title}`}><Plus className="size-4" /></button>
             </header>
             {column.tasks.length ? column.tasks.map((task) => (
               <TaskCard key={task.id} {...cardProps(task)} variant="list" contextLabel={viewMode === "clients" && task.scheduledDate ? format(parseISO(task.scheduledDate), "EEE, dd MMM", { locale: ptBR }) : undefined} />
             )) : (
-              <button type="button" onClick={() => createForColumn(column)} className="flex h-12 w-full items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-50 hover:text-[#5b46e8]"><Plus className="size-3.5" /> Adicionar demanda</button>
+              <button type="button" onClick={() => createForColumn(column)} className="flex h-12 w-full items-center justify-center gap-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-50 hover:text-[#5b46e8]"><Plus className="size-3.5" /> Adicionar demanda</button>
             )}
           </div>
         ))}
@@ -168,11 +168,11 @@ export function WeekBoard({
             <header className={cn("mb-3 flex min-h-9 items-start border-b border-slate-100 pb-3", column.isToday && "border-[#e4e0ff]")}>
               <div className="flex min-w-0 flex-1 items-center gap-1.5">
                 {viewMode === "clients" && (column.clientColor ? <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: column.clientColor }} /> : <UserRound className="size-4 shrink-0 text-slate-400" />)}
-                <h2 className={cn("truncate text-xs font-bold capitalize tracking-[-0.01em] text-slate-900", column.isToday && "text-[#4f46e5]")}>{column.title}</h2>
+                <h2 className={cn("truncate text-sm font-semibold capitalize tracking-tight text-slate-900", column.isToday && "text-[#4f46e5]")}>{column.title}</h2>
                 {column.dateLabel && <span className={cn("text-xs font-semibold tabular-nums text-slate-400", column.isToday && "text-[#7168eb]")}>{column.dateLabel}</span>}
                 {column.isToday && <span className="size-1.5 shrink-0 rounded-full bg-[#4f46e5]" aria-label="Hoje" />}
               </div>
-              <button type="button" onClick={() => createForColumn(column)} className={cn("focus-ring grid size-6 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-[#f1efff] hover:text-[#4f46e5]", column.isToday && "text-[#6a5ce4]")} aria-label={`Criar demanda em ${column.title}`}><Plus className="size-3.5" /></button>
+              <button type="button" onClick={() => createForColumn(column)} className={cn("focus-ring grid size-7 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-[#f1efff] hover:text-[#4f46e5]", column.isToday && "text-[#6a5ce4]")} aria-label={`Criar demanda em ${column.title}`}><Plus className="size-4" /></button>
             </header>
 
             <div className="space-y-2.5">

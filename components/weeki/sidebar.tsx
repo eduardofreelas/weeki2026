@@ -112,7 +112,7 @@ export function WeekiSidebar({
 
       <div className="week-board-scroll mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
         <nav className="space-y-1" aria-label="Navegação principal">
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/35">
             Workspace
           </p>
           {primaryItems
@@ -166,7 +166,7 @@ export function WeekiSidebar({
                         type="button"
                         onClick={() => onFiscalNavigate?.(subitem.id)}
                         className={cn(
-                          "flex h-7 w-full items-center gap-2 rounded-md px-2 text-[10px] font-medium text-white/42 transition hover:bg-white/[0.05] hover:text-white/80",
+                          "flex h-7 w-full items-center gap-2 rounded-md px-2 text-xs font-medium text-white/42 transition hover:bg-white/[0.05] hover:text-white/80",
                           fiscalView === subitem.id &&
                             "bg-white/[0.06] text-white/90",
                         )}
@@ -187,7 +187,7 @@ export function WeekiSidebar({
             <Inbox className="size-[18px]" strokeWidth={1.8} />
             <span className="flex-1 text-left">Caixa de Entrada</span>
             {inboxCount > 0 && (
-              <span className="rounded-full bg-sidebar-primary px-2 py-0.5 text-[11px] font-semibold text-white">
+              <span className="rounded-full bg-sidebar-primary px-2 py-0.5 text-xs font-semibold text-white">
                 {inboxCount}
               </span>
             )}
@@ -195,7 +195,7 @@ export function WeekiSidebar({
         </nav>
 
         <nav className="mt-6 space-y-1" aria-label="Navegação secundária">
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/35">
             Gestão
           </p>
           {secondaryItems.map((item) => (
@@ -328,7 +328,7 @@ export function MobileNavigation({
             onClick={() => navigate(item.area)}
             aria-label={item.area === "settings" ? "Configurações" : item.label}
             className={cn(
-              "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-medium text-white/50 transition",
+              "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1 text-xs font-medium text-white/50 transition",
               item.area === activeArea && "bg-white/[0.07] text-white",
             )}
           >
@@ -345,7 +345,7 @@ export function MobileNavigation({
           type="button"
           onClick={() => setMoreOpen(true)}
           className={cn(
-            "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1 text-[10px] font-medium text-white/50 transition",
+            "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-1 py-1 text-xs font-medium text-white/50 transition",
             moreActive && "bg-white/[0.07] text-white",
           )}
           aria-label="Abrir mais áreas"
@@ -365,7 +365,7 @@ export function MobileNavigation({
           <div className="mx-auto mt-1 h-1 w-10 rounded-full bg-slate-200 dark:bg-white/15" />
           <SheetHeader className="px-1 pb-2 pt-3 text-left">
             <SheetTitle className="text-base">Mais áreas</SheetTitle>
-            <SheetDescription className="text-[11px]">
+            <SheetDescription className="text-xs">
               Acesse os demais recursos do seu workspace.
             </SheetDescription>
           </SheetHeader>
@@ -385,10 +385,10 @@ export function MobileNavigation({
                   <item.icon className="size-4" />
                 </span>
                 <span>
-                  <span className="block text-[11px] font-bold text-slate-800 dark:text-slate-100">
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">
                     {item.label}
                   </span>
-                  <span className="mt-0.5 block text-[9px] text-slate-400">
+                  <span className="mt-0.5 block text-xs text-slate-400">
                     {item.description}
                   </span>
                 </span>

@@ -157,7 +157,7 @@ const taskToDraft = (task: Task): TaskDraft => ({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Label className="mb-1.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.065em] text-slate-600">
+    <Label className="mb-1.5 flex items-center text-xs font-semibold uppercase tracking-[0.065em] text-slate-600">
       {children}
     </Label>
   );
@@ -165,7 +165,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 function ModalFieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Label className="mb-1.5 flex items-center text-[11px] font-medium text-slate-600">
+    <Label className="mb-1.5 flex items-center text-xs font-medium text-slate-600">
       {children}
     </Label>
   );
@@ -183,7 +183,7 @@ function SectionTitle({
       <div className="flex items-center gap-2">
         <div className="flex shrink-0 items-center gap-1.5">
           <Icon className="size-3.5 text-slate-400" />
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.065em] text-slate-700">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.065em] text-slate-700">
             {title}
           </h3>
         </div>
@@ -383,7 +383,7 @@ export function TaskSheet({
               setCustomEstimateOpen(false);
             }}
             className={cn(
-              "focus-ring h-6 shrink-0 whitespace-nowrap rounded-[5px] border bg-white px-2 text-[11px] font-medium shadow-none transition",
+              "focus-ring h-6 shrink-0 whitespace-nowrap rounded-[5px] border bg-white px-2 text-xs font-medium shadow-none transition",
               sectioned
                 ? "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                 : "text-slate-500 hover:border-[#a895f2] hover:text-[#6548df]",
@@ -401,7 +401,7 @@ export function TaskSheet({
           type="button"
           onClick={() => setCustomEstimateOpen(true)}
           className={cn(
-            "focus-ring h-6 shrink-0 whitespace-nowrap rounded-[5px] border bg-white px-2 text-[11px] font-medium shadow-none transition",
+            "focus-ring h-6 shrink-0 whitespace-nowrap rounded-[5px] border bg-white px-2 text-xs font-medium shadow-none transition",
             sectioned
               ? "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
               : "text-slate-500 hover:border-[#a895f2] hover:text-[#6548df]",
@@ -432,7 +432,7 @@ export function TaskSheet({
             className="h-7 max-w-24 rounded-md bg-white px-2.5 text-xs shadow-none"
             aria-label="Tempo personalizado em minutos"
           />
-          <span className="text-[11px] text-slate-400">minutos</span>
+          <span className="text-xs text-slate-400">minutos</span>
         </div>
       )}
     </div>
@@ -497,7 +497,7 @@ export function TaskSheet({
             <span className="block text-xs font-semibold text-slate-700">
               Incluir em relatórios
             </span>
-            <span className="mt-0.5 block text-[10px] leading-4 text-slate-400">
+            <span className="mt-0.5 block text-xs leading-4 text-slate-400">
               Esta atividade pode aparecer em relatórios do cliente.
             </span>
           </span>
@@ -602,7 +602,7 @@ export function TaskSheet({
               >
                 {task ? "Gerenciar demanda" : "Nova demanda"}
               </SheetTitle>
-              <SheetDescription className="mt-0.5 text-[11px] leading-4 text-slate-500">
+              <SheetDescription className="mt-0.5 text-xs leading-4 text-slate-500">
                 {task
                   ? "Edite os detalhes. As alterações são salvas automaticamente."
                   : "Crie agora e organize os detalhes quando precisar."}
@@ -750,7 +750,7 @@ export function TaskSheet({
               <button
                 type="button"
                 onClick={() => setAdvancedOpen((current) => !current)}
-                className="flex h-8 items-center gap-1.5 rounded-md px-0.5 text-[11px] font-medium text-[#674bdd] transition hover:text-[#4f35c3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20"
+                className="flex h-8 items-center gap-1.5 rounded-md px-0.5 text-xs font-medium text-[#674bdd] transition hover:text-[#4f35c3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7657ff]/20"
               >
                 <CirclePlus className="size-3.5" />
                 <span>{advancedOpen ? "Ocultar opções" : "Mais opções"}</span>
@@ -1180,7 +1180,7 @@ export function TaskSheet({
                   {draft.recurrence.type === "custom" && (
                     <div className="mt-2.5 space-y-3 rounded-md border border-slate-200 bg-slate-50/50 p-2.5">
                       <div>
-                        <p className="mb-2 text-[11px] font-semibold text-slate-600">
+                        <p className="mb-2 text-xs font-semibold text-slate-600">
                           Repetir nestes dias
                         </p>
                         <div className="flex flex-wrap gap-1.5">
@@ -1345,7 +1345,7 @@ export function TaskSheet({
                   <span className="text-xs font-semibold text-slate-800">
                     Adicionar arquivos
                   </span>
-                  <span className="mt-1 text-[11px] leading-4 text-slate-500">
+                  <span className="mt-1 text-xs leading-4 text-slate-500">
                     Selecione documentos ou imagens do seu computador.
                   </span>
                   <input

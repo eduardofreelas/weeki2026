@@ -715,7 +715,7 @@ export default function Home() {
             >
               <Search className="size-4" />
               <span className="flex-1">Buscar no Weeki</span>
-              <kbd className="rounded-md border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+              <kbd className="rounded-md border bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-400">
                 Ctrl K
               </kbd>
             </button>
@@ -744,7 +744,7 @@ export default function Home() {
         </header>
 
         {account.session?.onboarding.status === "skipped" && (
-          <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-2 text-[11px] text-amber-800 sm:px-6 lg:px-8">
+          <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-2 text-xs text-amber-800 sm:px-6 lg:px-8">
             <div className="mx-auto flex max-w-[1720px] flex-wrap items-center gap-2">
               <span className="font-semibold">
                 Configuração inicial incompleta.
@@ -869,7 +869,7 @@ export default function Home() {
           />
         ) : (
           <div
-            className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8"
+            className="mx-auto flex max-w-[1720px] flex-col px-4 py-5 sm:px-6 lg:px-8"
             style={{ minHeight: "calc(100vh - 4rem)" }}
           >
             <div className="flex items-center justify-between gap-3">
@@ -918,14 +918,14 @@ export default function Home() {
                     onClick={() =>
                       setWeekStart((current) => addWeeks(current, -1))
                     }
-                    className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 hover:bg-white"
+                    className="focus-ring grid size-8 place-items-center rounded-md text-slate-500 hover:bg-white"
                     aria-label="Semana anterior"
                   >
                     <ChevronLeft className="size-4" />
                   </button>
                   <button
                     onClick={() => setWeekStart(initialWeek())}
-                    className="focus-ring h-7 rounded-md px-2.5 text-xs font-semibold text-slate-700 hover:bg-white"
+                    className="focus-ring h-8 rounded-md px-2.5 text-xs font-semibold text-slate-700 hover:bg-white"
                   >
                     Hoje
                   </button>
@@ -933,7 +933,7 @@ export default function Home() {
                     onClick={() =>
                       setWeekStart((current) => addWeeks(current, 1))
                     }
-                    className="focus-ring grid size-7 place-items-center rounded-md text-slate-500 hover:bg-white"
+                    className="focus-ring grid size-8 place-items-center rounded-md text-slate-500 hover:bg-white"
                     aria-label="Próxima semana"
                   >
                     <ChevronRight className="size-4" />
@@ -948,7 +948,7 @@ export default function Home() {
                     type="button"
                     onClick={() => setViewMode("week")}
                     className={cn(
-                      "focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition",
+                      "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
                       viewMode === "week"
                         ? "bg-slate-900 text-white shadow-sm"
                         : "text-slate-500 hover:bg-slate-200/70",
@@ -960,7 +960,7 @@ export default function Home() {
                     type="button"
                     onClick={() => setViewMode("clients")}
                     className={cn(
-                      "focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition",
+                      "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
                       viewMode === "clients"
                         ? "bg-slate-900 text-white shadow-sm"
                         : "text-slate-500 hover:bg-slate-200/70",
@@ -978,7 +978,7 @@ export default function Home() {
                     type="button"
                     onClick={() => changeLayoutMode("board")}
                     className={cn(
-                      "focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition",
+                      "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
                       layoutMode === "board"
                         ? "bg-slate-900 text-white shadow-sm"
                         : "text-slate-500 hover:bg-slate-200/70",
@@ -990,7 +990,7 @@ export default function Home() {
                     type="button"
                     onClick={() => changeLayoutMode("list")}
                     className={cn(
-                      "focus-ring flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold transition",
+                      "focus-ring flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition",
                       layoutMode === "list"
                         ? "bg-slate-900 text-white shadow-sm"
                         : "text-slate-500 hover:bg-slate-200/70",
@@ -1043,7 +1043,7 @@ export default function Home() {
                   variant="outline"
                   size="sm"
                   onClick={() => setMobileFiltersOpen((current) => !current)}
-                  className="h-7 rounded-lg bg-white px-2 text-[11px] sm:hidden"
+                  className="h-8 rounded-lg bg-white px-2 text-xs sm:hidden"
                 >
                   <SlidersHorizontal /> Filtros
                 </Button>
@@ -1059,7 +1059,7 @@ export default function Home() {
                       setStatusFilter(value as TaskStatus | "all")
                     }
                   >
-                    <SelectTrigger className="h-7 w-[138px] shrink-0 rounded-lg bg-white px-2.5 text-[11px] shadow-sm">
+                    <SelectTrigger className="h-8 w-[138px] shrink-0 rounded-lg bg-white px-2.5 text-xs shadow-sm">
                       <SlidersHorizontal className="size-3" />
                       <SelectValue />
                     </SelectTrigger>
@@ -1073,7 +1073,7 @@ export default function Home() {
                     </SelectContent>
                   </Select>
                   <Select value={clientFilter} onValueChange={setClientFilter}>
-                    <SelectTrigger className="h-7 w-[132px] shrink-0 rounded-lg bg-white px-2.5 text-[11px] shadow-sm">
+                    <SelectTrigger className="h-8 w-[132px] shrink-0 rounded-lg bg-white px-2.5 text-xs shadow-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1092,7 +1092,7 @@ export default function Home() {
                     variant="ghost"
                     size="sm"
                     onClick={clearFilters}
-                    className="h-7 px-2 text-[11px] text-slate-400"
+                    className="h-8 px-2 text-xs text-slate-400"
                   >
                     <X /> Limpar
                   </Button>

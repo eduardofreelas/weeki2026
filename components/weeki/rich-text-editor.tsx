@@ -200,9 +200,9 @@ export function RichTextEditor({
         onBeforeInput={(event) => {
           if (event.nativeEvent.inputType.startsWith("insert") && characterCount >= maxLength && !window.getSelection()?.toString()) event.preventDefault();
         }}
-        className="rich-text-editor min-h-24 px-3 py-2.5 text-[13px] leading-5 text-slate-700 outline-none"
+        className="rich-text-editor min-h-24 px-3 py-2.5 text-sm leading-6 text-slate-700 outline-none"
       />
-      <div className="flex justify-end border-t border-slate-100 px-3 py-1 text-[10px] tabular-nums text-slate-400">
+      <div className="flex justify-end border-t border-slate-100 px-3 py-1 text-xs tabular-nums text-slate-400">
         {characterCount}/{maxLength}
       </div>
     </div>

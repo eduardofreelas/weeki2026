@@ -94,7 +94,7 @@ export function DatePicker({
           </div>
 
           <div className="grid grid-cols-7 gap-1" role="grid" aria-label={format(visibleMonth, "MMMM 'de' yyyy", { locale: ptBR })}>
-            {weekDays.map((day, index) => <span key={`${day}-${index}`} className="grid h-7 place-items-center text-[10px] font-semibold text-slate-400">{day}</span>)}
+            {weekDays.map((day, index) => <span key={`${day}-${index}`} className="grid h-7 place-items-center text-xs font-semibold text-slate-400">{day}</span>)}
             {calendarDays.map((day) => {
               const disabled = Boolean(minimumDate && isBefore(startOfDay(day), startOfDay(minimumDate)));
               const selected = Boolean(selectedDate && isSameDay(day, selectedDate));

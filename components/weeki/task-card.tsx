@@ -121,8 +121,8 @@ export function TaskCard({
       >
         <Checkbox checked={isCompleted} aria-label={isCompleted ? "Reabrir demanda" : "Concluir demanda"} onClick={(event) => event.stopPropagation()} onCheckedChange={onToggleComplete} className="size-4 shrink-0 rounded-full border-slate-300 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500" />
         <div className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-4">
-          <h3 className={cn("min-w-0 flex-1 truncate text-xs font-semibold text-slate-800", isCompleted && "text-slate-400 line-through")}>{task.title}</h3>
-          <div className="mt-1 flex min-w-0 items-center gap-3 text-[11px] font-medium text-slate-500 sm:mt-0 sm:w-[48%]">
+          <h3 className={cn("min-w-0 flex-1 truncate text-sm font-semibold text-slate-800", isCompleted && "text-slate-400 line-through")}>{task.title}</h3>
+          <div className="mt-1 flex min-w-0 items-center gap-3 text-xs font-medium text-slate-500 sm:mt-0 sm:w-[48%]">
             {timeLabel && <span className="flex shrink-0 items-center gap-1 tabular-nums"><Clock3 className="size-3 text-slate-400" />{timeLabel}</span>}
             {contextLabel ? <span className="flex min-w-0 items-center gap-1"><CalendarDays className="size-3 shrink-0 text-slate-400" /><span className="truncate">{contextLabel}</span></span> : client ? <span className="flex min-w-0 items-center gap-1.5"><span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: client.color }} /><span className="truncate">{client.name}</span></span> : <span className="truncate text-slate-400">Sem cliente</span>}
             {estimateLabel && <span className="ml-auto shrink-0 tabular-nums text-slate-400">{estimateLabel}</span>}
@@ -147,19 +147,19 @@ export function TaskCard({
       <div className="flex min-w-0 items-start gap-2.5 pr-4">
         <Checkbox checked={isCompleted} aria-label={isCompleted ? "Reabrir demanda" : "Concluir demanda"} onClick={(event) => event.stopPropagation()} onCheckedChange={onToggleComplete} className="mt-0.5 size-4 shrink-0 rounded-full border-slate-300 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500" />
         <div className="min-w-0 flex-1">
-          <h3 className={cn("break-words text-xs font-semibold leading-snug text-slate-800", isCompleted && "text-slate-400 line-through")}>{task.title}</h3>
-          {timeLabel && <p className={cn("mt-1.5 flex items-center gap-1.5 text-[11px] font-medium tabular-nums text-slate-500", isCompleted && "text-slate-400")}><Clock3 className="size-3 shrink-0 text-slate-400" />{timeLabel}</p>}
+          <h3 className={cn("break-words text-sm font-semibold leading-snug text-slate-800", isCompleted && "text-slate-400 line-through")}>{task.title}</h3>
+          {timeLabel && <p className={cn("mt-1.5 flex items-center gap-1.5 text-xs font-medium tabular-nums text-slate-500", isCompleted && "text-slate-400")}><Clock3 className="size-3 shrink-0 text-slate-400" />{timeLabel}</p>}
           {hasDetails && (
             <div className="mt-2 flex items-center gap-2 text-slate-400">
               {task.description && <span title="Descrição disponível"><AlignLeft className="size-3" /></span>}
-              {task.attachments.length > 0 && <span className="flex items-center gap-0.5" title={`${task.attachments.length} anexo(s)`}><Paperclip className="size-3" /><span className="text-[10px] font-medium">{task.attachments.length}</span></span>}
-              {task.checklist.length > 0 && <span className="flex items-center gap-0.5" title={`${completedChecklist}/${task.checklist.length} itens concluídos`}><ListChecks className="size-3" /><span className="text-[10px] font-medium">{completedChecklist}/{task.checklist.length}</span></span>}
+              {task.attachments.length > 0 && <span className="flex items-center gap-0.5" title={`${task.attachments.length} anexo(s)`}><Paperclip className="size-3" /><span className="text-xs font-medium">{task.attachments.length}</span></span>}
+              {task.checklist.length > 0 && <span className="flex items-center gap-0.5" title={`${completedChecklist}/${task.checklist.length} itens concluídos`}><ListChecks className="size-3" /><span className="text-xs font-medium">{completedChecklist}/{task.checklist.length}</span></span>}
               {task.recurrence.type !== "none" && <span title="Demanda recorrente"><Repeat2 className="size-3" /></span>}
             </div>
           )}
           <div className="mt-3 flex min-w-0 items-center justify-between gap-2 border-t border-slate-100 pt-2">
-            {contextLabel ? <span className="flex min-w-0 items-center gap-1 text-[11px] font-medium text-slate-500"><CalendarDays className="size-3 shrink-0 text-slate-400" /><span className="truncate">{contextLabel}</span></span> : client ? <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold" style={{ color: client.color }}><span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: client.color }} /><span className="truncate">{client.name}</span></span> : <span className="truncate text-[11px] text-slate-400">Sem cliente</span>}
-            {estimateLabel && <span className="flex shrink-0 items-center gap-1 rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-slate-500"><Clock3 className="size-3 text-slate-400" />{estimateLabel}</span>}
+            {contextLabel ? <span className="flex min-w-0 items-center gap-1 text-xs font-medium text-slate-500"><CalendarDays className="size-3 shrink-0 text-slate-400" /><span className="truncate">{contextLabel}</span></span> : client ? <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold" style={{ color: client.color }}><span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: client.color }} /><span className="truncate">{client.name}</span></span> : <span className="truncate text-xs text-slate-400">Sem cliente</span>}
+            {estimateLabel && <span className="flex shrink-0 items-center gap-1 rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 text-xs font-medium tabular-nums text-slate-500"><Clock3 className="size-3 text-slate-400" />{estimateLabel}</span>}
           </div>
         </div>
       </div>
