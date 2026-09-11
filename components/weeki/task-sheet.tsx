@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/weeki/date-picker";
 import { ConfirmActionDialog } from "@/components/weeki/confirm-action-dialog";
@@ -39,6 +40,7 @@ import { RichTextEditor } from "@/components/weeki/rich-text-editor";
 import type { Client } from "@/features/clients/types";
 import type { RecurrenceType, Task, TaskDraft, TaskPriority, TaskStatus } from "@/features/tasks/types";
 import { PRIORITY_LABELS, RECURRENCE_LABELS, STATUS_LABELS } from "@/features/tasks/types";
+import { REPORT_ACTIVITY_CATEGORY_LABELS, type ReportActivityCategory } from "@/shared/reports";
 import { cn } from "@/lib/utils";
 
 const makeId = () =>
@@ -81,6 +83,12 @@ const emptyDraft = (scheduledDate: string | null, scheduledTime = "", clientId: 
   attachments: [],
   notes: "",
   recurrence: { type: "none", days: [], endDate: "" },
+  report: {
+    includeInReports: Boolean(clientId),
+    description: "",
+    category: "other",
+    evidenceNotes: "",
+  },
   archivedAt: null,
 });
 
@@ -100,6 +108,12 @@ const taskToDraft = (task: Task): TaskDraft => ({
   attachments: task.attachments.map((item) => ({ ...item })),
   notes: task.notes,
   recurrence: { ...task.recurrence, days: [...task.recurrence.days], endDate: task.recurrence.endDate ?? "" },
+  report: {
+    includeInReports: task.report?.includeInReports ?? Boolean(task.clientId),
+    description: task.report?.description ?? "",
+    category: task.report?.category ?? "other",
+    evidenceNotes: task.report?.evidenceNotes ?? "",
+  },
   archivedAt: task.archivedAt,
 });
 
@@ -170,6 +184,9 @@ export function TaskSheet({
   const tomorrowKey = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
   const taskId = task?.id;
+  const updateReportSettings = (patch: Partial<TaskDraft["report"]>) => {
+    setDraft((current) => ({ ...current, report: { ...current.report, ...patch } }));
+  };
 
   useEffect(() => {
     if (!open || !taskId || !draft.title.trim()) return;
@@ -297,6 +314,47 @@ export function TaskSheet({
     </div>
   );
 
+  const renderReportSettings = (sectioned = false) => (
+    <div>
+      {sectioned ? <SectionTitle title="Relatórios" icon={FileText} /> : <FieldLabel>Relatórios do cliente</FieldLabel>}
+      <div className="space-y-3">
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold text-slate-700">Incluir em relatórios</span>
+            <span className="mt-0.5 block text-[10px] leading-4 text-slate-400">Esta atividade pode aparecer em relatórios do cliente.</span>
+          </span>
+          <Switch checked={draft.report.includeInReports} onCheckedChange={(checked) => updateReportSettings({ includeInReports: checked })} />
+        </label>
+        {draft.report.includeInReports && (
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+            <div>
+              <ModalFieldLabel>Descrição para relatório</ModalFieldLabel>
+              <RichTextEditor
+                value={draft.report.description}
+                onChange={(description) => updateReportSettings({ description })}
+                placeholder="Descreva esta entrega em linguagem profissional para o cliente..."
+                maxLength={1200}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <ModalFieldLabel>Categoria para relatório</ModalFieldLabel>
+                <Select value={draft.report.category} onValueChange={(value) => updateReportSettings({ category: value as ReportActivityCategory })}>
+                  <SelectTrigger className="h-8 w-full rounded-md border-slate-200 bg-white px-2.5 text-xs font-medium shadow-none"><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(REPORT_ACTIVITY_CATEGORY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <ModalFieldLabel>Observação de evidências</ModalFieldLabel>
+                <Input value={draft.report.evidenceNotes} onChange={(event) => updateReportSettings({ evidenceNotes: event.target.value })} placeholder="Ex.: prints enviados ao cliente" className="h-8 rounded-md bg-white px-2.5 text-xs shadow-none" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const panelContent = (
     <>
     <form onSubmit={submit} className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
@@ -366,6 +424,7 @@ export function TaskSheet({
                       <FieldLabel>Descrição</FieldLabel>
                       <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} placeholder="Contexto, orientações ou resultado esperado..." />
                     </div>
+                    {renderReportSettings()}
                     <div>
                       <FieldLabel>Prioridade</FieldLabel>
                       <Select value={draft.priority} onValueChange={(value) => setDraft((current) => ({ ...current, priority: value as TaskPriority }))}>
@@ -451,6 +510,8 @@ export function TaskSheet({
                       <SectionTitle title="Descrição" icon={AlignLeft} />
                       <RichTextEditor value={draft.description} onChange={(description) => setDraft((current) => ({ ...current, description }))} placeholder="Adicione os detalhes da demanda..." />
                     </section>
+
+                    <section>{renderReportSettings(true)}</section>
 
                     <section>
                       <SectionTitle title="Agendamento" icon={CalendarClock} />

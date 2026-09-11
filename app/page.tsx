@@ -32,6 +32,7 @@ import { FiscalAutomationDialog } from "@/components/fiscal/fiscal-automation-di
 import { FiscalScreen, type FiscalView } from "@/components/fiscal/fiscal-screen";
 import { OnboardingScreen } from "@/components/weeki/onboarding-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
+import { ReportsScreen } from "@/components/weeki/reports-screen";
 import { MobileNavigation, WeekiSidebar, type WeekiArea } from "@/components/weeki/sidebar";
 import { SettingsScreen } from "@/components/weeki/settings-screen";
 import { TaskCard } from "@/components/weeki/task-card";
@@ -44,6 +45,7 @@ import { FISCAL_FLAGS } from "@/features/fiscal/config";
 import { useWeekiFiscal } from "@/features/fiscal/use-weeki-fiscal";
 import { shouldShowOnboarding, useWeekiAccount } from "@/features/account/use-weeki-account";
 import { useWeekiAvailability } from "@/features/availability/use-weeki-availability";
+import { useWeekiReports } from "@/features/reports/use-weeki-reports";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { useWeekiSettings } from "@/features/settings/use-weeki-settings";
@@ -56,6 +58,7 @@ const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   clients: { group: "Relacionamento", page: "Clientes" },
   contracts: { group: "Relacionamento", page: "Contratos" },
   appointments: { group: "Atendimentos", page: "Agenda" },
+  reports: { group: "Relacionamento", page: "Relatórios" },
   finance: { group: "Gestão", page: "Financeiro" },
   billing: { group: "Gestão", page: "Cobranças" },
   fiscal: { group: "Gestão", page: "Fiscal" },
@@ -66,6 +69,7 @@ export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const { clients, addClient, updateClient } = useWeekiClients();
   const contracts = useWeekiContracts();
+  const reports = useWeekiReports();
   const fiscal = useWeekiFiscal(clients);
   const { settings, updateSettings } = useWeekiSettings();
   const account = useWeekiAccount();
@@ -77,7 +81,7 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const area = params.get("area");
-    if (area === "billing" || area === "settings" || (area === "fiscal" && FISCAL_FLAGS.moduleEnabled)) {
+    if (area === "billing" || area === "settings" || area === "reports" || (area === "fiscal" && FISCAL_FLAGS.moduleEnabled)) {
       // Restore the target after an authenticated provider callback.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveArea(area);
@@ -363,6 +367,8 @@ export default function Home() {
           />
         ) : activeArea === "contracts" ? (
           <ContractsScreen clients={clients} tasks={tasks} settings={settings} controller={contracts} />
+        ) : activeArea === "reports" ? (
+          <ReportsScreen clients={clients} tasks={tasks} settings={settings} controller={reports} />
         ) : activeArea === "appointments" ? (
           <AppointmentsScreen clients={clients} availability={availabilityController.availability} onConfigureAvailability={openAvailabilitySettings} />
         ) : activeArea === "finance" ? (

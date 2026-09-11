@@ -41,6 +41,12 @@ export function createSeedTasks(referenceDate = new Date()): Task[] {
       ],
       notes: "Usar a versão aprovada da paleta institucional.",
       recurrence: { type: "none", days: [], endDate: "" },
+      report: {
+        includeInReports: true,
+        description: "Finalização das peças visuais e preparação dos arquivos finais da campanha para validação.",
+        category: "design",
+        evidenceNotes: "",
+      },
       activity: [{ id: "act-1", text: "Demanda criada", createdAt: now }],
     },
     {
@@ -63,6 +69,12 @@ export function createSeedTasks(referenceDate = new Date()): Task[] {
       ],
       notes: "",
       recurrence: { type: "none", days: [], endDate: "" },
+      report: {
+        includeInReports: true,
+        description: "Atualização das informações institucionais e substituição de imagens na página de produtos.",
+        category: "development",
+        evidenceNotes: "",
+      },
       activity: [{ id: "act-2", text: "Movida para revisão", createdAt: now }],
     },
     {
@@ -82,6 +94,12 @@ export function createSeedTasks(referenceDate = new Date()): Task[] {
       checklist: [],
       notes: "",
       recurrence: { type: "weekly", days: [], endDate: "" },
+      report: {
+        includeInReports: true,
+        description: "Planejamento do calendário editorial semanal, com organização de temas, formatos e datas.",
+        category: "social_media",
+        evidenceNotes: "",
+      },
       activity: [{ id: "act-3", text: "Demanda concluída", createdAt: now }],
     },
     {
@@ -104,6 +122,12 @@ export function createSeedTasks(referenceDate = new Date()): Task[] {
       ],
       notes: "",
       recurrence: { type: "none", days: [], endDate: "" },
+      report: {
+        includeInReports: false,
+        description: "",
+        category: "other",
+        evidenceNotes: "",
+      },
       activity: [{ id: "act-4", text: "Demanda criada", createdAt: now }],
     },
     {
@@ -123,6 +147,12 @@ export function createSeedTasks(referenceDate = new Date()): Task[] {
       checklist: [],
       notes: "Aguardando confirmação dos dados de vendas.",
       recurrence: { type: "none", days: [], endDate: "" },
+      report: {
+        includeInReports: true,
+        description: "Consolidação e envio de resumo de desempenho semanal para acompanhamento do cliente.",
+        category: "administrative",
+        evidenceNotes: "",
+      },
       activity: [{ id: "act-5", text: "Status alterado para aguardando cliente", createdAt: now }],
     },
     {
@@ -142,6 +172,12 @@ export function createSeedTasks(referenceDate = new Date()): Task[] {
       checklist: [],
       notes: "",
       recurrence: { type: "none", days: [], endDate: "" },
+      report: {
+        includeInReports: true,
+        description: "Atualização visual do banner principal do site.",
+        category: "design",
+        evidenceNotes: "",
+      },
       activity: [{ id: "act-6", text: "Capturada na Caixa de Entrada", createdAt: now }],
     },
   ] as Task[];

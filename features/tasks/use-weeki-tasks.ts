@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSeedTasks } from "./seed";
 import type { Task, TaskDraft } from "./types";
+import type { ReportActivityCategory } from "@/shared/reports";
 
 const STORAGE_KEY = "weeki.tasks.v1";
 
@@ -11,14 +12,44 @@ const makeId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+const reportCategories = new Set<ReportActivityCategory>([
+  "design",
+  "development",
+  "social_media",
+  "support",
+  "consulting",
+  "maintenance",
+  "engineering",
+  "architecture",
+  "photography",
+  "administrative",
+  "other",
+]);
+
+type StoredTask = Omit<Task, "report"> & { report?: Partial<Task["report"]> };
+
+function normalizeTask(task: StoredTask): Task {
+  const category = task.report?.category;
+  return {
+    ...task,
+    report: {
+      includeInReports: task.report?.includeInReports ?? Boolean(task.clientId),
+      description: task.report?.description ?? "",
+      category: category && reportCategories.has(category) ? category : "other",
+      evidenceNotes: task.report?.evidenceNotes ?? "",
+    },
+  };
+}
+
 export function useWeekiTasks() {
   const [tasks, setTasks] = useState<Task[]>(() => {
-    if (typeof window === "undefined") return createSeedTasks();
+    if (typeof window === "undefined") return createSeedTasks().map(normalizeTask);
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) as Task[] : createSeedTasks();
+      const loaded = saved ? JSON.parse(saved) as StoredTask[] : createSeedTasks();
+      return loaded.map(normalizeTask);
     } catch {
-      return createSeedTasks();
+      return createSeedTasks().map(normalizeTask);
     }
   });
 

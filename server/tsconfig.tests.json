@@ -6,6 +6,7 @@
     "../shared/fiscal.ts",
     "../shared/fiscal-validation.ts",
     "../shared/contracts.ts",
+    "../shared/reports.ts",
     "../shared/account.ts",
     "../shared/availability.ts"
   ],

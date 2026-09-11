@@ -1,3 +1,5 @@
+import type { ReportActivityCategory } from "@/shared/reports";
+
 export type TaskStatus = "not_started" | "in_progress" | "waiting" | "review" | "completed";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 export type RecurrenceType = "none" | "daily" | "weekly" | "monthly" | "custom";
@@ -7,6 +9,12 @@ export interface ChecklistItem { id: string; label: string; completed: boolean; 
 export interface Attachment { id: string; name: string; size: number; type: string; }
 export interface ActivityItem { id: string; text: string; createdAt: string; }
 export interface Recurrence { type: RecurrenceType; days: number[]; endDate: string; }
+export interface TaskReportSettings {
+  includeInReports: boolean;
+  description: string;
+  category: ReportActivityCategory;
+  evidenceNotes: string;
+}
 
 export interface Task {
   id: string;
@@ -25,6 +33,7 @@ export interface Task {
   attachments: Attachment[];
   notes: string;
   recurrence: Recurrence;
+  report: TaskReportSettings;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
