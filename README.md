@@ -15,6 +15,7 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - módulo Fiscal/NFS-e em sandbox visual, com perfil, serviços, emissão assistida, notas e histórico;
 - backend Fiscal desacoplado e seguro, com a integração nacional real em standby;
 - módulo Contratos com criação progressiva, modelos, snapshots, versões, editor, PDF backend, IA server-side e arquitetura Clicksign em standby até credenciais.
+- base autenticada de conta, onboarding e disponibilidade, reaproveitando OIDC, sessão HttpOnly e workspace quando o backend estiver habilitado.
 
 ## Arquitetura
 
@@ -25,7 +26,7 @@ components/weeki/    telas e widgets do produto
 features/*/          tipos, seed e hooks de persistência local
 lib/                 cn, formatadores BR, sanitização
 public/              favicon e .htaccess (Hostinger)
-shared/              contratos compartilhados de pagamentos, Fiscal e Contratos
+shared/              contratos compartilhados de conta, disponibilidade, pagamentos, Fiscal e Contratos
 server/              API, autenticação, migrations, providers, webhooks e workers
 ```
 
@@ -33,7 +34,7 @@ Os módulos anteriores ainda usam hooks `use-weeki-*.ts` e chaves `weeki.*.v1`. 
 
 ### Variáveis de ambiente
 
-Nenhuma é necessária para executar o protótipo estático. Sem configuração, Pagamentos, Fiscal e Contratos abrem em modo visual/local, não fazem chamadas externas e não simulam conexões, notas autorizadas, assinatura eletrônica ou documentos finais assinados. O backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
+Nenhuma é necessária para executar o protótipo estático. Sem configuração, Conta, Pagamentos, Fiscal e Contratos abrem em modo visual/local, não fazem chamadas externas e não simulam conexões, notas autorizadas, assinatura eletrônica ou documentos finais assinados. O backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
 
 ### Design system
 
@@ -66,12 +67,16 @@ npm run start:payments
 ## Limitações conhecidas (propositalmente não “fingidas”)
 
 - tarefas, clientes, agenda e configurações gerais ainda persistem localmente;
-- `/agendar` não entrega o pedido a outro dispositivo;
+- `/agendar` usa disponibilidade local no protótipo estático e só entrega pedidos entre dispositivos após ativação do backend autenticado;
 - anexos são metadados, sem armazenamento de objetos;
 - pagamentos dependem de PostgreSQL, OIDC, HTTPS e credenciais sandbox configurados externamente;
 - emissão NFS-e real depende de credenciamento, documentação oficial fixada, certificado em KMS/Vault e homologação;
 - IA e assinatura de contratos dependem de OpenAI, Clicksign sandbox, segredo de webhook e homologação;
 - os itens Início, Demandas, Relatórios, Arquivados e Ajuda permanecem “Em breve”.
+
+## Conta, onboarding e disponibilidade
+
+A base autenticada de conta, onboarding e disponibilidade está documentada em [docs/account-availability.md](docs/account-availability.md). Ela adiciona rotas de login/cadastro/recuperação, Configurações → Disponibilidade, cálculo de slots na página pública e migration de perfil/workspace/onboarding/disponibilidade. Google e Apple ficam tecnicamente preparados via OIDC, mas dependem de credenciais reais do provedor de identidade.
 
 ## Pagamentos multiprovider
 

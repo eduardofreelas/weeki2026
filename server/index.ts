@@ -13,6 +13,8 @@ import { fiscalApi } from "./fiscal/api.js";
 import { ContractService } from "./contracts/service.js";
 import { signatureProviders } from "./contracts/registry.js";
 import { contractApi } from "./contracts/api.js";
+import { AccountService } from "./account/service.js";
+import { accountApi } from "./account/api.js";
 const conf = config(),
   db = database(conf.databaseUrl),
   registry = providers(conf),
@@ -34,6 +36,11 @@ const contracts = contractApi(
   new SessionAuth(db, conf.origin, conf.key),
   conf.origin,
 );
+const account = accountApi(
+  new AccountService(db),
+  new SessionAuth(db, conf.origin, conf.key),
+  conf.origin,
+);
 const root = resolve("out"),
   mime: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
@@ -47,6 +54,7 @@ const root = resolve("out"),
   };
 const server = createServer(async (req, res) => {
   try {
+    if (await account(req, res)) return;
     if (await contracts(req, res)) return;
     if (await fiscal(req, res)) return;
     if (await api(req, res)) return;

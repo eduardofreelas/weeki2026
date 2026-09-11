@@ -5,7 +5,9 @@
     "../shared/payments.ts",
     "../shared/fiscal.ts",
     "../shared/fiscal-validation.ts",
-    "../shared/contracts.ts"
+    "../shared/contracts.ts",
+    "../shared/account.ts",
+    "../shared/availability.ts"
   ],
   "exclude": []
 }

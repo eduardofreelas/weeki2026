@@ -9,8 +9,13 @@ export const defaultWeekiSettings: WeekiSettings = {
   profile: {
     name: "Eduardo Vieira",
     email: "eduardo@weeki.com.br",
+    avatarUrl: "",
     phone: "",
+    professionalName: "Eduardo Vieira",
     businessName: "Weeki",
+    businessArea: "Serviços profissionais",
+    workDescription: "",
+    workspaceName: "Weeki",
     role: "Administrador",
   },
   regional: {

@@ -7,8 +7,13 @@ export type IntegrationId = "google_calendar" | "google_drive" | "trello" | "asa
 export interface WeekiProfileSettings {
   name: string;
   email: string;
+  avatarUrl: string;
   phone: string;
+  professionalName: string;
   businessName: string;
+  businessArea: string;
+  workDescription: string;
+  workspaceName: string;
   role: string;
 }
 

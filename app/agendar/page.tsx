@@ -11,12 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import type { AppointmentMode, EventType } from "@/features/appointments/types";
 import { APPOINTMENT_MODE_LABELS } from "@/features/appointments/types";
 import { useWeekiAppointments } from "@/features/appointments/use-weeki-appointments";
+import { useWeekiAvailability } from "@/features/availability/use-weeki-availability";
+import { isAvailabilityConfigured, listAvailableSlots, normalizeAvailability } from "@/shared/availability";
 import { formatDateBR, formatPhoneBR } from "@/lib/format";
 import { sanitizeCssUrl } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 
 const subscribeToHydration = () => () => undefined;
-const times = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
 const formatDuration = (minutes: number) => minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}min` : ""}`;
 const stripHtml = (value: string) => value.replace(/<br\s*\/?>/gi, " ").replace(/<\/p>/gi, " ").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
@@ -28,6 +29,7 @@ function ModeIcon({ mode }: { mode: AppointmentMode }) {
 
 export default function PublicBookingPage() {
   const { appointments, eventTypes, autoApproval, addAppointment } = useWeekiAppointments();
+  const { availability } = useWeekiAvailability("America/Fortaleza");
   const [selectedTypeId, setSelectedTypeId] = useState(() => {
     if (typeof window === "undefined") return "";
     const slug = new URLSearchParams(window.location.search).get("tipo");
@@ -43,24 +45,25 @@ export default function PublicBookingPage() {
   const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const publicTypes = eventTypes.filter((type) => type.active && (type.visibility ? type.visibility === "public" : !type.clientOnly));
   const selectedType = eventTypes.find((type) => type.active && type.id === selectedTypeId);
+  const availabilityConfigured = isAvailabilityConfigured(availability);
   const minimumDate = selectedType?.bookingWindowStart || format(new Date(), "yyyy-MM-dd");
   const maximumDate = selectedType?.bookingWindowEnd || undefined;
-  const unavailableTimes = useMemo(() => {
-    const requestedDuration = eventTypes.find((type) => type.id === selectedTypeId)?.durationMinutes ?? 30;
-    return new Set(times.filter((slot) => {
-      const requestedStart = Number(slot.slice(0, 2)) * 60 + Number(slot.slice(3));
-      return appointments.some((item) => {
-        if (item.date !== date || item.status === "cancelled") return false;
-        const existingStart = Number(item.time.slice(0, 2)) * 60 + Number(item.time.slice(3));
-        const existingDuration = eventTypes.find((type) => type.id === item.typeId)?.durationMinutes ?? 30;
-        return requestedStart < existingStart + existingDuration && existingStart < requestedStart + requestedDuration;
-      });
-    }));
-  }, [appointments, date, eventTypes, selectedTypeId]);
+  const availableTimes = useMemo(() => {
+    const effectiveAvailability = normalizeAvailability({
+      ...availability,
+      defaultDurationMinutes: selectedType?.durationMinutes ?? availability.defaultDurationMinutes,
+    });
+    return listAvailableSlots(effectiveAvailability, date, appointments.map((item) => ({
+      date: item.date,
+      start: item.time,
+      durationMinutes: eventTypes.find((type) => type.id === item.typeId)?.durationMinutes ?? availability.defaultDurationMinutes,
+      status: item.status,
+    })));
+  }, [appointments, availability, date, eventTypes, selectedType]);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedType || !date || !time || !name.trim() || !email.trim()) return;
+    if (!selectedType || !date || !time || !name.trim() || !email.trim() || !availableTimes.includes(time)) return;
     addAppointment({
       title: selectedType.name,
       typeId: selectedType.id,
@@ -94,9 +97,9 @@ export default function PublicBookingPage() {
           <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
             <div><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#654ce4]">Agendamento online</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-900">Escolha seu atendimento</h1><p className="mt-1 text-sm text-slate-500">Selecione um formato, data e horário disponíveis.</p></div>
             <section className="mt-7"><StepTitle number="1" title="Tipo de atendimento" />{selectedType && (selectedType.visibility ? selectedType.visibility === "private" : selectedType.clientOnly) ? <div className="mt-3 rounded-lg border border-[#ded8ff] bg-[#f6f4ff] p-3"><p className="text-[10px] font-semibold uppercase text-[#5c48db]">Evento por convite</p><p className="mt-1 text-sm font-semibold text-slate-900">{selectedType.name}</p></div> : <div className="mt-3 grid gap-2 sm:grid-cols-2">{publicTypes.map((type) => <EventOption key={type.id} eventType={type} selected={selectedTypeId === type.id} onSelect={() => { setSelectedTypeId(type.id); setDate(type.bookingWindowStart || format(new Date(), "yyyy-MM-dd")); setTime(""); }} />)}</div>}{!publicTypes.length && !selectedType && <p className="mt-3 rounded-lg border border-dashed border-slate-200 p-5 text-center text-xs text-slate-400">Nenhum atendimento disponível no momento.</p>}</section>
-            <section className="mt-8"><StepTitle number="2" title="Data e horário" /><div className="mt-3 max-w-[240px]"><Label htmlFor="booking-date" className="mb-1.5 block text-xs font-semibold uppercase text-slate-500">Data</Label><Input id="booking-date" type="date" min={minimumDate} max={maximumDate} value={date} onChange={(event) => { setDate(event.target.value); setTime(""); }} className="h-9" /></div><div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">{times.map((slot) => <button key={slot} type="button" disabled={!selectedType || unavailableTimes.has(slot) || date < minimumDate || Boolean(maximumDate && date > maximumDate)} onClick={() => setTime(slot)} className={cn("h-9 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 transition hover:border-ring disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-300", time === slot && "border-ring bg-accent text-accent-foreground")}>{slot}</button>)}</div></section>
+            <section className="mt-8"><StepTitle number="2" title="Data e horário" /><div className="mt-3 max-w-[240px]"><Label htmlFor="booking-date" className="mb-1.5 block text-xs font-semibold uppercase text-slate-500">Data</Label><Input id="booking-date" type="date" min={minimumDate} max={maximumDate} value={date} onChange={(event) => { setDate(event.target.value); setTime(""); }} className="h-9" /></div><div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">{availableTimes.map((slot) => <button key={slot} type="button" disabled={!selectedType || date < minimumDate || Boolean(maximumDate && date > maximumDate)} onClick={() => setTime(slot)} className={cn("h-9 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 transition hover:border-ring disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-300", time === slot && "border-ring bg-accent text-accent-foreground")}>{slot}</button>)}</div>{selectedType && !availableTimes.length && <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">{availabilityConfigured ? "Nenhum horário livre para esta data." : "O profissional ainda não configurou a disponibilidade."}</p>}</section>
             <section className="mt-8"><StepTitle number="3" title="Seus dados" /><div className="mt-3 grid gap-4 sm:grid-cols-2"><Field label="Nome" htmlFor="booking-name"><Input id="booking-name" required value={name} onChange={(event) => setName(event.target.value)} className="h-9" /></Field><Field label="E-mail" htmlFor="booking-email"><Input id="booking-email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="h-9" /></Field><Field label="Telefone" htmlFor="booking-phone"><Input id="booking-phone" type="tel" inputMode="numeric" value={phone} onChange={(event) => setPhone(formatPhoneBR(event.target.value))} className="h-9" /></Field><div className="sm:col-span-2"><Field label="Observações" htmlFor="booking-notes"><Textarea id="booking-notes" value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="resize-none" /></Field></div></div></section>
-            <div className="mt-6 flex justify-end border-t border-slate-100 pt-5"><Button type="submit" disabled={!selectedType || !date || !time || !name.trim() || !email.trim()}><CalendarDays className="size-3.5" />Solicitar agendamento</Button></div>
+            <div className="mt-6 flex justify-end border-t border-slate-100 pt-5"><Button type="submit" disabled={!selectedType || !date || !time || !name.trim() || !email.trim() || !availableTimes.includes(time)}><CalendarDays className="size-3.5" />Solicitar agendamento</Button></div>
           </form>
           <aside className="h-fit overflow-hidden rounded-xl border border-slate-200 bg-white lg:sticky lg:top-8">{sanitizeCssUrl(selectedType?.coverImage) && <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${JSON.stringify(sanitizeCssUrl(selectedType?.coverImage))})` }} />}<div className="p-5"><p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">Resumo</p>{selectedType ? <><h2 className="mt-4 text-base font-semibold text-slate-900">{selectedType.name}</h2><p className="mt-1 text-sm leading-5 text-slate-500">{stripHtml(selectedType.description)}</p><div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600"><p className="flex items-center gap-2"><Clock3 className="size-3.5 text-slate-400" />{formatDuration(selectedType.durationMinutes)}</p><p className="flex items-center gap-2"><ModeIcon mode={selectedType.mode} />{APPOINTMENT_MODE_LABELS[selectedType.mode]}</p>{selectedType.mode === "in_person" && selectedType.location && <p className="flex items-center gap-2"><MapPin className="size-3.5 text-slate-400" />{selectedType.location}</p>}{date && time && <p className="flex items-center gap-2"><CalendarDays className="size-3.5 text-slate-400" />{formatDateBR(date)} às {time}</p>}</div><p className="mt-5 rounded-md bg-accent px-3 py-2 text-xs text-accent-foreground">{autoApproval ? "Confirmação imediata após o envio." : "O horário será reservado após aprovação."}</p></> : <div className="py-12 text-center"><CalendarDays className="mx-auto size-6 text-slate-300" /><p className="mt-3 text-sm text-slate-400">Selecione um atendimento para ver os detalhes.</p></div>}</div></aside>
         </div>

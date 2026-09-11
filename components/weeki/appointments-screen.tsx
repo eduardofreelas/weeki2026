@@ -51,6 +51,7 @@ import type { Appointment, AppointmentDraft, AppointmentMode, AppointmentStatus,
 import { APPOINTMENT_MODE_LABELS, APPOINTMENT_STATUS_LABELS } from "@/features/appointments/types";
 import { useWeekiAppointments } from "@/features/appointments/use-weeki-appointments";
 import type { Client } from "@/features/clients/types";
+import { isAvailabilityConfigured, totalWeeklyAvailableMinutes, type WeekiAvailability } from "@/shared/availability";
 import { cn } from "@/lib/utils";
 
 type AgendaTab = "overview" | "types" | "requests" | "history";
@@ -80,7 +81,7 @@ const statusStyles: Record<AppointmentStatus, string> = {
   cancelled: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
-export function AppointmentsScreen({ clients }: { clients: Client[] }) {
+export function AppointmentsScreen({ clients, availability, onConfigureAvailability }: { clients: Client[]; availability: WeekiAvailability; onConfigureAvailability: () => void }) {
   const {
     appointments,
     eventTypes,
@@ -111,7 +112,9 @@ export function AppointmentsScreen({ clients }: { clients: Client[] }) {
   const currentWeekAppointments = chronological.filter((item) => isWithinInterval(parseISO(item.date), { start: weekStart, end: weekEnd }));
   const confirmedThisWeek = currentWeekAppointments.filter((item) => item.status === "confirmed");
   const bookedMinutes = confirmedThisWeek.reduce((total, item) => total + (typeById(item.typeId)?.durationMinutes ?? 30), 0);
-  const occupancy = Math.min(100, Math.round((bookedMinutes / (40 * 60)) * 100));
+  const availabilityConfigured = isAvailabilityConfigured(availability);
+  const availableMinutes = availabilityConfigured ? totalWeeklyAvailableMinutes(availability) : 40 * 60;
+  const occupancy = Math.min(100, Math.round((bookedMinutes / Math.max(1, availableMinutes)) * 100));
   const nextAppointment = chronological.find((item) => item.status === "confirmed" && `${item.date}T${item.time}` >= format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const publicUrl = typeof window === "undefined" ? "weeki.com.br/agendar" : `${window.location.origin}/agendar`;
 
@@ -227,9 +230,11 @@ export function AppointmentsScreen({ clients }: { clients: Client[] }) {
           weekStart={weekStart}
           weekEnd={weekEnd}
           bookedMinutes={bookedMinutes}
+          availableMinutes={availableMinutes}
           occupancy={occupancy}
           nextAppointment={nextAppointment}
           pendingCount={pendingCount}
+          availabilityConfigured={availabilityConfigured}
           mode={overviewMode}
           query={query}
           typeFilter={typeFilter}
@@ -239,6 +244,7 @@ export function AppointmentsScreen({ clients }: { clients: Client[] }) {
           onWeekChange={setWeekStart}
           onEdit={editAppointment}
           onOpenRequests={() => setTab("requests")}
+          onConfigureAvailability={onConfigureAvailability}
         />
       )}
 
@@ -298,16 +304,18 @@ function AgendaTabs({ tab, onChange, eventTypeCount, pendingCount }: { tab: Agen
   return <nav className="week-board-scroll mt-6 flex overflow-x-auto border-b border-slate-200" aria-label="Seções da Agenda">{tabs.map((item) => <button key={item.value} type="button" onClick={() => onChange(item.value)} className={cn("flex h-10 shrink-0 items-center gap-2 border-b-2 border-transparent px-1 text-xs font-medium text-slate-500 transition [&+button]:ml-7", tab === item.value && "border-[#654ff0] font-semibold text-[#5945df]")}>{item.label}{item.count !== undefined && <span className={cn("rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500", item.value === "requests" && item.count > 0 && "bg-amber-50 text-amber-700")}>{item.count}{item.value === "requests" && item.count > 0 ? " pendentes" : item.value === "types" ? " tipos" : ""}</span>}</button>)}</nav>;
 }
 
-function Overview({ appointments, eventTypes, clients, weekStart, weekEnd, bookedMinutes, occupancy, nextAppointment, pendingCount, mode, query, typeFilter, onModeChange, onQueryChange, onTypeFilterChange, onWeekChange, onEdit, onOpenRequests }: {
+function Overview({ appointments, eventTypes, clients, weekStart, weekEnd, bookedMinutes, availableMinutes, occupancy, nextAppointment, pendingCount, availabilityConfigured, mode, query, typeFilter, onModeChange, onQueryChange, onTypeFilterChange, onWeekChange, onEdit, onOpenRequests, onConfigureAvailability }: {
   appointments: Appointment[];
   eventTypes: EventType[];
   clients: Client[];
   weekStart: Date;
   weekEnd: Date;
   bookedMinutes: number;
+  availableMinutes: number;
   occupancy: number;
   nextAppointment?: Appointment;
   pendingCount: number;
+  availabilityConfigured: boolean;
   mode: OverviewMode;
   query: string;
   typeFilter: string;
@@ -317,6 +325,7 @@ function Overview({ appointments, eventTypes, clients, weekStart, weekEnd, booke
   onWeekChange: (date: Date) => void;
   onEdit: (appointment: Appointment) => void;
   onOpenRequests: () => void;
+  onConfigureAvailability: () => void;
 }) {
   const clientById = (id: string | null) => clients.find((client) => client.id === id);
   const typeById = (id: string) => eventTypes.find((type) => type.id === id);
@@ -334,10 +343,21 @@ function Overview({ appointments, eventTypes, clients, weekStart, weekEnd, booke
   const nextClient = nextAppointment ? clientById(nextAppointment.clientId) : null;
 
   return <>
+    {!availabilityConfigured && (
+      <section className="mt-5 flex flex-col gap-3 rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold">Disponibilidade ainda não configurada</p>
+          <p className="mt-0.5 text-[11px] leading-4 text-amber-700">Os horários públicos e a taxa de ocupação usarão regras reais assim que você definir sua agenda semanal.</p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={onConfigureAvailability} className="h-8 shrink-0 border-amber-200 bg-white px-2.5 text-[11px] text-[#5d48dd] shadow-none">
+          <CalendarDays className="size-3.5" /> Configurar disponibilidade
+        </Button>
+      </section>
+    )}
     <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard label="Atendimentos esta semana" value={`${appointments.filter((item) => item.status === "confirmed" && isWithinInterval(parseISO(item.date), { start: weekStart, end: weekEnd })).length} agendamentos`} helper={`${formatDuration(bookedMinutes)} reservados`} icon={CalendarDays} tone="violet" />
       <MetricCard label="Próximo compromisso" value={nextAppointment ? `${isToday(parseISO(nextAppointment.date)) ? "Hoje" : format(parseISO(nextAppointment.date), "dd MMM", { locale: ptBR })} às ${nextAppointment.time}` : "Agenda livre"} helper={nextAppointment ? `${nextAppointment.title}${nextClient ? ` • ${nextClient.name}` : ""}` : "Nenhum compromisso futuro"} icon={Clock3} tone="emerald" />
-      <MetricCard label="Taxa de ocupação" value={`${occupancy}%`} helper={`${formatDuration(bookedMinutes)} de 40h semanais`} icon={Gauge} tone="blue" progress={occupancy} />
+      <MetricCard label="Taxa de ocupação" value={`${occupancy}%`} helper={`${formatDuration(bookedMinutes)} de ${formatDuration(availableMinutes)} semanais`} icon={Gauge} tone="blue" progress={occupancy} />
       <button type="button" onClick={onOpenRequests} className="rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-amber-200"><div className="flex items-start justify-between"><p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">Solicitações pendentes</p><span className="grid size-7 place-items-center rounded-md bg-amber-50 text-amber-600"><BellRing className="size-3.5" /></span></div><p className="mt-5 text-xl font-bold tracking-[-0.03em] text-amber-600">{pendingCount} para aprovar</p><p className="mt-1 text-[11px] font-medium text-[#5b47df]">Revisar solicitações →</p></button>
     </section>
 

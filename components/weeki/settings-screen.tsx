@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   Bell,
+  BriefcaseBusiness,
   CalendarDays,
   Check,
   ChevronRight,
@@ -32,12 +33,15 @@ import {
   UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AvailabilitySettingsPanel } from "@/components/weeki/availability-settings-panel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { IntegrationId, WeekiProfileSettings, WeekiRegionalSettings, WeekiSettings, WeekiTheme } from "@/features/settings/types";
+import type { AccountProfileInput, ConnectedAuthProvider } from "@/shared/account";
+import type { WeekiAvailability } from "@/shared/availability";
 import { cn } from "@/lib/utils";
 import { FiscalSettings } from "@/components/fiscal/fiscal-settings";
 import type { WeekiFiscalController } from "@/features/fiscal/use-weeki-fiscal";
@@ -45,18 +49,22 @@ import { FISCAL_FLAGS } from "@/features/fiscal/config";
 
 import { SettingsPayments } from "@/components/payments/settings-payments";
 
-type SettingsView = "overview" | "payments" | "fiscal" | "profile" | "workspace" | "appearance" | "notifications" | "integrations" | "security" | "privacy";
+type SettingsView = "overview" | "payments" | "fiscal" | "profile" | "business" | "availability" | "workspace" | "appearance" | "notifications" | "integrations" | "team" | "plan" | "security" | "privacy";
 
 const navigation: Array<{ id: SettingsView; label: string; icon: typeof UserRound }> = [
   { id: "overview", label: "Visão geral", icon: Settings2 },
   { id: "profile", label: "Perfil", icon: UserRound },
-  { id: "workspace", label: "Preferências", icon: Settings2 },
+  { id: "business", label: "Negócio", icon: BriefcaseBusiness },
+  { id: "availability", label: "Disponibilidade", icon: CalendarDays },
+  { id: "integrations", label: "Integrações", icon: Plug },
+  { id: "team", label: "Equipe", icon: UsersRound },
+  { id: "plan", label: "Plano", icon: ReceiptText },
+  { id: "security", label: "Segurança", icon: ShieldCheck },
+  { id: "workspace", label: "Preferências regionais", icon: Settings2 },
   { id: "appearance", label: "Aparência", icon: Palette },
   { id: "notifications", label: "Notificações", icon: Bell },
-  { id: "integrations", label: "Integrações", icon: Plug },
   { id: "payments", label: "Pagamentos", icon: Link2 },
   { id: "fiscal", label: "Fiscal", icon: FileText },
-  { id: "security", label: "Segurança", icon: ShieldCheck },
   { id: "privacy", label: "Dados e conta", icon: Database },
 ];
 
@@ -76,8 +84,34 @@ const integrationMeta: Record<IntegrationId, { title: string; description: strin
   asaas: { title: "Asaas", description: "Receba cobranças diretamente na sua conta.", icon: Link2, tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300" },
 };
 
-export function SettingsScreen({ settings, onUpdateSettings, fiscalController, initialPayments = false }: { settings: WeekiSettings; onUpdateSettings: (updates: Partial<WeekiSettings>) => void; fiscalController: WeekiFiscalController; initialPayments?: boolean }) {
-  const [view, setView] = useState<SettingsView>(initialPayments ? "payments" : "overview");
+export function SettingsScreen({
+  settings,
+  onUpdateSettings,
+  fiscalController,
+  availability,
+  onSaveAvailability,
+  onSaveAccountProfile,
+  availabilitySaving = false,
+  initialPayments = false,
+  initialView,
+  authConfigured = false,
+  providers = [],
+  onLogout,
+}: {
+  settings: WeekiSettings;
+  onUpdateSettings: (updates: Partial<WeekiSettings>) => void;
+  fiscalController: WeekiFiscalController;
+  availability: WeekiAvailability;
+  onSaveAvailability: (availability: WeekiAvailability) => Promise<WeekiAvailability> | WeekiAvailability;
+  onSaveAccountProfile?: (updates: AccountProfileInput) => Promise<void> | void;
+  availabilitySaving?: boolean;
+  initialPayments?: boolean;
+  initialView?: SettingsView;
+  authConfigured?: boolean;
+  providers?: ConnectedAuthProvider[];
+  onLogout?: () => Promise<void> | void;
+}) {
+  const [view, setView] = useState<SettingsView>(initialView ?? (initialPayments ? "payments" : "overview"));
   const [navigationQuery, setNavigationQuery] = useState("");
   const [profileDraft, setProfileDraft] = useState(settings.profile);
   const [regionalDraft, setRegionalDraft] = useState(settings.regional);
@@ -90,17 +124,36 @@ export function SettingsScreen({ settings, onUpdateSettings, fiscalController, i
     return query ? enabledNavigation.filter((item) => item.label.toLocaleLowerCase("pt-BR").includes(query)) : enabledNavigation;
   }, [navigationQuery]);
 
-  const saveProfile = (event: FormEvent) => {
+  const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
     if (!profileDraft.name.trim() || !profileDraft.email.trim()) return toast.error("Informe nome e e-mail.");
-    onUpdateSettings({ profile: profileDraft });
-    toast.success("Perfil atualizado.");
+    try {
+      onUpdateSettings({ profile: profileDraft });
+      await onSaveAccountProfile?.({
+        name: profileDraft.name,
+        avatarUrl: profileDraft.avatarUrl,
+        phone: profileDraft.phone,
+        professionalName: profileDraft.professionalName,
+        businessName: profileDraft.businessName,
+        businessArea: profileDraft.businessArea,
+        workDescription: profileDraft.workDescription,
+        workspaceName: profileDraft.workspaceName,
+      });
+      toast.success("Perfil atualizado.");
+    } catch {
+      toast.error("Não foi possível salvar o perfil.");
+    }
   };
 
-  const saveRegional = (event: FormEvent) => {
+  const saveRegional = async (event: FormEvent) => {
     event.preventDefault();
-    onUpdateSettings({ regional: regionalDraft });
-    toast.success("Preferências atualizadas.");
+    try {
+      onUpdateSettings({ regional: regionalDraft });
+      await onSaveAccountProfile?.({ timezone: regionalDraft.timezone });
+      toast.success("Preferências atualizadas.");
+    } catch {
+      toast.error("Não foi possível salvar as preferências.");
+    }
   };
 
   const changeTheme = (theme: WeekiTheme) => onUpdateSettings({ appearance: { ...settings.appearance, theme } });
@@ -146,15 +199,19 @@ export function SettingsScreen({ settings, onUpdateSettings, fiscalController, i
         </nav>
 
         <div className="min-w-0">
-          {view === "overview" && <SettingsOverview settings={settings} fiscalController={fiscalController} onNavigate={setView} />}
+          {view === "overview" && <SettingsOverview settings={settings} availability={availability} fiscalController={fiscalController} onNavigate={setView} />}
           {view === "payments" && <SettingsPayments />}
           {view === "fiscal" && <FiscalSettings controller={fiscalController} embedded />}
           {view === "profile" && <ProfileSettings profile={profileDraft} initials={initials} onChange={setProfileDraft} onSubmit={saveProfile} />}
+          {view === "business" && <BusinessSettings profile={profileDraft} onChange={setProfileDraft} onSubmit={saveProfile} />}
+          {view === "availability" && <AvailabilitySettingsPanel availability={availability} saving={availabilitySaving} onSave={onSaveAvailability} />}
           {view === "workspace" && <RegionalSettings regional={regionalDraft} onChange={setRegionalDraft} onSubmit={saveRegional} />}
           {view === "appearance" && <AppearanceSettings settings={settings} onUpdateSettings={onUpdateSettings} onThemeChange={changeTheme} />}
           {view === "notifications" && <NotificationSettings settings={settings} onChange={setNotification} />}
           {view === "integrations" && <><button type="button" onClick={() => setView("payments")} className="mb-4 text-xs font-medium text-violet-500">Asaas, Mercado Pago e Stripe → Pagamentos</button><IntegrationsSettings /></>}
-          {view === "security" && <SecuritySettings settings={settings} />}
+          {view === "team" && <TeamSettings />}
+          {view === "plan" && <PlanSettings onPayments={() => setView("payments")} />}
+          {view === "security" && <SecuritySettings settings={settings} authConfigured={authConfigured} providers={providers} onLogout={onLogout} />}
           {view === "privacy" && <PrivacySettings settings={settings} onUpdateSettings={onUpdateSettings} onExport={exportData} onDelete={() => setDeleteOpen(true)} />}
         </div>
       </div>
@@ -164,8 +221,9 @@ export function SettingsScreen({ settings, onUpdateSettings, fiscalController, i
   );
 }
 
-function SettingsOverview({ settings, fiscalController, onNavigate }: { settings: WeekiSettings; fiscalController: WeekiFiscalController; onNavigate: (view: SettingsView) => void }) {
-  const profileComplete = Boolean(settings.profile.name.trim() && settings.profile.email.trim() && settings.profile.businessName.trim());
+function SettingsOverview({ settings, availability, fiscalController, onNavigate }: { settings: WeekiSettings; availability: WeekiAvailability; fiscalController: WeekiFiscalController; onNavigate: (view: SettingsView) => void }) {
+  const profileComplete = Boolean(settings.profile.name.trim() && settings.profile.email.trim());
+  const availabilityComplete = Boolean(availability.configuredAt);
   const fiscalSteps = [
     Boolean(fiscalController.state.profile.configuredAt),
     fiscalController.state.serviceConfigs.some((service) => service.active),
@@ -175,11 +233,15 @@ function SettingsOverview({ settings, fiscalController, onNavigate }: { settings
   const enabledNotifications = Object.values(settings.notifications).filter(Boolean).length;
   const timezoneName = timezones.find((item) => item.value === settings.regional.timezone)?.label.split("—")[0].trim() || settings.regional.timezone;
   const cards: Array<{ id: SettingsView; title: string; description: string; status: string; icon: typeof UserRound; tone: string }> = [
-    { id: "profile", title: "Perfil", description: "Identidade e informações do negócio", status: profileComplete ? "Completo" : "Revisar dados", icon: UserRound, tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300" },
-    { id: "workspace", title: "Preferências", description: "Idioma, fuso, datas e moeda", status: `${timezoneName} · ${settings.regional.currency}`, icon: Settings2, tone: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300" },
+    { id: "profile", title: "Perfil", description: "Identidade pessoal e contato", status: profileComplete ? "Completo" : "Revisar dados", icon: UserRound, tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300" },
+    { id: "business", title: "Negócio", description: "Nome profissional, área e espaço", status: settings.profile.businessName ? "Configurado" : "Pendente", icon: BriefcaseBusiness, tone: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300" },
+    { id: "availability", title: "Disponibilidade", description: "Dias, horários e regras de agendamento", status: availabilityComplete ? "Configurada" : "Pendente", icon: CalendarDays, tone: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300" },
+    { id: "workspace", title: "Preferências regionais", description: "Idioma, fuso, datas e moeda", status: `${timezoneName} · ${settings.regional.currency}`, icon: Settings2, tone: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300" },
     { id: "appearance", title: "Aparência", description: "Tema e densidade da interface", status: settings.appearance.theme === "system" ? "Automático" : settings.appearance.theme === "dark" ? "Escuro" : "Claro", icon: Palette, tone: "bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/10 dark:text-fuchsia-300" },
     { id: "notifications", title: "Notificações", description: "Canais e alertas importantes", status: `${enabledNotifications} preferências ativas`, icon: Bell, tone: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300" },
     { id: "integrations", title: "Integrações", description: "Drive, Calendar e Trello", status: "Em standby", icon: Plug, tone: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300" },
+    { id: "team", title: "Equipe", description: "Papéis, convites e permissões", status: "Preparado", icon: UsersRound, tone: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300" },
+    { id: "plan", title: "Plano", description: "Assinatura, uso e cobrança", status: "Gerenciar", icon: ReceiptText, tone: "bg-lime-50 text-lime-700 dark:bg-lime-500/10 dark:text-lime-200" },
     { id: "payments", title: "Pagamentos", description: "Asaas, Mercado Pago e Stripe", status: "Modo visual", icon: Link2, tone: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300" },
     ...(FISCAL_FLAGS.moduleEnabled ? [{ id: "fiscal" as const, title: "Fiscal", description: "Dados, serviços e automações NFS-e", status: `${fiscalProgress}/3 etapas preparadas`, icon: ReceiptText, tone: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300" }] : []),
     { id: "security", title: "Segurança", description: "Acesso, sessões e proteção", status: "Requer autenticação", icon: ShieldCheck, tone: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300" },
@@ -206,16 +268,31 @@ function ProfileSettings({ profile, initials, onChange, onSubmit }: { profile: W
       <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 dark:border-white/8 sm:flex-row sm:items-center sm:px-5">
         <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#202026] to-[#4b3ab8] text-base font-semibold text-white">{initials}</span>
         <div className="min-w-0 flex-1"><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Foto do perfil</p><p className="mt-1 text-[10px] leading-4 text-slate-400">JPG ou PNG de até 5 MB. Recomendado: 400 × 400 px.</p></div>
-        <div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled title="Disponível após ativar o armazenamento do perfil" className="h-8 rounded-md px-2.5 text-[10px] shadow-none">Alterar foto</Button><Button type="button" variant="ghost" size="sm" disabled title="Nenhuma foto armazenada" className="h-8 rounded-md px-2 text-[10px] text-slate-400">Remover</Button></div>
+        <div className="flex gap-2"><Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...profile, avatarUrl: "" })} disabled={!profile.avatarUrl} className="h-8 rounded-md px-2 text-[10px] text-slate-400">Remover</Button></div>
       </div>
       <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <SettingsField label="Nome completo"><Input value={profile.name} onChange={(event) => onChange({ ...profile, name: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
         <SettingsField label="E-mail"><Input type="email" value={profile.email} onChange={(event) => onChange({ ...profile, email: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
         <SettingsField label="Telefone"><Input value={profile.phone} onChange={(event) => onChange({ ...profile, phone: event.target.value })} placeholder="(85) 99999-9999" className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
         <SettingsField label="Cargo ou função"><Input value={profile.role} onChange={(event) => onChange({ ...profile, role: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
-        <div className="sm:col-span-2"><SettingsField label="Nome do negócio"><Input value={profile.businessName} onChange={(event) => onChange({ ...profile, businessName: event.target.value })} className="h-9 rounded-md text-xs shadow-none sm:max-w-md" /></SettingsField></div>
+        <div className="sm:col-span-2"><SettingsField label="URL da foto ou avatar"><Input type="url" value={profile.avatarUrl} onChange={(event) => onChange({ ...profile, avatarUrl: event.target.value })} placeholder="https://..." className="h-9 rounded-md text-xs shadow-none sm:max-w-xl" /></SettingsField></div>
       </div>
       <PanelFooter><Button type="submit" size="sm" className="h-8 rounded-md bg-[#5140df] px-3 text-[11px] shadow-none"><Save className="size-3.5" /> Salvar alterações</Button></PanelFooter>
+    </form>
+  </SettingsPanel>;
+}
+
+function BusinessSettings({ profile, onChange, onSubmit }: { profile: WeekiProfileSettings; onChange: (profile: WeekiProfileSettings) => void; onSubmit: (event: FormEvent) => void }) {
+  return <SettingsPanel title="Negócio" description="Informações públicas e operacionais do seu espaço de trabalho.">
+    <form onSubmit={onSubmit}>
+      <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+        <SettingsField label="Nome profissional"><Input value={profile.professionalName} onChange={(event) => onChange({ ...profile, professionalName: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
+        <SettingsField label="Nome da empresa ou marca"><Input value={profile.businessName} onChange={(event) => onChange({ ...profile, businessName: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
+        <SettingsField label="Área de atuação"><Input value={profile.businessArea} onChange={(event) => onChange({ ...profile, businessArea: event.target.value })} placeholder="Consultoria, advocacia, saúde..." className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
+        <SettingsField label="Nome do espaço"><Input value={profile.workspaceName} onChange={(event) => onChange({ ...profile, workspaceName: event.target.value })} className="h-9 rounded-md text-xs shadow-none" /></SettingsField>
+        <div className="sm:col-span-2"><SettingsField label="Descrição curta"><textarea value={profile.workDescription} onChange={(event) => onChange({ ...profile, workDescription: event.target.value })} rows={4} className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Explique em poucas linhas como você ajuda seus clientes." /></SettingsField></div>
+      </div>
+      <PanelFooter><Button type="submit" size="sm" className="h-8 rounded-md bg-[#5140df] px-3 text-[11px] shadow-none"><Save className="size-3.5" /> Salvar negócio</Button></PanelFooter>
     </form>
   </SettingsPanel>;
 }
@@ -257,11 +334,37 @@ function IntegrationsSettings() {
   return <div className="space-y-4"><SettingsPanel title="Integrações" description="Conecte as ferramentas que já fazem parte da sua rotina."><div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{(Object.keys(integrationMeta) as IntegrationId[]).filter(id => id !== "asaas").map((id) => { const item = integrationMeta[id]; return <article key={id} className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><div className="flex items-start gap-3"><span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", item.tone)}><item.icon className="size-[18px]" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="text-xs font-semibold text-slate-800 dark:text-slate-100">{item.title}</h3><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">EM BREVE</span></div><p className="mt-1 text-[10px] leading-4 text-slate-400">{item.description}</p></div></div><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/8"><span className="text-[9px] text-slate-400">Integração em standby</span><Button type="button" variant="outline" size="xs" disabled className="h-7 rounded-md px-2 text-[9px] shadow-none">Conectar<ExternalLink className="size-3" /></Button></div></article>; })}</div></SettingsPanel><div className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-[9px] leading-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/8 dark:text-amber-200">Nenhuma conexão é simulada. Os botões serão habilitados somente quando OAuth, backend e verificação de conta estiverem configurados.</div></div>;
 }
 
-function SecuritySettings({ settings }: { settings: WeekiSettings }) {
+function TeamSettings() {
+  return <SettingsPanel title="Equipe" description="Convites e permissões ficam vinculados ao workspace autenticado.">
+    <div className="p-4 sm:p-5">
+      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center dark:border-white/10 dark:bg-white/[0.025]">
+        <UsersRound className="mx-auto size-6 text-slate-300" />
+        <h3 className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Estrutura preparada para equipes</h3>
+        <p className="mx-auto mt-1 max-w-md text-[10px] leading-4 text-slate-400">O backend já isola dados por workspace e membership. Convites, papéis avançados e auditoria de equipe serão habilitados em uma etapa própria.</p>
+      </div>
+    </div>
+  </SettingsPanel>;
+}
+
+function PlanSettings({ onPayments }: { onPayments: () => void }) {
   return <div className="space-y-4">
-    <div className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-[9px] leading-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/8 dark:text-amber-200"><strong>Proteção em standby.</strong> Senha, 2FA, alertas e sessões dependem do login autenticado no servidor. Nenhuma alteração de segurança é simulada neste modo visual.</div>
-    <SettingsPanel title="Acesso e autenticação" description="Camadas de proteção preparadas para a conta autenticada."><div className="divide-y divide-slate-100 dark:divide-white/8"><ActionRow icon={KeyRound} title="Senha" description="Gerenciada pelo provedor de identidade" action="Requer login" onClick={() => undefined} disabled /><ToggleRow icon={Smartphone} title="Autenticação em duas etapas" description="Exigirá um código adicional ao entrar." checked={settings.security.twoFactorEnabled} onChange={() => undefined} disabled /><ToggleRow icon={Mail} title="Alertas de novo acesso" description="Avisos de sessões reconhecidos pelo servidor." checked={settings.security.loginAlerts} onChange={() => undefined} disabled /></div></SettingsPanel>
-    <SettingsPanel title="Sessões" description="Dispositivos autenticados aparecerão aqui."><div className="p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-white/[0.07] dark:text-slate-300"><Laptop className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Este navegador</p><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">MODO LOCAL</span></div><p className="mt-1 text-[10px] text-slate-400">Sem sessão de conta ativa nesta versão visual.</p></div></div><div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 dark:border-white/8 sm:flex-row sm:items-end sm:justify-between"><SettingsField label="Encerrar sessão após"><Select value={settings.security.sessionTimeout} disabled><SelectTrigger className="h-8 w-[180px] rounded-md text-[10px] shadow-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="7d">7 dias sem atividade</SelectItem><SelectItem value="30d">30 dias sem atividade</SelectItem><SelectItem value="90d">90 dias sem atividade</SelectItem></SelectContent></Select></SettingsField><Button type="button" variant="outline" size="sm" disabled className="h-8 rounded-md px-2.5 text-[10px] shadow-none"><LogOut className="size-3.5" /> Encerrar outras sessões</Button></div></div></SettingsPanel>
+    <SettingsPanel title="Plano" description="Assinatura, uso e cobrança da conta Weeki.">
+      <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
+        <article className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><p className="text-[10px] font-semibold uppercase text-slate-400">Plano atual</p><h3 className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">Workspace local</h3><p className="mt-1 text-[10px] leading-4 text-slate-400">Sem cobrança ativa neste modo.</p></article>
+        <article className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><p className="text-[10px] font-semibold uppercase text-slate-400">Uso</p><h3 className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">Sem limite aplicado</h3><p className="mt-1 text-[10px] leading-4 text-slate-400">Métricas reais dependem do backend autenticado.</p></article>
+        <article className="rounded-lg border border-slate-200 p-4 dark:border-white/10"><p className="text-[10px] font-semibold uppercase text-slate-400">Cobranças</p><h3 className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">Pagamentos separados</h3><Button type="button" variant="outline" size="sm" onClick={onPayments} className="mt-3 h-8 rounded-md px-2.5 text-[10px] shadow-none">Abrir pagamentos</Button></article>
+      </div>
+    </SettingsPanel>
+  </div>;
+}
+
+function SecuritySettings({ settings, authConfigured, providers, onLogout }: { settings: WeekiSettings; authConfigured: boolean; providers: ConnectedAuthProvider[]; onLogout?: () => Promise<void> | void }) {
+  const hasEmailProvider = providers.some((provider) => provider.provider === "email");
+  return <div className="space-y-4">
+    {!authConfigured && <div className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-[9px] leading-4 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/8 dark:text-amber-200"><strong>Proteção em standby.</strong> Senha, provedores sociais, alertas e sessões dependem do backend autenticado e das credenciais OIDC.</div>}
+    <SettingsPanel title="Acesso e autenticação" description="Camadas de proteção vinculadas ao provedor de identidade."><div className="divide-y divide-slate-100 dark:divide-white/8"><ActionRow icon={KeyRound} title="Senha" description={hasEmailProvider ? "Gerenciada pelo provedor de identidade conectado" : "Conta social conectada; senha local não é obrigatória"} action="Gerenciada fora da Weeki" onClick={() => undefined} disabled /><ToggleRow icon={Smartphone} title="Autenticação em duas etapas" description="Exigirá configuração no provedor de identidade." checked={settings.security.twoFactorEnabled} onChange={() => undefined} disabled /><ToggleRow icon={Mail} title="Alertas de novo acesso" description="Avisos de sessões reconhecidos pelo servidor." checked={settings.security.loginAlerts} onChange={() => undefined} disabled /></div></SettingsPanel>
+    <SettingsPanel title="Provedores conectados" description="Métodos de entrada associados à sua conta."><div className="divide-y divide-slate-100 dark:divide-white/8">{providers.length ? providers.map((provider) => <div key={`${provider.provider}-${provider.issuer}`} className="flex items-center gap-3 px-4 py-3.5 sm:px-5"><span className="grid size-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-300"><ShieldCheck className="size-3.5" /></span><div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">{provider.label}</p><p className="mt-0.5 truncate text-[9px] leading-4 text-slate-400">{provider.email || provider.issuer}</p></div><span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-700">Conectado</span></div>) : <div className="px-4 py-5 text-[10px] text-slate-400 sm:px-5">Nenhum provedor autenticado nesta sessão local.</div>}</div></SettingsPanel>
+    <SettingsPanel title="Sessões" description="Dispositivos autenticados aparecerão aqui."><div className="p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-white/[0.07] dark:text-slate-300"><Laptop className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Este navegador</p><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">{authConfigured ? "SESSÃO HTTPONLY" : "MODO LOCAL"}</span></div><p className="mt-1 text-[10px] text-slate-400">{authConfigured ? "A sessão é opaca, expira no servidor e não expõe token ao frontend." : "Sem sessão de conta ativa nesta versão visual."}</p></div></div><div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 dark:border-white/8 sm:flex-row sm:items-end sm:justify-between"><SettingsField label="Encerrar sessão após"><Select value={settings.security.sessionTimeout} disabled><SelectTrigger className="h-8 w-[180px] rounded-md text-[10px] shadow-none"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="7d">7 dias sem atividade</SelectItem><SelectItem value="30d">30 dias sem atividade</SelectItem><SelectItem value="90d">90 dias sem atividade</SelectItem></SelectContent></Select></SettingsField><Button type="button" variant="outline" size="sm" disabled={!onLogout || !authConfigured} onClick={() => void onLogout?.()} className="h-8 rounded-md px-2.5 text-[10px] shadow-none"><LogOut className="size-3.5" /> Encerrar sessão</Button></div></div></SettingsPanel>
   </div>;
 }
 

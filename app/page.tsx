@@ -23,12 +23,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { AppointmentsScreen } from "@/components/weeki/appointments-screen";
+import { AuthScreen } from "@/components/weeki/auth-screen";
 import { BillingScreen } from "@/components/weeki/billing-screen";
 import { ClientsScreen } from "@/components/weeki/clients-screen";
 import { ContractsScreen } from "@/components/weeki/contracts-screen";
 import { FinanceScreen } from "@/components/weeki/finance-screen";
 import { FiscalAutomationDialog } from "@/components/fiscal/fiscal-automation-dialog";
 import { FiscalScreen, type FiscalView } from "@/components/fiscal/fiscal-screen";
+import { OnboardingScreen } from "@/components/weeki/onboarding-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { MobileNavigation, WeekiSidebar, type WeekiArea } from "@/components/weeki/sidebar";
 import { SettingsScreen } from "@/components/weeki/settings-screen";
@@ -40,6 +42,8 @@ import { useWeekiContracts } from "@/features/contracts/use-weeki-contracts";
 import { publishServiceCompleted } from "@/features/fiscal/events";
 import { FISCAL_FLAGS } from "@/features/fiscal/config";
 import { useWeekiFiscal } from "@/features/fiscal/use-weeki-fiscal";
+import { shouldShowOnboarding, useWeekiAccount } from "@/features/account/use-weeki-account";
+import { useWeekiAvailability } from "@/features/availability/use-weeki-availability";
 import { STATUS_LABELS, type Task, type TaskDraft, type TaskStatus } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { useWeekiSettings } from "@/features/settings/use-weeki-settings";
@@ -64,8 +68,11 @@ export default function Home() {
   const contracts = useWeekiContracts();
   const fiscal = useWeekiFiscal(clients);
   const { settings, updateSettings } = useWeekiSettings();
+  const account = useWeekiAccount();
+  const availabilityController = useWeekiAvailability(settings.regional.timezone, account.session?.availability);
   const [activeArea, setActiveArea] = useState<WeekiArea>("week");
   const [initialPayments, setInitialPayments] = useState(false);
+  const [initialSettingsView, setInitialSettingsView] = useState<"availability" | "payments" | undefined>();
   const [fiscalView, setFiscalView] = useState<FiscalView>("overview");
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -75,6 +82,7 @@ export default function Home() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveArea(area);
       setInitialPayments(params.get("section") === "payments");
+      setInitialSettingsView(params.get("section") === "availability" ? "availability" : params.get("section") === "payments" ? "payments" : undefined);
       if (area === "fiscal") {
         const section = params.get("section");
         if (section === "notes" || section === "issue" || section === "settings") setFiscalView(section);
@@ -84,10 +92,14 @@ export default function Home() {
     }
   }, []);
   const navigateArea = useCallback((area: WeekiArea) => {
-    if (area === "settings") setInitialPayments(false);
+    if (area === "settings") {
+      setInitialPayments(false);
+      setInitialSettingsView(undefined);
+    }
     setActiveArea(area);
   }, []);
-  const openPayments = () => { setInitialPayments(true); setActiveArea("settings"); };
+  const openPayments = () => { setInitialPayments(true); setInitialSettingsView("payments"); setActiveArea("settings"); };
+  const openAvailabilitySettings = useCallback(() => { setInitialPayments(false); setInitialSettingsView("availability"); setActiveArea("settings"); }, []);
 
   const [weekStart, setWeekStart] = useState(initialWeek);
   const [viewMode, setViewMode] = useState<WeekViewMode>("week");
@@ -110,6 +122,38 @@ export default function Home() {
   const [initialClientId, setInitialClientId] = useState<string | null>(null);
   const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const profileInitials = settings.profile.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "WK";
+
+  useEffect(() => {
+    const profile = account.session?.profile;
+    if (!profile) return;
+    const nextProfile = {
+      ...settings.profile,
+      name: profile.name || settings.profile.name,
+      email: profile.email || settings.profile.email,
+      avatarUrl: profile.avatarUrl,
+      phone: profile.phone,
+      professionalName: profile.professionalName || profile.name || settings.profile.professionalName,
+      businessName: profile.businessName || settings.profile.businessName,
+      businessArea: profile.businessArea || settings.profile.businessArea,
+      workDescription: profile.workDescription || settings.profile.workDescription,
+      workspaceName: profile.workspaceName || settings.profile.workspaceName,
+    };
+    const nextRegional = { ...settings.regional, timezone: profile.timezone || settings.regional.timezone };
+    if (JSON.stringify(nextProfile) !== JSON.stringify(settings.profile) || nextRegional.timezone !== settings.regional.timezone) {
+      updateSettings({ profile: nextProfile, regional: nextRegional });
+    }
+  }, [account.session?.profile, settings.profile, settings.regional, updateSettings]);
+
+  const saveAvailability = useCallback(async (availability: typeof availabilityController.availability) => {
+    const saved = await availabilityController.saveAvailability(availability);
+    if (account.accountApiEnabled && account.authenticated) await account.reload();
+    return saved;
+  }, [account, availabilityController]);
+
+  const saveAccountProfile = useCallback(async (updates: Parameters<typeof account.updateProfile>[0]) => {
+    if (!account.accountApiEnabled || !account.authenticated) return;
+    await account.updateProfile(updates);
+  }, [account]);
 
   const changeLayoutMode = (mode: WeekLayoutMode) => {
     setLayoutMode(mode);
@@ -246,6 +290,32 @@ export default function Home() {
     );
   }
 
+  if (account.loading || availabilityController.loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background text-sm text-slate-500">
+        Carregando sua conta...
+      </div>
+    );
+  }
+
+  if (account.accountApiEnabled && (!account.authConfigured || !account.authenticated)) {
+    return <AuthScreen controller={account} />;
+  }
+
+  if (shouldShowOnboarding(account.session)) {
+    return (
+      <OnboardingScreen
+        settings={settings}
+        availability={availabilityController.availability}
+        availabilitySaving={availabilityController.saving}
+        onUpdateSettings={updateSettings}
+        onSaveAccountProfile={saveAccountProfile}
+        onSaveAvailability={saveAvailability}
+        onProgress={account.updateOnboarding}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <WeekiSidebar inboxCount={inboxTasks.length} activeArea={activeArea} onNavigate={navigateArea} onInbox={() => { setActiveArea("week"); setInboxOpen(true); }} profileName={settings.profile.name} profileInitials={profileInitials} fiscalView={fiscalView} onFiscalNavigate={(view) => { setFiscalView(view); setActiveArea("fiscal"); }} />
@@ -270,6 +340,16 @@ export default function Home() {
           </div>
         </header>
 
+        {account.session?.onboarding.status === "skipped" && (
+          <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-2 text-[11px] text-amber-800 sm:px-6 lg:px-8">
+            <div className="mx-auto flex max-w-[1720px] flex-wrap items-center gap-2">
+              <span className="font-semibold">Configuração inicial incompleta.</span>
+              <span className="text-amber-700">Você pode continuar sem perder os dados já salvos.</span>
+              <button type="button" onClick={() => void account.updateOnboarding({ status: "in_progress", step: account.session?.onboarding.step === "done" ? "work" : account.session?.onboarding.step || "work" })} className="ml-auto font-semibold text-[#5d48dd]">Retomar configuração</button>
+            </div>
+          </div>
+        )}
+
         {activeArea === "clients" ? (
           <ClientsScreen
             clients={clients}
@@ -284,7 +364,7 @@ export default function Home() {
         ) : activeArea === "contracts" ? (
           <ContractsScreen clients={clients} tasks={tasks} settings={settings} controller={contracts} />
         ) : activeArea === "appointments" ? (
-          <AppointmentsScreen clients={clients} />
+          <AppointmentsScreen clients={clients} availability={availabilityController.availability} onConfigureAvailability={openAvailabilitySettings} />
         ) : activeArea === "finance" ? (
           <FinanceScreen clients={clients} />
         ) : activeArea === "billing" ? (
@@ -292,7 +372,21 @@ export default function Home() {
         ) : activeArea === "fiscal" && FISCAL_FLAGS.moduleEnabled ? (
           <FiscalScreen controller={fiscal} clients={clients} view={fiscalView} onViewChange={setFiscalView} onNavigateArea={navigateArea} />
         ) : activeArea === "settings" ? (
-          <SettingsScreen key={String(initialPayments)} initialPayments={initialPayments} settings={settings} onUpdateSettings={updateSettings} fiscalController={fiscal} />
+          <SettingsScreen
+            key={`${String(initialPayments)}-${initialSettingsView ?? "overview"}`}
+            initialPayments={initialPayments}
+            initialView={initialSettingsView}
+            settings={settings}
+            onUpdateSettings={updateSettings}
+            fiscalController={fiscal}
+            availability={availabilityController.availability}
+            availabilitySaving={availabilityController.saving}
+            onSaveAvailability={saveAvailability}
+            onSaveAccountProfile={saveAccountProfile}
+            authConfigured={account.authConfigured}
+            providers={account.session?.providers ?? []}
+            onLogout={account.logout}
+          />
         ) : (
         <div className="mx-auto flex max-w-[1720px] flex-col px-4 py-4 sm:px-6 lg:px-8" style={{ minHeight: "calc(100vh - 4rem)" }}>
           <div className="flex items-center justify-between gap-3">

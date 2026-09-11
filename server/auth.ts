@@ -13,11 +13,30 @@ import {
 import type { Scope } from "./payments/repository.js";
 import { authorize } from "./payments/repository.js";
 import { request } from "./payments/http.js";
+import type { AuthProviderId } from "../shared/account.js";
+import { upsertAuthProfile } from "./account/service.js";
 interface Discovery {
   issuer: string;
   authorization_endpoint: string;
   token_endpoint: string;
   jwks_uri: string;
+}
+interface LoginOptions {
+  callbackPath?: string;
+  returnTo?: string;
+  mode?: "login" | "signup";
+  provider?: AuthProviderId;
+  loginHint?: string;
+  nameHint?: string;
+  legalAccepted?: boolean;
+}
+interface CallbackSecret {
+  verifier: string;
+  nonce: string;
+  returnTo?: string;
+  provider?: AuthProviderId;
+  nameHint?: string;
+  legalAccepted?: boolean;
 }
 export function cookieValue(req: IncomingMessage, name: string) {
   return (
@@ -85,36 +104,77 @@ export class SessionAuth {
     await authorize(this.db, scope);
     return scope;
   }
-  async login(res: ServerResponse) {
+  private safeReturnTo(value?: string) {
+    if (!value) return "/";
+    try {
+      const url = new URL(value, this.origin);
+      if (url.origin !== this.origin) return "/";
+      return `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      return "/";
+    }
+  }
+  private providerHint(provider?: AuthProviderId) {
+    const hintParam = process.env.OIDC_PROVIDER_HINT_PARAM;
+    const hintValue =
+      provider === "google"
+        ? process.env.OIDC_GOOGLE_PROVIDER_HINT
+        : provider === "apple"
+          ? process.env.OIDC_APPLE_PROVIDER_HINT
+          : provider === "email"
+            ? process.env.OIDC_EMAIL_PROVIDER_HINT
+            : undefined;
+    return hintParam && hintValue ? { hintParam, hintValue } : null;
+  }
+  async login(res: ServerResponse, options: LoginOptions = {}) {
     const d = await this.discovery(),
       state = randomToken(),
       verifier = randomToken(),
       nonce = randomToken(),
       binding = randomToken();
+    const callbackPath = options.callbackPath || "/api/payments/auth/callback";
+    const secret: CallbackSecret = {
+      verifier,
+      nonce,
+      returnTo: this.safeReturnTo(options.returnTo),
+      provider: options.provider || "oidc",
+      nameHint: options.nameHint,
+      legalAccepted: Boolean(options.legalAccepted),
+    };
     await this.db.query(
       "INSERT INTO weeki_payments.oauth_states(state_hash,session_hash,provider,secret,expires_at) VALUES($1,$2,'oidc',$3,$4)",
       [
         hash(state),
         hash(binding),
-        seal({ verifier, nonce }, this.key, hash(state)),
+        seal(secret, this.key, hash(state)),
         new Date(Date.now() + 600000),
       ],
     );
     this.cookie(res, "weeki_login", binding, 600);
     const url = new URL(d.authorization_endpoint);
-    url.search = new URLSearchParams({
+    const params = new URLSearchParams({
       response_type: "code",
       client_id: process.env.OIDC_CLIENT_ID!,
-      redirect_uri: this.origin + "/api/payments/auth/callback",
+      redirect_uri: this.origin + callbackPath,
       scope: "openid email profile",
       state,
       nonce,
       code_challenge: challenge(verifier),
       code_challenge_method: "S256",
-    }).toString();
+    });
+    if (options.loginHint) params.set("login_hint", options.loginHint);
+    if (options.mode === "signup") params.set("screen_hint", "signup");
+    const providerHint = this.providerHint(options.provider);
+    if (providerHint) params.set(providerHint.hintParam, providerHint.hintValue);
+    url.search = params.toString();
     return url.href;
   }
-  async callback(req: IncomingMessage, res: ServerResponse, url: URL) {
+  async callback(
+    req: IncomingMessage,
+    res: ServerResponse,
+    url: URL,
+    options: { callbackPath?: string } = {},
+  ) {
     const state = url.searchParams.get("state") || "",
       code = url.searchParams.get("code");
     if (!state || !code) throw new PaymentError("INVALID_STATE", 400);
@@ -123,12 +183,13 @@ export class SessionAuth {
       [hash(state), hash(cookieValue(req, "weeki_login"))],
     );
     if (!result.rows[0]) throw new PaymentError("INVALID_STATE", 400);
-    const secret = unseal<{ verifier: string; nonce: string }>(
+    const secret = unseal<CallbackSecret>(
         result.rows[0].secret,
         this.key,
         hash(state),
       ),
       d = await this.discovery();
+    const callbackPath = options.callbackPath || "/api/payments/auth/callback";
     const tokens = await request<{ id_token: string }>(d.token_endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -137,7 +198,7 @@ export class SessionAuth {
         client_id: process.env.OIDC_CLIENT_ID!,
         client_secret: process.env.OIDC_CLIENT_SECRET!,
         code,
-        redirect_uri: this.origin + "/api/payments/auth/callback",
+        redirect_uri: this.origin + callbackPath,
         code_verifier: secret.verifier,
       }),
     });
@@ -159,13 +220,39 @@ export class SessionAuth {
     )
       throw new PaymentError("INVALID_STATE", 401);
     const session = randomToken();
+    let callbackResult = {
+      userId: "",
+      workspaceId: "",
+      returnTo: this.safeReturnTo(secret.returnTo),
+    };
     await this.db.transaction(async (sql) => {
-      const newUser = randomUUID();
-      const users = await sql.query<{ id: string }>(
-        "INSERT INTO weeki_payments.users(id,issuer,subject) VALUES($1,$2,$3) ON CONFLICT(issuer,subject) DO UPDATE SET subject=excluded.subject RETURNING id",
-        [newUser, d.issuer, payload.sub],
+      const email = typeof payload.email === "string" ? payload.email.toLocaleLowerCase("pt-BR") : "";
+      const name =
+        typeof payload.name === "string" && payload.name.trim()
+          ? payload.name.trim()
+          : secret.nameHint || "";
+      const avatarUrl = typeof payload.picture === "string" ? payload.picture : "";
+      const provider = secret.provider || "oidc";
+      const linkedProvider = await sql.query<{ user_id: string }>(
+        "SELECT user_id FROM weeki_payments.auth_providers WHERE issuer=$1 AND subject=$2 ORDER BY connected_at LIMIT 1",
+        [d.issuer, payload.sub],
       );
-      const userId = users.rows[0].id;
+      const linkedEmail =
+        !linkedProvider.rows[0] && email && payload.email_verified === true
+          ? await sql.query<{ user_id: string }>(
+              "SELECT user_id FROM weeki_payments.user_profiles WHERE lower(email)=lower($1) AND email_verified=true LIMIT 1",
+              [email],
+            )
+          : { rows: [] };
+      let userId = linkedProvider.rows[0]?.user_id || linkedEmail.rows[0]?.user_id;
+      if (!userId) {
+        const newUser = randomUUID();
+        const users = await sql.query<{ id: string }>(
+          "INSERT INTO weeki_payments.users(id,issuer,subject) VALUES($1,$2,$3) ON CONFLICT(issuer,subject) DO UPDATE SET subject=excluded.subject RETURNING id",
+          [newUser, d.issuer, payload.sub],
+        );
+        userId = users.rows[0].id;
+      }
       await sql.query(
         "SELECT id FROM weeki_payments.users WHERE id=$1 FOR UPDATE",
         [userId],
@@ -186,6 +273,16 @@ export class SessionAuth {
           [workspaceId, userId],
         );
       }
+      await upsertAuthProfile(sql, { userId, workspaceId }, {
+        provider,
+        issuer: d.issuer,
+        subject: String(payload.sub),
+        email,
+        emailVerified: payload.email_verified === true,
+        name,
+        avatarUrl,
+        legalAccepted: secret.legalAccepted,
+      });
       await sql.query(
         "INSERT INTO weeki_payments.sessions(token_hash,user_id,workspace_id,expires_at) VALUES($1,$2,$3,$4)",
         [
@@ -195,8 +292,10 @@ export class SessionAuth {
           new Date(Date.now() + 8 * 3600000),
         ],
       );
+      callbackResult = { userId, workspaceId, returnTo: this.safeReturnTo(secret.returnTo) };
     });
     this.cookie(res, "weeki_session", session, 8 * 3600);
+    return callbackResult;
   }
   async logout(req: IncomingMessage, res: ServerResponse) {
     await this.db.query(

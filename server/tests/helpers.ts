@@ -140,6 +140,7 @@ export async function fixture() {
   await pg.exec(await readFile("server/migrations/001_payments.sql", "utf8"));
   await pg.exec(await readFile("server/migrations/002_fiscal.sql", "utf8"));
   await pg.exec(await readFile("server/migrations/003_contracts.sql", "utf8"));
+  await pg.exec(await readFile("server/migrations/004_account_availability.sql", "utf8"));
   const wrap = (sql: Pick<PGlite, "query">): Sql => ({
     query: async <T>(text: string, values?: unknown[]) => ({
       rows: (await sql.query(text, values)).rows as T[],
