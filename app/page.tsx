@@ -25,6 +25,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppointmentsScreen } from "@/components/weeki/appointments-screen";
 import { BillingScreen } from "@/components/weeki/billing-screen";
 import { ClientsScreen } from "@/components/weeki/clients-screen";
+import { ContractsScreen } from "@/components/weeki/contracts-screen";
 import { FinanceScreen } from "@/components/weeki/finance-screen";
 import { FiscalAutomationDialog } from "@/components/fiscal/fiscal-automation-dialog";
 import { FiscalScreen, type FiscalView } from "@/components/fiscal/fiscal-screen";
@@ -35,6 +36,7 @@ import { TaskCard } from "@/components/weeki/task-card";
 import { TaskSheet } from "@/components/weeki/task-sheet";
 import { WeekBoard, type WeekLayoutMode, type WeekViewMode } from "@/components/weeki/week-board";
 import { useWeekiClients } from "@/features/clients/use-weeki-clients";
+import { useWeekiContracts } from "@/features/contracts/use-weeki-contracts";
 import { publishServiceCompleted } from "@/features/fiscal/events";
 import { FISCAL_FLAGS } from "@/features/fiscal/config";
 import { useWeekiFiscal } from "@/features/fiscal/use-weeki-fiscal";
@@ -48,6 +50,7 @@ const subscribeToHydration = () => () => undefined;
 const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   week: { group: "Planejamento", page: "Minha Semana" },
   clients: { group: "Relacionamento", page: "Clientes" },
+  contracts: { group: "Relacionamento", page: "Contratos" },
   appointments: { group: "Atendimentos", page: "Agenda" },
   finance: { group: "Gestão", page: "Financeiro" },
   billing: { group: "Gestão", page: "Cobranças" },
@@ -58,6 +61,7 @@ const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
 export default function Home() {
   const { tasks, addTask, updateTask, moveTask, assignTaskClient, toggleComplete, duplicateTask, archiveTask } = useWeekiTasks();
   const { clients, addClient, updateClient } = useWeekiClients();
+  const contracts = useWeekiContracts();
   const fiscal = useWeekiFiscal(clients);
   const { settings, updateSettings } = useWeekiSettings();
   const [activeArea, setActiveArea] = useState<WeekiArea>("week");
@@ -270,12 +274,15 @@ export default function Home() {
           <ClientsScreen
             clients={clients}
             tasks={tasks}
+            contracts={contracts.contracts}
             onAddClient={addClient}
             onUpdateClient={updateClient}
             onNewTask={(clientId) => openNewTask(todayKey, "", clientId)}
             onOpenTask={openTask}
             onToggleTask={handleToggleComplete}
           />
+        ) : activeArea === "contracts" ? (
+          <ContractsScreen clients={clients} tasks={tasks} settings={settings} controller={contracts} />
         ) : activeArea === "appointments" ? (
           <AppointmentsScreen clients={clients} />
         ) : activeArea === "finance" ? (

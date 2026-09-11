@@ -4,7 +4,8 @@
     "./**/*.ts",
     "../shared/payments.ts",
     "../shared/fiscal.ts",
-    "../shared/fiscal-validation.ts"
+    "../shared/fiscal-validation.ts",
+    "../shared/contracts.ts"
   ],
   "exclude": []
 }

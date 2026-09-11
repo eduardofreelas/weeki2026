@@ -13,7 +13,8 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - pagamentos conectados após ativação explícita do backend e homologação externa.
 - central profissional de Configurações, acessível no desktop, mobile e busca rápida;
 - módulo Fiscal/NFS-e em sandbox visual, com perfil, serviços, emissão assistida, notas e histórico;
-- backend Fiscal desacoplado e seguro, com a integração nacional real em standby.
+- backend Fiscal desacoplado e seguro, com a integração nacional real em standby;
+- módulo Contratos com criação progressiva, modelos, snapshots, versões, editor, PDF backend, IA server-side e arquitetura Clicksign em standby até credenciais.
 
 ## Arquitetura
 
@@ -24,7 +25,7 @@ components/weeki/    telas e widgets do produto
 features/*/          tipos, seed e hooks de persistência local
 lib/                 cn, formatadores BR, sanitização
 public/              favicon e .htaccess (Hostinger)
-shared/              contratos compartilhados de pagamentos e Fiscal
+shared/              contratos compartilhados de pagamentos, Fiscal e Contratos
 server/              API, autenticação, migrations, providers, webhooks e workers
 ```
 
@@ -32,7 +33,7 @@ Os módulos anteriores ainda usam hooks `use-weeki-*.ts` e chaves `weeki.*.v1`. 
 
 ### Variáveis de ambiente
 
-Nenhuma é necessária para executar o protótipo estático. Sem configuração, Pagamentos e Fiscal abrem em modo visual, não fazem chamadas externas e não simulam conexões, notas autorizadas ou documentos. O backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
+Nenhuma é necessária para executar o protótipo estático. Sem configuração, Pagamentos, Fiscal e Contratos abrem em modo visual/local, não fazem chamadas externas e não simulam conexões, notas autorizadas, assinatura eletrônica ou documentos finais assinados. O backend exige as variáveis privadas listadas em `.env.example`. Nunca use prefixo `NEXT_PUBLIC_` para secrets nem versione um `.env` preenchido.
 
 ### Design system
 
@@ -69,6 +70,7 @@ npm run start:payments
 - anexos são metadados, sem armazenamento de objetos;
 - pagamentos dependem de PostgreSQL, OIDC, HTTPS e credenciais sandbox configurados externamente;
 - emissão NFS-e real depende de credenciamento, documentação oficial fixada, certificado em KMS/Vault e homologação;
+- IA e assinatura de contratos dependem de OpenAI, Clicksign sandbox, segredo de webhook e homologação;
 - os itens Início, Demandas, Relatórios, Arquivados e Ajuda permanecem “Em breve”.
 
 ## Pagamentos multiprovider
@@ -80,3 +82,7 @@ Para ativação, siga a [checklist externa](docs/payments-external-checklist.md)
 ## Fiscal / NFS-e
 
 A arquitetura, os estados, as rotas, a migration, os controles de idempotência e tudo que permanece em standby estão em [docs/fiscal.md](docs/fiscal.md). Leia também a [auditoria de preservação](docs/fiscal-audit.md) e a [checklist externa de homologação](docs/fiscal-external-checklist.md).
+
+## Contratos
+
+A arquitetura, endpoints, variáveis, estados, migration, IA e assinatura eletrônica estão em [docs/contracts.md](docs/contracts.md). Para ativação real, siga a [checklist externa](docs/contracts-external-checklist.md) e o [registro de validação](docs/contracts-validation.md).

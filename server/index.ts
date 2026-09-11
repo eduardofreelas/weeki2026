@@ -10,6 +10,9 @@ import { paymentApi, json } from "./api.js";
 import { FiscalService } from "./fiscal/service.js";
 import { fiscalProviders } from "./fiscal/registry.js";
 import { fiscalApi } from "./fiscal/api.js";
+import { ContractService } from "./contracts/service.js";
+import { signatureProviders } from "./contracts/registry.js";
+import { contractApi } from "./contracts/api.js";
 const conf = config(),
   db = database(conf.databaseUrl),
   registry = providers(conf),
@@ -22,6 +25,12 @@ const api = paymentApi(
 );
 const fiscal = fiscalApi(
   new FiscalService(db, fiscalProviders().get("national_nfse")),
+  new SessionAuth(db, conf.origin, conf.key),
+  conf.origin,
+);
+const contractsService = new ContractService(db, signatureProviders());
+const contracts = contractApi(
+  contractsService,
   new SessionAuth(db, conf.origin, conf.key),
   conf.origin,
 );
@@ -38,6 +47,7 @@ const root = resolve("out"),
   };
 const server = createServer(async (req, res) => {
   try {
+    if (await contracts(req, res)) return;
     if (await fiscal(req, res)) return;
     if (await api(req, res)) return;
   } catch {
@@ -96,6 +106,22 @@ const interval = setInterval(async () => {
     running = false;
   }
 }, 2000);
+let contractSyncing = false;
+const contractsInterval = setInterval(async () => {
+  if (contractSyncing) return;
+  contractSyncing = true;
+  try {
+    for (let i = 0; i < 10; i++) {
+      if (!(await contractsService.processNextWebhook())) break;
+    }
+  } catch {
+    console.error(
+      JSON.stringify({ event: "contracts.webhook_worker.failed", code: "CONTRACT_INTERNAL" }),
+    );
+  } finally {
+    contractSyncing = false;
+  }
+}, 2000);
 let syncing = false;
 const syncInterval = setInterval(async () => {
   if (syncing) return;
@@ -112,6 +138,7 @@ const syncInterval = setInterval(async () => {
 }, 60000);
 process.on("SIGTERM", () => {
   clearInterval(interval);
+  clearInterval(contractsInterval);
   clearInterval(syncInterval);
   server.close(() => void db.close());
 });

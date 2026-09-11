@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, CirclePlus, FileCheck2, Inbox, Search, Settings, UserRound } from "lucide-react";
+import { CalendarDays, CheckCircle2, CirclePlus, FileCheck2, FileSignature, Inbox, Search, Settings, UserRound } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -49,6 +49,7 @@ export function WeekiCommandPalette({
           <CommandItem onSelect={() => run(() => onCreate(new Date().toISOString().slice(0, 10)))}><CirclePlus /> Criar demanda para hoje <CommandShortcut>N</CommandShortcut></CommandItem>
           <CommandItem onSelect={() => run(() => onCreate(null))}><Inbox /> Capturar na Caixa de Entrada</CommandItem>
           <CommandItem onSelect={() => run(onToday)}><CalendarDays /> Ir para a semana atual</CommandItem>
+          <CommandItem onSelect={() => run(() => onNavigate("contracts"))}><FileSignature /> Abrir Contratos</CommandItem>
           {FISCAL_FLAGS.moduleEnabled && <CommandItem onSelect={() => run(() => onNavigate("fiscal"))}><FileCheck2 /> Abrir módulo Fiscal</CommandItem>}
           <CommandItem onSelect={() => run(() => onNavigate("settings"))}><Settings /> Abrir Configurações</CommandItem>
         </CommandGroup>

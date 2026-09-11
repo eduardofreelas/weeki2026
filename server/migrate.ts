@@ -13,6 +13,7 @@ try {
     for (const migration of [
       { version: "001", file: "server/migrations/001_payments.sql" },
       { version: "002_fiscal", file: "server/migrations/002_fiscal.sql" },
+      { version: "003_contracts", file: "server/migrations/003_contracts.sql" },
     ]) {
       const applied = await sql.query(
         "SELECT version FROM public.weeki_payment_migrations WHERE version=$1",

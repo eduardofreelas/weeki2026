@@ -9,6 +9,7 @@ import {
   ChevronDown,
   CircleHelp,
   FileCheck2,
+  FileSignature,
   FilePlus2,
   Files,
   Inbox,
@@ -29,6 +30,7 @@ const primaryItems = [
   { label: "Minha Semana", icon: CalendarDays, area: "week" as const },
   { label: "Demandas", icon: ListTodo },
   { label: "Clientes", icon: Users, area: "clients" as const },
+  { label: "Contratos", icon: FileSignature, area: "contracts" as const },
   { label: "Agendamentos", icon: CalendarClock, area: "appointments" as const },
   { label: "Financeiro", icon: WalletCards, area: "finance" as const },
   { label: "Cobranças", icon: ReceiptText, area: "billing" as const },
@@ -40,7 +42,7 @@ const secondaryItems = [
   { label: "Arquivados", icon: Archive },
 ];
 
-export type WeekiArea = "week" | "clients" | "appointments" | "finance" | "billing" | "fiscal" | "settings";
+export type WeekiArea = "week" | "clients" | "contracts" | "appointments" | "finance" | "billing" | "fiscal" | "settings";
 export type FiscalSidebarView = "overview" | "notes" | "issue" | "settings";
 
 export function WeekiSidebar({ inboxCount, activeArea, onNavigate, onInbox, profileName, profileInitials, fiscalView = "overview", onFiscalNavigate }: { inboxCount: number; activeArea: WeekiArea; onNavigate: (area: WeekiArea) => void; onInbox?: () => void; profileName: string; profileInitials: string; fiscalView?: FiscalSidebarView; onFiscalNavigate?: (view: FiscalSidebarView) => void }) {
@@ -120,14 +122,15 @@ export function MobileNavigation({ activeArea, onNavigate }: { activeArea: Weeki
   const main = [
     { label: "Semana", icon: CalendarDays, area: "week" as const },
     { label: "Clientes", icon: Users, area: "clients" as const },
-    { label: "Fiscal", icon: FileCheck2, area: "fiscal" as const },
+    { label: "Contratos", icon: FileSignature, area: "contracts" as const },
     { label: "Config.", icon: Settings, area: "settings" as const },
-  ].filter((item) => item.area !== "fiscal" || FISCAL_FLAGS.moduleEnabled);
+  ];
   const more = [
     { label: "Agendamentos", description: "Agenda e disponibilidade", icon: CalendarClock, area: "appointments" as const },
     { label: "Financeiro", description: "Receitas e despesas", icon: WalletCards, area: "finance" as const },
     { label: "Cobranças", description: "Links e recebimentos", icon: ReceiptText, area: "billing" as const },
-  ];
+    { label: "Fiscal", description: "Notas fiscais e automação", icon: FileCheck2, area: "fiscal" as const },
+  ].filter((item) => item.area !== "fiscal" || FISCAL_FLAGS.moduleEnabled);
   const moreActive = more.some((item) => item.area === activeArea);
   const navigate = (area: WeekiArea) => {
     setMoreOpen(false);

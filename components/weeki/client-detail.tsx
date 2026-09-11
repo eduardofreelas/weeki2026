@@ -13,6 +13,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileSignature,
   FileSpreadsheet,
   FileText,
   FolderOpen,
@@ -35,9 +36,14 @@ import type { Client } from "@/features/clients/types";
 import { CLIENT_KIND_LABELS, CLIENT_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/features/clients/types";
 import type { Task } from "@/features/tasks/types";
 import { STATUS_LABELS } from "@/features/tasks/types";
+import {
+  CONTRACT_SIGNATURE_STATUS_LABELS,
+  CONTRACT_STATUS_LABELS,
+  type WeekiContract,
+} from "@/shared/contracts";
 import { cn } from "@/lib/utils";
 
-type DetailTab = "overview" | "files" | "finance";
+type DetailTab = "overview" | "files" | "finance" | "contracts";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -63,6 +69,7 @@ const paymentStyles = {
 export function ClientDetail({
   client,
   tasks,
+  contracts = [],
   onBack,
   onEdit,
   onNewTask,
@@ -71,6 +78,7 @@ export function ClientDetail({
 }: {
   client: Client;
   tasks: Task[];
+  contracts?: WeekiContract[];
   onBack: () => void;
   onEdit: () => void;
   onNewTask: () => void;
@@ -83,6 +91,9 @@ export function ClientDetail({
     .sort((a, b) => `${a.scheduledDate ?? "9999"}${a.scheduledTime}`.localeCompare(`${b.scheduledDate ?? "9999"}${b.scheduledTime}`)), [client.id, tasks]);
   const completedTasks = clientTasks.filter((task) => task.status === "completed").length;
   const progress = clientTasks.length ? Math.round((completedTasks / clientTasks.length) * 100) : 0;
+  const clientContracts = useMemo(() => contracts
+    .filter((contract) => contract.clientId === client.id)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [client.id, contracts]);
 
   const copy = async (value: string, label: string) => {
     if (!value) return;
@@ -97,6 +108,7 @@ export function ClientDetail({
   const tabs = [
     { value: "overview" as const, label: "Visão geral & demandas", count: clientTasks.length, icon: BriefcaseBusiness },
     { value: "files" as const, label: "Arquivos & links", count: client.files.length + client.links.length, icon: FolderOpen },
+    { value: "contracts" as const, label: "Contratos", count: clientContracts.length, icon: FileSignature },
     { value: "finance" as const, label: "Financeiro & contrato", icon: WalletCards },
   ];
 
@@ -168,6 +180,8 @@ export function ClientDetail({
             </section>
           )}
 
+          {(tab === "overview" || tab === "contracts") && <ContractsPanel contracts={clientContracts} compact={tab === "overview"} />}
+
           {(tab === "overview" || tab === "files") && (
             <>
               <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
@@ -221,6 +235,37 @@ export function ClientDetail({
 
 function PaperclipIcon() {
   return <FileSpreadsheet className="size-4 text-[#6550e1]" />;
+}
+
+function ContractsPanel({ contracts, compact = false }: { contracts: WeekiContract[]; compact?: boolean }) {
+  return (
+    <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900"><FileSignature className="size-4 text-[#6550e1]" /> Contratos</h2>
+          <p className="mt-0.5 text-[11px] text-slate-400">Status, vigência, documentos e histórico preservado do cliente.</p>
+        </div>
+        <span className="rounded-md bg-[#f1efff] px-2 py-1 text-[10px] font-semibold text-[#6548df]">{contracts.length} vinculados</span>
+      </div>
+      <div className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-100">
+        {contracts.length ? contracts.slice(0, compact ? 3 : undefined).map((contract) => (
+          <article key={contract.id} className="grid gap-3 bg-white px-3 py-3 md:grid-cols-[minmax(0,1.4fr)_130px_150px_1fr] md:items-center">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-slate-800">{contract.title}</p>
+              <p className="mt-0.5 text-[10px] text-slate-400">{contract.number} - versão {contract.versions[0]?.version ?? 1}</p>
+            </div>
+            <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{CONTRACT_STATUS_LABELS[contract.contractStatus]}</span>
+            <span className="rounded-md bg-[#f0edff] px-2 py-1 text-[10px] font-semibold text-[#6548df]">{CONTRACT_SIGNATURE_STATUS_LABELS[contract.signatureStatus]}</span>
+            <div className="text-[10px] leading-4 text-slate-500">
+              <p>{contract.terms.startDate || "-"} até {contract.terms.endDate || "indeterminado"}</p>
+              <p>{contract.documents.length} documentos - {contract.events.length} eventos</p>
+            </div>
+          </article>
+        )) : <div className="grid min-h-24 place-items-center px-4 text-center"><div><FileSignature className="mx-auto size-5 text-slate-300" /><p className="mt-2 text-xs font-medium text-slate-500">Nenhum contrato vinculado</p><p className="mt-1 text-[11px] text-slate-400">Crie um contrato no módulo Contratos para reutilizar este cliente.</p></div></div>}
+      </div>
+      {compact && contracts.length > 3 && <p className="mt-3 text-[11px] font-medium text-slate-500">{contracts.length - 3} contratos adicionais na aba Contratos.</p>}
+    </section>
+  );
 }
 
 function ContactRow({ icon: Icon, label, value, action }: { icon: typeof Mail; label: string; value: string; action?: React.ReactNode }) {
