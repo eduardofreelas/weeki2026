@@ -33,6 +33,8 @@ export interface Appointment {
   title: string;
   typeId: string;
   clientId: string | null;
+  serviceId?: string | null;
+  engagementId?: string | null;
   guestName: string;
   guestEmail: string;
   guestPhone: string;

@@ -152,3 +152,5 @@ export function useWeekiBilling() {
 
   return { charges, gatewaySettings, setGatewaySettings, addCharge, updateCharge, setChargeStatus, registerDispatch, extendDueDate };
 }
+
+export type WeekiBillingController = ReturnType<typeof useWeekiBilling>;

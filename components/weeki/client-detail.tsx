@@ -35,6 +35,8 @@ import { Button } from "@/components/ui/button";
 import type { Client } from "@/features/clients/types";
 import { CLIENT_KIND_LABELS, CLIENT_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/features/clients/types";
 import type { Task } from "@/features/tasks/types";
+import type { Engagement, Quote } from "@/features/operations/types";
+import { ENGAGEMENT_STATUS_LABELS, QUOTE_STATUS_LABELS, quoteSubtotal } from "@/features/operations/types";
 import { STATUS_LABELS } from "@/features/tasks/types";
 import {
   CONTRACT_SIGNATURE_STATUS_LABELS,
@@ -70,6 +72,8 @@ export function ClientDetail({
   client,
   tasks,
   contracts = [],
+  engagements = [],
+  quotes = [],
   onBack,
   onEdit,
   onNewTask,
@@ -79,6 +83,8 @@ export function ClientDetail({
   client: Client;
   tasks: Task[];
   contracts?: WeekiContract[];
+  engagements?: Engagement[];
+  quotes?: Quote[];
   onBack: () => void;
   onEdit: () => void;
   onNewTask: () => void;
@@ -94,6 +100,8 @@ export function ClientDetail({
   const clientContracts = useMemo(() => contracts
     .filter((contract) => contract.clientId === client.id)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [client.id, contracts]);
+  const clientEngagements = engagements.filter((item) => item.clientId === client.id);
+  const clientQuotes = quotes.filter((item) => item.clientId === client.id);
 
   const copy = async (value: string, label: string) => {
     if (!value) return;
@@ -179,6 +187,8 @@ export function ClientDetail({
               <button type="button" onClick={onNewTask} className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-[#f1f2ff] text-xs font-medium text-slate-600 transition hover:bg-[#e9eaff] hover:text-[#5742db]"><Plus className="size-3.5" /> Adicionar demanda para {client.name}</button>
             </section>
           )}
+
+          {tab === "overview" && <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5"><div className="flex items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900"><BriefcaseBusiness className="size-4 text-[#6548df]" /> Operação comercial</h2><p className="mt-0.5 text-[11px] text-slate-400">Atendimentos e orçamentos relacionados a este cliente.</p></div><span className="text-[10px] text-slate-400">{clientEngagements.length} atendimento(s)</span></div><div className="mt-4 space-y-2">{clientEngagements.map((engagement) => <div key={engagement.id} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5"><span className="size-2 rounded-full bg-[#6548df]" /><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-semibold text-slate-700">{engagement.name}</span><span className="mt-0.5 block text-[10px] text-slate-400">{ENGAGEMENT_STATUS_LABELS[engagement.status]} · {currency.format(engagement.value)}</span></span></div>)}{clientQuotes.map((quote) => <div key={quote.id} className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 px-3 py-2.5"><FileText className="size-3.5 text-slate-400" /><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-semibold text-slate-700">{quote.number}</span><span className="mt-0.5 block text-[10px] text-slate-400">{QUOTE_STATUS_LABELS[quote.status]} · {currency.format(quoteSubtotal(quote))}</span></span></div>)}{!clientEngagements.length && !clientQuotes.length && <p className="rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-[11px] text-slate-400">Nenhum atendimento ou orçamento relacionado ainda.</p>}</div></section>}
 
           {(tab === "overview" || tab === "contracts") && <ContractsPanel contracts={clientContracts} compact={tab === "overview"} />}
 

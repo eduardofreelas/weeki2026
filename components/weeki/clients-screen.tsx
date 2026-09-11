@@ -28,6 +28,7 @@ import type { Client, ClientDraft, ClientStatus } from "@/features/clients/types
 import { CLIENT_STATUS_LABELS } from "@/features/clients/types";
 import type { WeekiContract } from "@/shared/contracts";
 import type { Task } from "@/features/tasks/types";
+import type { Engagement, Quote } from "@/features/operations/types";
 import { cn } from "@/lib/utils";
 
 type ClientScreenView = "list" | "new" | "detail" | "edit";
@@ -46,6 +47,8 @@ export function ClientsScreen({
   clients,
   tasks,
   contracts = [],
+  engagements = [],
+  quotes = [],
   onAddClient,
   onUpdateClient,
   onNewTask,
@@ -55,6 +58,8 @@ export function ClientsScreen({
   clients: Client[];
   tasks: Task[];
   contracts?: WeekiContract[];
+  engagements?: Engagement[];
+  quotes?: Quote[];
   onAddClient: (draft: ClientDraft) => Client;
   onUpdateClient: (id: string, draft: ClientDraft) => Client | null;
   onNewTask: (clientId: string) => void;
@@ -149,7 +154,7 @@ export function ClientsScreen({
 
   if (view === "new") return <ClientForm onCancel={() => setView("list")} onSave={saveClient} />;
   if (view === "edit" && selectedClient) return <ClientForm key={selectedClient.updatedAt} client={selectedClient} onCancel={() => setView("detail")} onSave={saveClient} />;
-  if (view === "detail" && selectedClient) return <ClientDetail client={selectedClient} tasks={tasks} contracts={contracts} onBack={() => setView("list")} onEdit={() => setView("edit")} onNewTask={() => onNewTask(selectedClient.id)} onOpenTask={onOpenTask} onToggleTask={onToggleTask} />;
+  if (view === "detail" && selectedClient) return <ClientDetail client={selectedClient} tasks={tasks} contracts={contracts} engagements={engagements} quotes={quotes} onBack={() => setView("list")} onEdit={() => setView("edit")} onNewTask={() => onNewTask(selectedClient.id)} onOpenTask={onOpenTask} onToggleTask={onToggleTask} />;
 
   const statuses: Array<{ value: ClientStatus | "all"; label: string; count: number }> = [
     { value: "all", label: "Todos", count: counts.all },

@@ -21,6 +21,8 @@ export interface Task {
   title: string;
   description: string;
   clientId: string | null;
+  serviceId?: string | null;
+  engagementId?: string | null;
   status: TaskStatus;
   priority: TaskPriority;
   scheduledDate: string | null;

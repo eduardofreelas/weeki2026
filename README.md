@@ -16,6 +16,7 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - backend Fiscal desacoplado e seguro, com a integração nacional real em standby;
 - módulo Contratos com criação progressiva, modelos, snapshots, versões, editor, PDF backend, IA server-side e arquitetura Clicksign em standby até credenciais.
 - base autenticada de conta, onboarding e disponibilidade, reaproveitando OIDC, sessão HttpOnly e workspace quando o backend estiver habilitado.
+- operação V1 conectada com dashboard, atendimentos, serviços, oportunidades, orçamentos, tarefas padrão, ciclos, entregas e apontamento manual de tempo.
 
 ## Arquitetura
 
@@ -72,7 +73,7 @@ npm run start:payments
 - pagamentos dependem de PostgreSQL, OIDC, HTTPS e credenciais sandbox configurados externamente;
 - emissão NFS-e real depende de credenciamento, documentação oficial fixada, certificado em KMS/Vault e homologação;
 - IA e assinatura de contratos dependem de OpenAI, Clicksign sandbox, segredo de webhook e homologação;
-- os itens Início, Demandas, Relatórios, Arquivados e Ajuda permanecem “Em breve”.
+- a persistência de tarefas, clientes e operação permanece local enquanto a migração multi-tenant dessas áreas não for ativada no backend.
 
 ## Conta, onboarding e disponibilidade
 

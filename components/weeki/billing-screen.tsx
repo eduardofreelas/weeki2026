@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { Client } from "@/features/clients/types";
 import { BILLING_METHOD_LABELS, BILLING_STATUS_LABELS, type BillingCharge, type BillingChargeDraft, type BillingGatewaySettings, type BillingMethod, type BillingStatus } from "@/features/billing/types";
-import { useWeekiBilling } from "@/features/billing/use-weeki-billing";
+import { useWeekiBilling, type WeekiBillingController } from "@/features/billing/use-weeki-billing";
 import { cn } from "@/lib/utils";
 import { BillingChargeDetail } from "./billing-charge-detail";
 import { BillingChargeForm } from "./billing-charge-form";
@@ -26,12 +26,13 @@ type Period = "month" | "quarter" | "all";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export function BillingScreen({ clients, onPayments }: { clients: Client[]; onPayments: () => void }) {
-  return <ConnectedCharges clients={clients} onSettings={onPayments} legacy={<LocalBillingScreen clients={clients} />} />;
+export function BillingScreen({ clients, onPayments, controller }: { clients: Client[]; onPayments: () => void; controller?: WeekiBillingController }) {
+  return <ConnectedCharges clients={clients} onSettings={onPayments} legacy={<LocalBillingScreen clients={clients} controller={controller} />} />;
 }
 
-function LocalBillingScreen({ clients }: { clients: Client[] }) {
-  const { charges, gatewaySettings: storedGatewaySettings, setGatewaySettings, addCharge, updateCharge, setChargeStatus, registerDispatch, extendDueDate } = useWeekiBilling();
+function LocalBillingScreen({ clients, controller }: { clients: Client[]; controller?: WeekiBillingController }) {
+  const localController = useWeekiBilling();
+  const { charges, gatewaySettings: storedGatewaySettings, setGatewaySettings, addCharge, updateCharge, setChargeStatus, registerDispatch, extendDueDate } = controller ?? localController;
   const gatewaySettings = { ...storedGatewaySettings, connected: false };
   const [mode, setMode] = useState<BillingMode>("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);

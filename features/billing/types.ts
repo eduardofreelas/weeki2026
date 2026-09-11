@@ -15,6 +15,7 @@ export interface BillingCharge {
   id: string;
   code: string;
   clientId: string;
+  engagementId?: string | null;
   description: string;
   amount: number;
   dueDate: string;
