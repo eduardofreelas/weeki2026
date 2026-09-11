@@ -16,12 +16,13 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - backend Fiscal desacoplado e seguro, com a integração nacional real em standby;
 - módulo Contratos com criação progressiva, modelos, snapshots, versões, editor, PDF backend, IA server-side e arquitetura Clicksign em standby até credenciais.
 - base autenticada de conta, onboarding e disponibilidade, reaproveitando OIDC, sessão HttpOnly e workspace quando o backend estiver habilitado.
-- operação V1 conectada com dashboard, atendimentos, serviços, oportunidades, orçamentos, tarefas padrão, ciclos, entregas e apontamento manual de tempo.
+- módulo de Orçamentos como área comercial principal, com itens salvos internos, PDF, Excel, link público, aceite, histórico, revisões e conversão para cobrança, contrato ou atendimento.
+- operação V1 conectada com dashboard, atendimentos, oportunidades, tarefas padrão, ciclos, entregas e apontamento manual de tempo.
 
 ## Arquitetura
 
 ```text
-app/                 rotas (home SPA + /agendar)
+app/                 rotas (home SPA + /agendar + /orcamento)
 components/ui/       primitivos shadcn (Button, Input, Dialog, Sheet…)
 components/weeki/    telas e widgets do produto
 features/*/          tipos, seed e hooks de persistência local

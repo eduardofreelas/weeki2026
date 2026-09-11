@@ -1,4 +1,4 @@
-# Operação de serviços — fechamento funcional V1
+# Operação de atendimentos — fechamento funcional V1
 
 O módulo de Operação concentra as entidades que conectam a rotina de um prestador de serviços sem criar um CRM genérico:
 
@@ -8,7 +8,7 @@ Oportunidade → Orçamento → Atendimento → Tarefas / Entregas / Horas → C
 
 ## Entidades
 
-- **Serviço**: modelo operacional com preço, unidade, recorrência, prazo, dados fiscais básicos e tarefas padrão.
+- **Item salvo**: catálogo interno reaproveitado pelos orçamentos, atendimentos, contratos e Fiscal/NFS-e. Ele preserva a estrutura técnica anterior de serviços, mas não aparece como módulo principal.
 - **Oportunidade**: registro comercial leve, com origem, próxima ação, valor estimado e status.
 - **Orçamento**: itens, quantidade, preço unitário, desconto, acréscimo, validade, prazo, condições e status.
 - **Atendimento**: registro central do serviço prestado para um cliente, com responsável, datas, valor, recorrência e vínculos para evolução futura.
@@ -24,11 +24,11 @@ Quando a aplicação autenticada for migrada para o backend, essa fronteira pode
 
 ## Fluxos fechados
 
-1. Criar serviço e suas tarefas padrão.
-2. Criar oportunidade e convertê-la em cliente, evitando duplicidade por e-mail ou nome.
-3. Criar orçamento para cliente/oportunidade, aprovar e gerar atendimento.
-4. Criar automaticamente tarefas padrão ao iniciar um atendimento.
+1. Criar oportunidade e convertê-la em cliente, evitando duplicidade por e-mail ou nome.
+2. Criar orçamento com itens livres ou itens salvos do catálogo interno.
+3. Aprovar orçamento e gerar cobrança, contrato ou atendimento.
+4. Criar automaticamente tarefas padrão ao iniciar um atendimento quando houver item salvo com esse padrão.
 5. Acompanhar progresso, ciclos, entregas e tempo no atendimento.
-6. Navegar do dashboard para cobranças, financeiro, comercial e Minha Semana.
+6. Navegar do dashboard para orçamentos, cobranças, financeiro, comercial e Minha Semana.
 
 Integrações reais de cobrança, NFS-e, assinatura e IA continuam respeitando o modo standby já documentado nos módulos server-first existentes.

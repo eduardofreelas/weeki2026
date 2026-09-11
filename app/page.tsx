@@ -59,6 +59,7 @@ import {
 import { OnboardingScreen } from "@/components/weeki/onboarding-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { OperationsScreen } from "@/components/weeki/operations-screen";
+import { QuotesScreen } from "@/components/weeki/quotes-screen";
 import { ReportsScreen } from "@/components/weeki/reports-screen";
 import {
   MobileNavigation,
@@ -88,10 +89,12 @@ import {
 import { useWeekiAvailability } from "@/features/availability/use-weeki-availability";
 import { useWeekiReports } from "@/features/reports/use-weeki-reports";
 import { useWeekiOperations } from "@/features/operations/use-weeki-operations";
+import { quoteTotal } from "@/features/operations/types";
 import type {
   Engagement,
   Opportunity,
   OperationsView,
+  Quote,
   Service,
 } from "@/features/operations/types";
 import {
@@ -104,17 +107,27 @@ import {
 } from "@/features/tasks/types";
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { useWeekiSettings } from "@/features/settings/use-weeki-settings";
+import { createId } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { ContractDraftInput } from "@/shared/contracts";
 
 const initialWeek = () => startOfWeek(new Date(), { weekStartsOn: 1 });
 const subscribeToHydration = () => () => undefined;
+const stripQuoteHtml = (value: string) =>
+  value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>|<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   dashboard: { group: "Visão geral", page: "Início" },
   week: { group: "Planejamento", page: "Minha Semana" },
   engagements: { group: "Trabalho", page: "Atendimentos" },
   clients: { group: "Relacionamento", page: "Clientes" },
-  commercial: { group: "Comercial", page: "Oportunidades e orçamentos" },
-  services: { group: "Comercial", page: "Serviços" },
+  quotes: { group: "Comercial", page: "Orçamentos" },
+  commercial: { group: "Comercial", page: "Oportunidades" },
   contracts: { group: "Relacionamento", page: "Contratos" },
   appointments: { group: "Atendimentos", page: "Agenda" },
   reports: { group: "Relacionamento", page: "Relatórios" },
@@ -154,7 +167,7 @@ export default function Home() {
     useState<OperationsView>("engagements");
   const [initialPayments, setInitialPayments] = useState(false);
   const [initialSettingsView, setInitialSettingsView] = useState<
-    "availability" | "payments" | undefined
+    "availability" | "payments" | "quotes" | undefined
   >();
   const [fiscalView, setFiscalView] = useState<FiscalView>("overview");
   useEffect(() => {
@@ -163,8 +176,8 @@ export default function Home() {
     if (
       area === "dashboard" ||
       area === "engagements" ||
+      area === "quotes" ||
       area === "commercial" ||
-      area === "services" ||
       area === "billing" ||
       area === "settings" ||
       area === "reports" ||
@@ -173,25 +186,17 @@ export default function Home() {
       // Restore the target after an authenticated provider callback.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveArea(area);
-      if (
-        area === "commercial" ||
-        area === "services" ||
-        area === "engagements"
-      )
-        setOperationsView(
-          area === "commercial"
-            ? "commercial"
-            : area === "services"
-              ? "services"
-              : "engagements",
-        );
+      if (area === "commercial" || area === "engagements")
+        setOperationsView(area === "commercial" ? "commercial" : "engagements");
       setInitialPayments(params.get("section") === "payments");
       setInitialSettingsView(
         params.get("section") === "availability"
           ? "availability"
           : params.get("section") === "payments"
             ? "payments"
-            : undefined,
+            : params.get("section") === "quotes"
+              ? "quotes"
+              : undefined,
       );
       if (area === "fiscal") {
         const section = params.get("section");
@@ -214,18 +219,8 @@ export default function Home() {
       setInitialPayments(false);
       setInitialSettingsView(undefined);
     }
-    if (
-      area === "engagements" ||
-      area === "commercial" ||
-      area === "services"
-    ) {
-      setOperationsView(
-        area === "commercial"
-          ? "commercial"
-          : area === "services"
-            ? "services"
-            : "engagements",
-      );
+    if (area === "engagements" || area === "commercial") {
+      setOperationsView(area === "commercial" ? "commercial" : "engagements");
     }
     setActiveArea(area);
   }, []);
@@ -549,6 +544,232 @@ export default function Home() {
     [addClient, clients, navigateArea, operations],
   );
 
+  const createBillingFromQuote = useCallback(
+    (quote: Quote) => {
+      if (!quote.clientId) {
+        toast.error("Vincule um cliente antes de criar a cobrança.");
+        return null;
+      }
+      return billing.addCharge(
+        {
+          clientId: quote.clientId,
+          engagementId: quote.engagementId ?? null,
+          description: quote.title || quote.description || quote.number,
+          amount: quoteTotal(quote),
+          dueDate: quote.firstDueDate || quote.validUntil || todayKey,
+          dueTime: "",
+          methods: ["pix"],
+          cardMaxInstallments: Math.max(1, quote.installments || 1),
+          passCardFees: false,
+          discountEnabled: false,
+          discountMethod: "pix",
+          discountPercent: 0,
+          remindersEnabled: true,
+          lateFeeEnabled: false,
+          lateFeePercent: 2,
+          dailyInterestPercent: 0.033,
+          message:
+            quote.paymentDetails ||
+            quote.terms ||
+            "Cobrança criada a partir de orçamento aprovado.",
+        },
+        true,
+      );
+    },
+    [billing, todayKey],
+  );
+
+  const createContractFromQuote = useCallback(
+    (quote: Quote) => {
+      const client = clients.find((item) => item.id === quote.clientId);
+      if (!client) {
+        toast.error("Vincule um cliente antes de criar o contrato.");
+        return null;
+      }
+      const capturedAt = new Date().toISOString();
+      const total = quoteTotal(quote);
+      const businessName =
+        settings.profile.businessName ||
+        settings.profile.professionalName ||
+        settings.profile.name;
+      const scope = stripQuoteHtml(quote.scope || quote.description);
+      const serviceDescription = quote.items
+        .map(
+          (item) =>
+            `${item.name || item.description} (${item.quantity} × ${item.unitPrice})`,
+        )
+        .join("; ");
+      const sourceSnapshot: ContractDraftInput["sourceSnapshot"] = {
+        business: {
+          name: businessName,
+          document: "",
+          email: settings.profile.email,
+          phone: settings.profile.phone,
+          representativeName: settings.profile.name,
+          representativeRole: settings.profile.role,
+          address: "",
+        },
+        client: {
+          id: client.id,
+          name: client.name,
+          kind: client.kind === "company" ? "company" : "individual",
+          document: client.document,
+          email: client.email,
+          phone: client.phone,
+          address: client.address,
+          representativeName: client.contactName,
+          representativeRole: client.contactRole,
+          capturedAt,
+        },
+        service: {
+          id: quote.items[0]?.serviceId ?? null,
+          title: quote.title,
+          description: serviceDescription || quote.description,
+          scope,
+          deliverables: stripQuoteHtml(quote.scope),
+          deadline: quote.estimatedDeadline,
+          revisions: "Conforme orçamento aprovado.",
+          providerResponsibilities:
+            "Executar o serviço com zelo técnico, comunicar impedimentos e entregar os materiais combinados.",
+          clientResponsibilities:
+            "Fornecer informações, acessos e aprovações necessárias à execução.",
+          source: "proposal",
+        },
+        billing: quote.chargeId
+          ? {
+              id: quote.chargeId,
+              code: quote.chargeId,
+              description: quote.title,
+              amount: total,
+              dueDate: quote.firstDueDate || quote.validUntil,
+              paymentMethods: [quote.paymentMethod || "pix"],
+            }
+          : null,
+        proposal: {
+          id: quote.id,
+          title: quote.title,
+          fileName: `${quote.number}.pdf`,
+        },
+        capturedAt,
+      };
+      const draft: ContractDraftInput = {
+        source: "proposal",
+        title: `Contrato — ${quote.title}`,
+        clientId: client.id,
+        templateId: null,
+        relatedServiceId: quote.items[0]?.serviceId ?? null,
+        relatedTaskId: null,
+        proposalId: quote.id,
+        chargeId: quote.chargeId ?? null,
+        sourceSnapshot,
+        terms: {
+          value: total,
+          paymentTerms: quote.paymentDetails || quote.paymentMethod,
+          installments: Math.max(1, quote.installments || 1),
+          firstDueDate: quote.firstDueDate || quote.validUntil,
+          lateFeePercent: 2,
+          dailyInterestPercent: 0.033,
+          adjustment: "Sem reajuste automático neste rascunho.",
+          startDate: quote.estimatedStartDate || todayKey,
+          endDate: quote.estimatedEndDate,
+          cancellation:
+            "Cancelamento conforme condições aprovadas entre as partes.",
+          termination:
+            "Rescisão mediante comunicação prévia e quitação dos valores devidos.",
+          confidentiality: true,
+          intellectualProperty:
+            "A propriedade intelectual segue as condições comerciais aprovadas no orçamento.",
+          portfolioAllowed: false,
+          dataProtection:
+            "As partes deverão tratar dados pessoais conforme legislação aplicável.",
+          jurisdiction: "",
+          additionalClauses: stripQuoteHtml(quote.terms),
+        },
+        parties: [
+          {
+            id: createId(),
+            type: "company",
+            name: businessName,
+            document: "",
+            email: settings.profile.email,
+            phone: settings.profile.phone,
+            address: "",
+            role: "Contratada",
+            representativeName: settings.profile.name,
+            representativeRole: settings.profile.role,
+            snapshotSource: "business",
+          },
+          {
+            id: createId(),
+            type: client.kind === "company" ? "company" : "individual",
+            name: client.name,
+            document: client.document,
+            email: client.email,
+            phone: client.phone,
+            address: client.address,
+            role: "Contratante",
+            representativeName: client.contactName,
+            representativeRole: client.contactRole,
+            snapshotSource: "client",
+          },
+        ],
+        signers: [
+          {
+            id: createId(),
+            partyId: null,
+            name: client.contactName || client.name,
+            email: client.email,
+            document: client.document,
+            role: "Signatário",
+            order: 1,
+            authMethod: "provider_default",
+            status: "not_started",
+            viewedAt: null,
+            signedAt: null,
+            lastEventAt: null,
+          },
+        ],
+        signingMode: "simultaneous",
+        signatureMessage:
+          "Contrato criado a partir de orçamento aprovado. Revise antes de enviar.",
+        content: `<h1>Contrato de Prestação de Serviços</h1><p>Este contrato foi criado a partir do orçamento ${quote.number}, aprovado comercialmente pelo cliente ${client.name}.</p><h2>Objeto</h2><p>${quote.title}</p><p>${scope}</p><h2>Valor e pagamento</h2><p>Valor total: ${total}. ${quote.paymentDetails || quote.paymentMethod}</p><h2>Prazo</h2><p>${quote.estimatedDeadline}</p><h2>Termos adicionais</h2><p>${stripQuoteHtml(quote.terms)}</p>`,
+      };
+      const contract = contracts.createContract(draft);
+      return { id: contract.id, number: contract.number };
+    },
+    [clients, contracts, settings.profile, todayKey],
+  );
+
+  const createProjectFromQuote = useCallback(
+    (quote: Quote) => {
+      if (!quote.clientId) {
+        toast.error("Vincule um cliente antes de criar o atendimento.");
+        return null;
+      }
+      const serviceId = quote.items[0]?.serviceId ?? null;
+      const service =
+        operations.services.find((item) => item.id === serviceId) ?? null;
+      const created = operations.addEngagement({
+        name: quote.title,
+        clientId: quote.clientId,
+        serviceId,
+        responsible: quote.responsible,
+        status: "planning",
+        description: quote.description || stripQuoteHtml(quote.scope),
+        startDate: quote.estimatedStartDate || todayKey,
+        dueDate: quote.estimatedEndDate || quote.validUntil,
+        value: quoteTotal(quote),
+        quoteId: quote.id,
+        contractId: quote.contractId ?? null,
+        recurrence: service?.recurrence ?? "none",
+        cycleValue: quoteTotal(quote),
+      });
+      if (service?.standardTasks.length) createStandardTasks(created, service);
+      return { id: created.id };
+    },
+    [createStandardTasks, operations, todayKey],
+  );
+
   const handleMove = useCallback(
     (taskId: string, date: string, time?: string) => {
       const previous = tasks.find((task) => task.id === taskId);
@@ -815,9 +1036,18 @@ export default function Home() {
             onNavigate={navigateArea}
             onCreate={() => setCommandOpen(true)}
           />
-        ) : activeArea === "engagements" ||
-          activeArea === "commercial" ||
-          activeArea === "services" ? (
+        ) : activeArea === "quotes" ? (
+          <QuotesScreen
+            controller={operations}
+            clients={clients}
+            settings={settings}
+            onAddClient={addClient}
+            onNavigate={navigateArea}
+            onCreateBilling={createBillingFromQuote}
+            onCreateContract={createContractFromQuote}
+            onCreateProject={createProjectFromQuote}
+          />
+        ) : activeArea === "engagements" || activeArea === "commercial" ? (
           <OperationsScreen
             view={operationsView}
             controller={operations}
@@ -890,6 +1120,8 @@ export default function Home() {
             key={`${String(initialPayments)}-${initialSettingsView ?? "overview"}`}
             initialPayments={initialPayments}
             initialView={initialSettingsView}
+            quoteSettings={operations.quoteSettings}
+            onUpdateQuoteSettings={operations.updateQuoteSettings}
             settings={settings}
             onUpdateSettings={updateSettings}
             fiscalController={fiscal}

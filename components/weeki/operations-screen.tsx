@@ -187,7 +187,10 @@ export function OperationsScreen({
         controller.updateOpportunity(opportunity.id, {
           ...opportunity,
           quoteId: created.id,
-          status: opportunity.status === "new" ? "quote_requested" : opportunity.status,
+          status:
+            opportunity.status === "new"
+              ? "quote_requested"
+              : opportunity.status,
         });
       }
     }
@@ -287,7 +290,6 @@ export function OperationsScreen({
       icon: BriefcaseBusiness,
     },
     { id: "commercial" as const, label: "Comercial", icon: KanbanSquare },
-    { id: "services" as const, label: "Serviços", icon: Tag },
   ];
 
   return (
@@ -2362,29 +2364,65 @@ function opportunityDefaults() {
   };
 }
 function quoteDefaults(serviceId = "") {
+  const today = format(new Date(), "yyyy-MM-dd");
   return {
+    title: "",
     clientId: null as string | null,
     opportunityId: null as string | null,
     items: [
       {
         id: `item-${Date.now()}`,
         serviceId: serviceId || null,
+        savedItemId: serviceId || null,
+        name: "",
         description: "",
         quantity: 1,
+        unit: "unit" as const,
+        customUnit: "",
         unitPrice: 0,
+        discountType: "none" as const,
+        discountValue: 0,
         discount: 0,
         addition: 0,
+        fiscalCode: "",
+        taxRate: 0,
       },
     ],
     description: "",
+    issueDate: today,
     estimatedDeadline: "",
     validUntil: "",
+    responsible: "",
+    discountType: "none" as const,
+    discountValue: 0,
+    taxType: "none" as const,
+    taxLabel: "",
+    taxValue: 0,
+    paymentCondition: "custom" as const,
+    downPaymentPercent: 0,
+    installments: 1,
+    firstDueDate: "",
+    paymentDetails: "",
+    estimatedStartDate: "",
+    estimatedEndDate: "",
+    scope: "",
+    exclusions: "",
     notes: "",
     terms: "",
     paymentMethod: "",
     status: "draft" as const,
+    version: 1,
+    parentQuoteId: null as string | null,
+    publicToken: "",
+    viewedAt: null as string | null,
     approvedAt: null as string | null,
+    rejectedAt: null as string | null,
+    rejectionReason: "",
+    acceptedBy: "",
     engagementId: null as string | null,
+    chargeId: null as string | null,
+    contractId: null as string | null,
+    events: [],
   };
 }
 function engagementDefaults(clientId = "", serviceId = "") {

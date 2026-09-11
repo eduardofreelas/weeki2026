@@ -17,8 +17,12 @@ try {
       { version: "001", file: "server/migrations/001_payments.sql" },
       { version: "002_fiscal", file: "server/migrations/002_fiscal.sql" },
       { version: "003_contracts", file: "server/migrations/003_contracts.sql" },
-      { version: "004_account_availability", file: "server/migrations/004_account_availability.sql" },
+      {
+        version: "004_account_availability",
+        file: "server/migrations/004_account_availability.sql",
+      },
       { version: "005_reports", file: "server/migrations/005_reports.sql" },
+      { version: "006_quotes", file: "server/migrations/006_quotes.sql" },
     ]) {
       const applied = await sql.query(
         "SELECT version FROM public.weeki_payment_migrations WHERE version=$1",

@@ -13,7 +13,6 @@ import {
   KanbanSquare,
   Search,
   Settings,
-  Tag,
   UserRound,
 } from "lucide-react";
 import {
@@ -77,7 +76,7 @@ export function WeekiCommandPalette({
       description="Crie ou encontre uma demanda"
       className="top-[36%] max-w-xl rounded-2xl border-slate-200 shadow-2xl"
     >
-      <CommandInput placeholder="Buscar cliente, atendimento, serviço ou ação..." />
+      <CommandInput placeholder="Buscar cliente, atendimento, orçamento ou ação..." />
       <CommandList className="max-h-[360px] p-2">
         <CommandEmpty>Nenhuma demanda ou ação encontrada.</CommandEmpty>
         <CommandGroup heading="Ações rápidas">
@@ -104,8 +103,8 @@ export function WeekiCommandPalette({
           <CommandItem onSelect={() => run(() => onNavigate("commercial"))}>
             <KanbanSquare /> Abrir Comercial
           </CommandItem>
-          <CommandItem onSelect={() => run(() => onNavigate("services"))}>
-            <Tag /> Abrir Serviços
+          <CommandItem onSelect={() => run(() => onNavigate("quotes"))}>
+            <FileText /> Abrir Orçamentos
           </CommandItem>
           <CommandItem onSelect={() => run(() => onNavigate("reports"))}>
             <BarChart3 /> Abrir Relatórios
@@ -135,7 +134,7 @@ export function WeekiCommandPalette({
             <CommandItem
               key={quote.id}
               value={`${quote.number} orçamento`}
-              onSelect={() => run(() => onNavigate("commercial"))}
+              onSelect={() => run(() => onNavigate("quotes"))}
             >
               <FileText />
               <span className="min-w-0 flex-1 truncate">{quote.number}</span>
@@ -156,10 +155,10 @@ export function WeekiCommandPalette({
           {services.slice(0, 4).map((service) => (
             <CommandItem
               key={service.id}
-              value={`${service.name} serviço`}
-              onSelect={() => run(() => onNavigate("services"))}
+              value={`${service.name} item salvo orçamento`}
+              onSelect={() => run(() => onNavigate("quotes"))}
             >
-              <Tag />
+              <FileText />
               <span className="min-w-0 flex-1 truncate">{service.name}</span>
             </CommandItem>
           ))}

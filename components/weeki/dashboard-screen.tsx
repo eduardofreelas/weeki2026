@@ -20,6 +20,7 @@ import type { Engagement, Quote } from "@/features/operations/types";
 import {
   ENGAGEMENT_STATUS_LABELS,
   QUOTE_STATUS_LABELS,
+  quoteTotal,
 } from "@/features/operations/types";
 import type { Task } from "@/features/tasks/types";
 import type { WeekiArea } from "./sidebar";
@@ -61,7 +62,7 @@ export function DashboardScreen({
     (charge) => charge.status === "overdue",
   );
   const pendingQuotes = quotes.filter((quote) =>
-    ["sent", "viewed"].includes(quote.status),
+    ["sent", "viewed", "awaiting_approval"].includes(quote.status),
   );
   const todayTasks = tasks.filter(
     (task) => task.scheduledDate === today && task.status !== "completed",
@@ -85,7 +86,8 @@ export function DashboardScreen({
             Bom dia, organize seu trabalho
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Acompanhe clientes, serviços, prazos e recebimentos em um só lugar.
+            Acompanhe clientes, atendimentos, orçamentos e recebimentos em um só
+            lugar.
           </p>
         </div>
         <Button type="button" size="sm" onClick={onCreate}>
@@ -124,7 +126,7 @@ export function DashboardScreen({
           detail="Retorno comercial pendente"
           icon={FileText}
           tone="blue"
-          onClick={() => onNavigate("commercial")}
+          onClick={() => onNavigate("quotes")}
         />
       </section>
 
@@ -240,12 +242,10 @@ export function DashboardScreen({
           title="Atenção"
           icon={AlertCircle}
           tone="rose"
-          items={overdueTasks
-            .slice(0, 4)
-            .map((task) => ({
-              title: task.title,
-              detail: `Prazo ${formatDate(task.dueDate)}`,
-            }))}
+          items={overdueTasks.slice(0, 4).map((task) => ({
+            title: task.title,
+            detail: `Prazo ${formatDate(task.dueDate)}`,
+          }))}
           empty="Nenhuma tarefa atrasada."
           action={() => onNavigate("week")}
         />
@@ -253,12 +253,10 @@ export function DashboardScreen({
           title="Cobranças pendentes"
           icon={ReceiptText}
           tone="amber"
-          items={pendingCharges
-            .slice(0, 4)
-            .map((charge) => ({
-              title: charge.description,
-              detail: `${currency.format(charge.amount)} · vence ${formatDate(charge.dueDate)}`,
-            }))}
+          items={pendingCharges.slice(0, 4).map((charge) => ({
+            title: charge.description,
+            detail: `${currency.format(charge.amount)} · vence ${formatDate(charge.dueDate)}`,
+          }))}
           empty="Nenhuma cobrança pendente."
           action={() => onNavigate("billing")}
         />
@@ -271,10 +269,10 @@ export function DashboardScreen({
             .slice(0, 4)
             .map((quote) => ({
               title: quote.number,
-              detail: `${QUOTE_STATUS_LABELS[quote.status]} · ${currency.format(quote.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))}`,
+              detail: `${QUOTE_STATUS_LABELS[quote.status]} · ${currency.format(quoteTotal(quote))}`,
             }))}
           empty="Nenhum orçamento criado."
-          action={() => onNavigate("commercial")}
+          action={() => onNavigate("quotes")}
         />
       </div>
     </div>

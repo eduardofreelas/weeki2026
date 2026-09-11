@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleHelp,
   FileCheck2,
+  FileText,
   FileSignature,
   FilePlus2,
   Files,
@@ -19,7 +20,6 @@ import {
   MoreHorizontal,
   ReceiptText,
   Settings,
-  Tags,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -43,7 +43,7 @@ const primaryItems = [
   },
   { label: "Agenda", icon: CalendarClock, area: "appointments" as const },
   { label: "Clientes", icon: Users, area: "clients" as const },
-  { label: "Serviços", icon: Tags, area: "services" as const },
+  { label: "Orçamentos", icon: FileText, area: "quotes" as const },
   { label: "Comercial", icon: KanbanSquare, area: "commercial" as const },
   { label: "Contratos", icon: FileSignature, area: "contracts" as const },
   { label: "Relatórios", icon: BarChart3, area: "reports" as const },
@@ -59,7 +59,7 @@ export type WeekiArea =
   | "week"
   | "engagements"
   | "clients"
-  | "services"
+  | "quotes"
   | "commercial"
   | "contracts"
   | "appointments"
@@ -267,10 +267,10 @@ export function MobileNavigation({
       area: "appointments" as const,
     },
     {
-      label: "Serviços",
-      description: "Modelos e tarefas padrão",
-      icon: Tags,
-      area: "services" as const,
+      label: "Orçamentos",
+      description: "Propostas e aprovações",
+      icon: FileText,
+      area: "quotes" as const,
     },
     {
       label: "Comercial",
