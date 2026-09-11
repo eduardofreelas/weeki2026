@@ -8,6 +8,9 @@ try {
       "CREATE TABLE IF NOT EXISTS public.weeki_payment_migrations(version text PRIMARY KEY, applied_at timestamptz DEFAULT now())",
     );
     await sql.query(
+      "ALTER TABLE public.weeki_payment_migrations ENABLE ROW LEVEL SECURITY",
+    );
+    await sql.query(
       "LOCK TABLE public.weeki_payment_migrations IN EXCLUSIVE MODE",
     );
     for (const migration of [
