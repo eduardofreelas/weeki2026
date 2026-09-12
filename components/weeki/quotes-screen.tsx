@@ -673,8 +673,8 @@ export function QuotesScreen({
     const engagement = onCreateProject(quote);
     if (!engagement) return;
     controller.recordQuoteConversion(quote.id, "project", engagement.id);
-    toast.success("Atendimento criado a partir do orçamento.");
-    onNavigate("engagements");
+    toast.success("Demanda criada a partir do orçamento.");
+    onNavigate("week");
   };
 
   return (
@@ -682,7 +682,7 @@ export function QuotesScreen({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#654ce4]">
-            Comercial
+            Propostas
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
             Orçamentos
@@ -1080,7 +1080,7 @@ export function QuotesScreen({
                       title="Criar demanda/projeto"
                       description={
                         selectedQuote.engagementId
-                          ? "Atendimento já vinculado"
+                          ? "Demanda já vinculada"
                           : "Abre execução com cliente, prazo e valor"
                       }
                       disabled={Boolean(selectedQuote.engagementId)}

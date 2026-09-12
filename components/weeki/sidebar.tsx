@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Archive,
   BarChart3,
-  BriefcaseBusiness,
   CalendarClock,
   CalendarDays,
   ChevronDown,
@@ -15,7 +14,6 @@ import {
   FilePlus2,
   Files,
   Inbox,
-  KanbanSquare,
   LayoutDashboard,
   MoreHorizontal,
   ReceiptText,
@@ -37,16 +35,10 @@ import { cn } from "@/lib/utils";
 const primaryItems = [
   { label: "Início", icon: LayoutDashboard, area: "dashboard" as const },
   { label: "Minha Semana", icon: CalendarDays, area: "week" as const },
-  {
-    label: "Atendimentos",
-    icon: BriefcaseBusiness,
-    area: "engagements" as const,
-  },
   { label: "Agenda", icon: CalendarClock, area: "appointments" as const },
   { label: "Clientes", icon: Users, area: "clients" as const },
   { label: "Serviços", icon: ShoppingBag, area: "services" as const },
   { label: "Orçamentos", icon: FileText, area: "quotes" as const },
-  { label: "Comercial", icon: KanbanSquare, area: "commercial" as const },
   { label: "Contratos", icon: FileSignature, area: "contracts" as const },
   { label: "Relatórios", icon: BarChart3, area: "reports" as const },
   { label: "Financeiro", icon: WalletCards, area: "finance" as const },
@@ -54,23 +46,25 @@ const primaryItems = [
   { label: "Fiscal", icon: FileCheck2, area: "fiscal" as const },
 ];
 
-const secondaryItems = [{ label: "Arquivados", icon: Archive }];
+const secondaryItems = [
+  { label: "Arquivados", icon: Archive, area: "archives" as const },
+];
 
 export type WeekiArea =
   | "dashboard"
   | "week"
-  | "engagements"
   | "clients"
   | "services"
   | "quotes"
-  | "commercial"
   | "contracts"
   | "appointments"
   | "reports"
   | "finance"
   | "billing"
   | "fiscal"
-  | "settings";
+  | "settings"
+  | "archives"
+  | "help";
 export type FiscalSidebarView = "overview" | "notes" | "issue" | "settings";
 
 export function WeekiSidebar({
@@ -205,10 +199,15 @@ export function WeekiSidebar({
             <button
               key={item.label}
               type="button"
-              disabled
-              title="Em breve"
-              className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => onNavigate(item.area)}
+              className={cn(
+                "relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.06] hover:text-white",
+                item.area === activeArea && "bg-white/[0.09] text-white",
+              )}
             >
+              {item.area === activeArea && (
+                <span className="absolute -left-3 h-6 w-[3px] rounded-r-full bg-sidebar-primary" />
+              )}
               <item.icon className="size-[18px]" strokeWidth={1.8} />
               <span>{item.label}</span>
             </button>
@@ -219,10 +218,15 @@ export function WeekiSidebar({
       <div className="mt-auto space-y-1 border-t border-white/8 pt-4">
         <button
           type="button"
-          disabled
-          title="Em breve"
-          className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={() => onNavigate("help")}
+          className={cn(
+            "relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.06] hover:text-white",
+            activeArea === "help" && "bg-white/[0.09] text-white",
+          )}
         >
+          {activeArea === "help" && (
+            <span className="absolute -left-3 h-6 w-[3px] rounded-r-full bg-[#8065ff]" />
+          )}
           <CircleHelp className="size-[18px]" /> Ajuda
         </button>
         <button
@@ -255,9 +259,9 @@ export function MobileNavigation({
     { label: "Início", icon: LayoutDashboard, area: "dashboard" as const },
     { label: "Semana", icon: CalendarDays, area: "week" as const },
     {
-      label: "Trabalho",
-      icon: BriefcaseBusiness,
-      area: "engagements" as const,
+      label: "Serviços",
+      icon: ShoppingBag,
+      area: "services" as const,
     },
     { label: "Clientes", icon: Users, area: "clients" as const },
     { label: "Config.", icon: Settings, area: "settings" as const },
@@ -270,22 +274,10 @@ export function MobileNavigation({
       area: "appointments" as const,
     },
     {
-      label: "Serviços",
-      description: "Catálogo, vitrine e checkout",
-      icon: ShoppingBag,
-      area: "services" as const,
-    },
-    {
       label: "Orçamentos",
       description: "Propostas e aprovações",
       icon: FileText,
       area: "quotes" as const,
-    },
-    {
-      label: "Comercial",
-      description: "Oportunidades e orçamentos",
-      icon: KanbanSquare,
-      area: "commercial" as const,
     },
     {
       label: "Contratos",
@@ -316,6 +308,18 @@ export function MobileNavigation({
       description: "Notas fiscais e automação",
       icon: FileCheck2,
       area: "fiscal" as const,
+    },
+    {
+      label: "Arquivados",
+      description: "Restaurar itens ocultos",
+      icon: Archive,
+      area: "archives" as const,
+    },
+    {
+      label: "Ajuda",
+      description: "Guias e atalhos",
+      icon: CircleHelp,
+      area: "help" as const,
     },
   ].filter((item) => item.area !== "fiscal" || FISCAL_FLAGS.moduleEnabled);
   const moreActive = more.some((item) => item.area === activeArea);

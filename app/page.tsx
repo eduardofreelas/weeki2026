@@ -49,6 +49,7 @@ import { AuthScreen } from "@/components/weeki/auth-screen";
 import { BillingScreen } from "@/components/weeki/billing-screen";
 import { ClientsScreen } from "@/components/weeki/clients-screen";
 import { ContractsScreen } from "@/components/weeki/contracts-screen";
+import { ArchivesScreen } from "@/components/weeki/archives-screen";
 import { DashboardScreen } from "@/components/weeki/dashboard-screen";
 import { FinanceScreen } from "@/components/weeki/finance-screen";
 import { FiscalAutomationDialog } from "@/components/fiscal/fiscal-automation-dialog";
@@ -56,9 +57,9 @@ import {
   FiscalScreen,
   type FiscalView,
 } from "@/components/fiscal/fiscal-screen";
+import { HelpScreen } from "@/components/weeki/help-screen";
 import { OnboardingScreen } from "@/components/weeki/onboarding-screen";
 import { WeekiCommandPalette } from "@/components/weeki/command-palette";
-import { OperationsScreen } from "@/components/weeki/operations-screen";
 import { QuotesScreen } from "@/components/weeki/quotes-screen";
 import { ReportsScreen } from "@/components/weeki/reports-screen";
 import { ServicesScreen } from "@/components/weeki/services-screen";
@@ -93,8 +94,6 @@ import { useWeekiOperations } from "@/features/operations/use-weeki-operations";
 import { quoteTotal } from "@/features/operations/types";
 import type {
   Engagement,
-  Opportunity,
-  OperationsView,
   Quote,
   QuoteItem,
   QuoteUnit,
@@ -195,18 +194,18 @@ function quoteItemsFromServiceOrder(
 const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   dashboard: { group: "Visão geral", page: "Início" },
   week: { group: "Planejamento", page: "Minha Semana" },
-  engagements: { group: "Trabalho", page: "Atendimentos" },
   clients: { group: "Relacionamento", page: "Clientes" },
-  services: { group: "Comercial", page: "Serviços" },
-  quotes: { group: "Comercial", page: "Orçamentos" },
-  commercial: { group: "Comercial", page: "Oportunidades" },
+  services: { group: "Vendas", page: "Serviços" },
+  quotes: { group: "Vendas", page: "Orçamentos" },
   contracts: { group: "Relacionamento", page: "Contratos" },
-  appointments: { group: "Atendimentos", page: "Agenda" },
+  appointments: { group: "Agenda", page: "Agendamentos" },
   reports: { group: "Relacionamento", page: "Relatórios" },
   finance: { group: "Gestão", page: "Financeiro" },
   billing: { group: "Gestão", page: "Cobranças" },
   fiscal: { group: "Gestão", page: "Fiscal" },
   settings: { group: "Conta", page: "Configurações" },
+  archives: { group: "Gestão", page: "Arquivados" },
+  help: { group: "Suporte", page: "Ajuda" },
 };
 
 export default function Home() {
@@ -221,6 +220,8 @@ export default function Home() {
     toggleComplete,
     duplicateTask,
     archiveTask,
+    restoreTask,
+    archivedTasks,
   } = useWeekiTasks();
   const { clients, addClient, updateClient } = useWeekiClients();
   const billing = useWeekiBilling();
@@ -235,8 +236,6 @@ export default function Home() {
     account.session?.availability,
   );
   const [activeArea, setActiveArea] = useState<WeekiArea>("week");
-  const [operationsView, setOperationsView] =
-    useState<OperationsView>("engagements");
   const [initialPayments, setInitialPayments] = useState(false);
   const [initialSettingsView, setInitialSettingsView] = useState<
     "availability" | "payments" | "quotes" | "storefront" | undefined
@@ -247,20 +246,22 @@ export default function Home() {
     const area = params.get("area");
     if (
       area === "dashboard" ||
-      area === "engagements" ||
       area === "services" ||
       area === "quotes" ||
-      area === "commercial" ||
+      area === "clients" ||
+      area === "appointments" ||
+      area === "contracts" ||
+      area === "finance" ||
       area === "billing" ||
       area === "settings" ||
       area === "reports" ||
+      area === "archives" ||
+      area === "help" ||
       (area === "fiscal" && FISCAL_FLAGS.moduleEnabled)
     ) {
       // Restore the target after an authenticated provider callback.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveArea(area);
-      if (area === "commercial" || area === "engagements")
-        setOperationsView(area === "commercial" ? "commercial" : "engagements");
       setInitialPayments(params.get("section") === "payments");
       setInitialSettingsView(
         params.get("section") === "availability"
@@ -293,9 +294,6 @@ export default function Home() {
     if (area === "settings") {
       setInitialPayments(false);
       setInitialSettingsView(undefined);
-    }
-    if (area === "engagements" || area === "commercial") {
-      setOperationsView(area === "commercial" ? "commercial" : "engagements");
     }
     setActiveArea(area);
   }, []);
@@ -471,6 +469,14 @@ export default function Home() {
   );
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
+  const archivedCount =
+    archivedTasks.length +
+    operations.services.filter(
+      (service) => service.archivedAt || service.status === "archived",
+    ).length +
+    operations.quoteTemplates.filter((template) => template.archivedAt).length +
+    contracts.archivedContracts.length +
+    reports.archivedReports.length;
   const hasActiveFilters = Boolean(
     query.trim() ||
     statusFilter !== "all" ||
@@ -564,64 +570,6 @@ export default function Home() {
       toast.success(`${service.standardTasks.length} tarefas padrão criadas.`);
     },
     [addTask, todayKey],
-  );
-
-  const convertOpportunity = useCallback(
-    (opportunity: Opportunity) => {
-      const targetName = (
-        opportunity.company || opportunity.name
-      ).toLocaleLowerCase("pt-BR");
-      const existing = clients.find(
-        (client) =>
-          (opportunity.email && client.email === opportunity.email) ||
-          client.name.toLocaleLowerCase("pt-BR") === targetName,
-      );
-      const client =
-        existing ??
-        addClient({
-          name: opportunity.company || opportunity.name,
-          color: "#654ce4",
-          logoUrl: "",
-          kind: "company",
-          document: "",
-          contactName: opportunity.name,
-          contactRole: "Contato principal",
-          email: opportunity.email,
-          phone: opportunity.phone,
-          website: "",
-          address: "",
-          notes: opportunity.notes,
-          status: "active",
-          segment: "",
-          contractValue: 0,
-          contractKind: "none",
-          nextDueDate: "",
-          paymentStatus: "none",
-          files: [],
-          links: [],
-        });
-      operations.updateOpportunity(opportunity.id, {
-        ...opportunity,
-        clientId: client.id,
-        status: "won",
-      });
-      const relatedQuote = operations.quotes.find(
-        (quote) => quote.opportunityId === opportunity.id,
-      );
-      if (relatedQuote) {
-        operations.updateQuote(relatedQuote.id, {
-          ...relatedQuote,
-          clientId: client.id,
-        });
-      }
-      toast.success(
-        existing
-          ? "Oportunidade vinculada ao cliente existente."
-          : "Cliente criado a partir da oportunidade.",
-      );
-      navigateArea("engagements");
-    },
-    [addClient, clients, navigateArea, operations],
   );
 
   const createBillingFromQuote = useCallback(
@@ -1472,7 +1420,6 @@ export default function Home() {
           <DashboardScreen
             tasks={tasks}
             clients={clients}
-            engagements={operations.engagements}
             quotes={operations.quotes}
             services={operations.services}
             serviceOrders={operations.serviceOrders}
@@ -1502,24 +1449,26 @@ export default function Home() {
             onCreateContractFromOrder={createContractFromServiceOrder}
             onCreateProjectFromOrder={createProjectFromServiceOrder}
           />
-        ) : activeArea === "engagements" || activeArea === "commercial" ? (
-          <OperationsScreen
-            view={operationsView}
-            controller={operations}
+        ) : activeArea === "archives" ? (
+          <ArchivesScreen
+            tasks={archivedTasks}
             clients={clients}
-            tasks={tasks}
+            services={operations.services}
+            quoteTemplates={operations.quoteTemplates}
+            contracts={contracts.archivedContracts}
+            reports={reports.archivedReports}
+            onRestoreTask={restoreTask}
+            onRestoreService={operations.restoreService}
+            onRestoreQuoteTemplate={operations.restoreQuoteTemplate}
+            onRestoreContract={contracts.restoreContract}
+            onRestoreReport={reports.restoreReport}
             onNavigate={navigateArea}
-            onNewTask={(clientId, engagementId, serviceId) =>
-              openNewTask(
-                todayKey,
-                "",
-                clientId,
-                engagementId ?? null,
-                serviceId ?? null,
-              )
-            }
-            onCreateStandardTasks={createStandardTasks}
-            onConvertOpportunity={convertOpportunity}
+          />
+        ) : activeArea === "help" ? (
+          <HelpScreen
+            onNavigate={navigateArea}
+            inboxCount={inboxTasks.length}
+            archivedCount={archivedCount}
           />
         ) : activeArea === "clients" ? (
           <ClientsScreen
@@ -1950,8 +1899,6 @@ export default function Home() {
         onOpenChange={setCommandOpen}
         tasks={tasks}
         clients={clients}
-        engagements={operations.engagements}
-        opportunities={operations.opportunities}
         quotes={operations.quotes}
         services={operations.services}
         onCreate={openNewTask}

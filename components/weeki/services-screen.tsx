@@ -290,7 +290,7 @@ export function ServicesScreen({
           ? "billing"
           : target === "contract"
             ? "contracts"
-            : "engagements";
+            : "week";
     toast.success(`${conversionLabel(target)} criado.`);
     onNavigate(area);
   };
@@ -300,7 +300,7 @@ export function ServicesScreen({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#654ce4]">
-            Catálogo comercial
+            Catálogo de serviços
           </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">
             Serviços

@@ -1,17 +1,17 @@
-# Operação de atendimentos — fechamento funcional V1
+# Operação legada — vínculo interno V1
 
-O módulo de Operação concentra as entidades que conectam a rotina de um prestador de serviços sem criar um CRM genérico:
+O módulo visual de Atendimentos/Comercial foi removido da navegação. Este domínio permanece como vínculo interno para preservar histórico e integrações entre serviços, orçamentos, tarefas, cobranças, contratos e relatórios.
 
 ```text
-Oportunidade → Orçamento → Atendimento → Tarefas / Entregas / Horas → Cobrança → Financeiro / Fiscal / Relatório
+Serviço → Orçamento → Demanda interna → Tarefas / Entregas / Horas → Cobrança → Financeiro / Fiscal / Relatório
 ```
 
 ## Entidades
 
-- **Serviço**: catálogo comercial reaproveitado por vitrine, orçamentos, atendimentos, contratos e Fiscal/NFS-e. A V1 preserva os IDs antigos para manter os vínculos já existentes.
-- **Oportunidade**: registro comercial leve, com origem, próxima ação, valor estimado e status.
+- **Serviço**: catálogo reaproveitado por vitrine, orçamentos, vínculos internos, contratos e Fiscal/NFS-e. A V1 preserva os IDs antigos para manter os vínculos já existentes.
+- **Oportunidade**: registro legado leve, com origem, próxima ação, valor estimado e status.
 - **Orçamento**: itens, quantidade, preço unitário, desconto, acréscimo, validade, prazo, condições e status.
-- **Atendimento**: registro central do serviço prestado para um cliente, com responsável, datas, valor, recorrência e vínculos para evolução futura.
+- **Demanda interna**: registro central do serviço prestado para um cliente, com responsável, datas, valor, recorrência e vínculos para evolução futura.
 - **Ciclo**: período simples de um atendimento recorrente, sem motor de assinaturas.
 - **Entrega**: evidência interna do que foi enviado ou aprovado pelo cliente.
 - **Tempo**: lançamento manual de minutos, ligado opcionalmente à tarefa, atendimento e cliente.
@@ -24,11 +24,10 @@ Quando a aplicação autenticada for migrada para o backend, essa fronteira pode
 
 ## Fluxos fechados
 
-1. Criar oportunidade e convertê-la em cliente, evitando duplicidade por e-mail ou nome.
-2. Criar orçamento com itens livres ou serviços cadastrados, copiando os dados para o snapshot do orçamento.
-3. Aprovar orçamento e gerar cobrança, contrato ou atendimento.
-4. Criar automaticamente tarefas padrão ao iniciar um atendimento quando houver serviço com esse padrão.
-5. Acompanhar progresso, ciclos, entregas e tempo no atendimento.
-6. Navegar do dashboard para orçamentos, cobranças, financeiro, comercial e Minha Semana.
+1. Criar orçamento com itens livres ou serviços cadastrados, copiando os dados para o snapshot do orçamento.
+2. Aprovar orçamento e gerar cobrança, contrato ou demanda interna.
+3. Criar automaticamente tarefas padrão quando houver serviço com esse padrão.
+4. Preservar ciclos, entregas e tempo como dados internos para histórico.
+5. Navegar do dashboard para serviços, orçamentos, cobranças, financeiro e Minha Semana.
 
 Integrações reais de cobrança, NFS-e, assinatura e IA continuam respeitando o modo standby já documentado nos módulos server-first existentes.

@@ -432,6 +432,23 @@ export function useWeekiOperations() {
     }));
   }, []);
 
+  const restoreService = useCallback((id: string) => {
+    setState((current) => ({
+      ...current,
+      services: current.services.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "draft",
+              inStorefront: false,
+              archivedAt: null,
+              updatedAt: now(),
+            }
+          : item,
+      ),
+    }));
+  }, []);
+
   const deleteService = useCallback((id: string) => {
     let removed = false;
     setState((current) => {
@@ -929,6 +946,17 @@ export function useWeekiOperations() {
     }));
   }, []);
 
+  const restoreQuoteTemplate = useCallback((id: string) => {
+    setState((current) => ({
+      ...current,
+      quoteTemplates: current.quoteTemplates.map((template) =>
+        template.id === id
+          ? { ...template, archivedAt: null, updatedAt: now() }
+          : template,
+      ),
+    }));
+  }, []);
+
   const updateQuoteSettings = useCallback((settings: QuoteSettings) => {
     setState((current) => ({
       ...current,
@@ -1218,6 +1246,7 @@ export function useWeekiOperations() {
     addService,
     updateService,
     archiveService,
+    restoreService,
     deleteService,
     duplicateService,
     setServiceStatus,
@@ -1242,6 +1271,7 @@ export function useWeekiOperations() {
     deleteQuote,
     saveQuoteTemplate,
     archiveQuoteTemplate,
+    restoreQuoteTemplate,
     updateQuoteSettings,
     recordQuoteConversion,
     addEngagement,

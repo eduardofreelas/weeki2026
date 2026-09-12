@@ -22,7 +22,7 @@ function readStorage<T>(key: string, fallback: () => T): T {
   if (typeof window === "undefined") return fallback();
   try {
     const saved = window.localStorage.getItem(key);
-    return saved ? JSON.parse(saved) as T : fallback();
+    return saved ? (JSON.parse(saved) as T) : fallback();
   } catch {
     return fallback();
   }
@@ -37,8 +37,20 @@ function localHash(value: string) {
   return `local-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
-function event(kind: ContractEvent["kind"], title: string, description: string, actor = "Você"): ContractEvent {
-  return { id: createId(), kind, title, description, actor, createdAt: new Date().toISOString() };
+function event(
+  kind: ContractEvent["kind"],
+  title: string,
+  description: string,
+  actor = "Você",
+): ContractEvent {
+  return {
+    id: createId(),
+    kind,
+    title,
+    description,
+    actor,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 function version(input: {
@@ -72,157 +84,231 @@ function normalizeContract(contract: WeekiContract): WeekiContract {
     contractStatus: deriveContractStatus({ ...contract, signatureStatus }),
     versions: Array.isArray(contract.versions) ? contract.versions : [],
     documents: Array.isArray(contract.documents) ? contract.documents : [],
-    signatureRequests: Array.isArray(contract.signatureRequests) ? contract.signatureRequests : [],
+    signatureRequests: Array.isArray(contract.signatureRequests)
+      ? contract.signatureRequests
+      : [],
     events: Array.isArray(contract.events) ? contract.events : [],
   };
 }
 
 function nextContractNumber(current: WeekiContract[]) {
   const year = new Date().getFullYear();
-  const count = current.filter((contract) => contract.number.includes(`-${year}-`)).length + 1;
+  const count =
+    current.filter((contract) => contract.number.includes(`-${year}-`)).length +
+    1;
   return `CTR-${year}-${String(count).padStart(4, "0")}`;
 }
 
 export function useWeekiContracts() {
   const [contracts, setContracts] = useState<WeekiContract[]>(() =>
-    readStorage(CONTRACTS_KEY, () => [] as WeekiContract[]).map(normalizeContract),
+    readStorage(CONTRACTS_KEY, () => [] as WeekiContract[]).map(
+      normalizeContract,
+    ),
   );
   const [templates, setTemplates] = useState<ContractTemplate[]>(() =>
     readStorage(TEMPLATES_KEY, createSeedContractTemplates),
   );
 
   useEffect(() => {
-    try { window.localStorage.setItem(CONTRACTS_KEY, JSON.stringify(contracts)); } catch { /* Storage is optional. */ }
+    try {
+      window.localStorage.setItem(CONTRACTS_KEY, JSON.stringify(contracts));
+    } catch {
+      /* Storage is optional. */
+    }
   }, [contracts]);
 
   useEffect(() => {
-    try { window.localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates)); } catch { /* Storage is optional. */ }
+    try {
+      window.localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+    } catch {
+      /* Storage is optional. */
+    }
   }, [templates]);
 
-  const createContract = useCallback((draft: ContractDraftInput) => {
-    const now = new Date().toISOString();
-    const firstVersion = version({
-      title: draft.title,
-      content: sanitizeContractHtml(draft.content),
-      reason: draft.aiGenerated ? "Contrato gerado por IA" : draft.source === "template" ? "Contrato criado a partir de modelo" : "Contrato criado",
-      versionNumber: 1,
-      aiGenerated: draft.aiGenerated,
-    });
-    const contract: WeekiContract = normalizeContract({
-      id: createId(),
-      workspaceId: WORKSPACE_ID,
-      number: nextContractNumber(contracts),
-      title: draft.title,
-      clientId: draft.clientId,
-      clientName: draft.sourceSnapshot.client?.name || "Cliente não selecionado",
-      source: draft.source,
-      templateId: draft.templateId,
-      relatedServiceId: draft.relatedServiceId,
-      relatedTaskId: draft.relatedTaskId,
-      relatedProjectId: null,
-      proposalId: draft.proposalId,
-      chargeId: draft.chargeId,
-      sourceSnapshot: draft.sourceSnapshot,
-      terms: draft.terms,
-      parties: draft.parties,
-      signers: draft.signers,
-      signingMode: draft.signingMode,
-      signatureMessage: draft.signatureMessage,
-      editorialStatus: "draft",
-      signatureStatus: "not_started",
-      contractStatus: "pending",
-      aiGenerated: Boolean(draft.aiGenerated),
-      aiProvider: draft.aiProvider ?? null,
-      aiNoticeAccepted: Boolean(draft.aiGenerated),
-      reviewConfirmed: false,
-      content: sanitizeContractHtml(draft.content),
-      currentVersionId: firstVersion.id,
-      versions: [firstVersion],
-      documents: [],
-      signatureRequests: [],
-      events: [event("created", "Contrato criado", `Origem: ${draft.source}.`)],
-      archivedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    });
-    setContracts((current) => [contract, ...current]);
-    return contract;
-  }, [contracts]);
+  const createContract = useCallback(
+    (draft: ContractDraftInput) => {
+      const now = new Date().toISOString();
+      const firstVersion = version({
+        title: draft.title,
+        content: sanitizeContractHtml(draft.content),
+        reason: draft.aiGenerated
+          ? "Contrato gerado por IA"
+          : draft.source === "template"
+            ? "Contrato criado a partir de modelo"
+            : "Contrato criado",
+        versionNumber: 1,
+        aiGenerated: draft.aiGenerated,
+      });
+      const contract: WeekiContract = normalizeContract({
+        id: createId(),
+        workspaceId: WORKSPACE_ID,
+        number: nextContractNumber(contracts),
+        title: draft.title,
+        clientId: draft.clientId,
+        clientName:
+          draft.sourceSnapshot.client?.name || "Cliente não selecionado",
+        source: draft.source,
+        templateId: draft.templateId,
+        relatedServiceId: draft.relatedServiceId,
+        relatedTaskId: draft.relatedTaskId,
+        relatedProjectId: null,
+        proposalId: draft.proposalId,
+        chargeId: draft.chargeId,
+        sourceSnapshot: draft.sourceSnapshot,
+        terms: draft.terms,
+        parties: draft.parties,
+        signers: draft.signers,
+        signingMode: draft.signingMode,
+        signatureMessage: draft.signatureMessage,
+        editorialStatus: "draft",
+        signatureStatus: "not_started",
+        contractStatus: "pending",
+        aiGenerated: Boolean(draft.aiGenerated),
+        aiProvider: draft.aiProvider ?? null,
+        aiNoticeAccepted: Boolean(draft.aiGenerated),
+        reviewConfirmed: false,
+        content: sanitizeContractHtml(draft.content),
+        currentVersionId: firstVersion.id,
+        versions: [firstVersion],
+        documents: [],
+        signatureRequests: [],
+        events: [
+          event("created", "Contrato criado", `Origem: ${draft.source}.`),
+        ],
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      setContracts((current) => [contract, ...current]);
+      return contract;
+    },
+    [contracts],
+  );
 
-  const updateContract = useCallback((id: string, update: Partial<WeekiContract>, recordEvent = true) => {
-    let saved: WeekiContract | null = null;
-    setContracts((current) => current.map((contract) => {
-      if (contract.id !== id) return contract;
-      const merged = normalizeContract({
-        ...contract,
-        ...update,
-        terms: update.terms ? { ...contract.terms, ...update.terms } : contract.terms,
-        content: update.content === undefined ? contract.content : sanitizeContractHtml(update.content),
-        sourceSnapshot: update.sourceSnapshot ? { ...contract.sourceSnapshot, ...update.sourceSnapshot } : contract.sourceSnapshot,
-        updatedAt: new Date().toISOString(),
-        events: recordEvent
-          ? [event("updated", "Contrato atualizado", "As informações do contrato foram revisadas."), ...contract.events]
-          : contract.events,
-      });
-      saved = merged;
-      return merged;
-    }));
-    return saved;
-  }, []);
+  const updateContract = useCallback(
+    (id: string, update: Partial<WeekiContract>, recordEvent = true) => {
+      let saved: WeekiContract | null = null;
+      setContracts((current) =>
+        current.map((contract) => {
+          if (contract.id !== id) return contract;
+          const merged = normalizeContract({
+            ...contract,
+            ...update,
+            terms: update.terms
+              ? { ...contract.terms, ...update.terms }
+              : contract.terms,
+            content:
+              update.content === undefined
+                ? contract.content
+                : sanitizeContractHtml(update.content),
+            sourceSnapshot: update.sourceSnapshot
+              ? { ...contract.sourceSnapshot, ...update.sourceSnapshot }
+              : contract.sourceSnapshot,
+            updatedAt: new Date().toISOString(),
+            events: recordEvent
+              ? [
+                  event(
+                    "updated",
+                    "Contrato atualizado",
+                    "As informações do contrato foram revisadas.",
+                  ),
+                  ...contract.events,
+                ]
+              : contract.events,
+          });
+          saved = merged;
+          return merged;
+        }),
+      );
+      return saved;
+    },
+    [],
+  );
 
-  const createVersion = useCallback((id: string, reason: string, options?: { immutable?: boolean; aiGenerated?: boolean }) => {
-    let saved: ContractVersion | null = null;
-    setContracts((current) => current.map((contract) => {
-      if (contract.id !== id) return contract;
-      const next = version({
-        title: contract.title,
-        content: sanitizeContractHtml(contract.content),
-        reason,
-        versionNumber: Math.max(0, ...contract.versions.map((item) => item.version)) + 1,
-        aiGenerated: options?.aiGenerated,
-        immutable: options?.immutable,
-      });
-      saved = next;
-      return normalizeContract({
-        ...contract,
-        currentVersionId: next.id,
-        versions: [next, ...contract.versions],
-        updatedAt: new Date().toISOString(),
-        events: [event(options?.aiGenerated ? "ai_generated" : "version_created", reason, "Uma nova versão formal foi preservada."), ...contract.events],
-      });
-    }));
-    return saved;
-  }, []);
+  const createVersion = useCallback(
+    (
+      id: string,
+      reason: string,
+      options?: { immutable?: boolean; aiGenerated?: boolean },
+    ) => {
+      let saved: ContractVersion | null = null;
+      setContracts((current) =>
+        current.map((contract) => {
+          if (contract.id !== id) return contract;
+          const next = version({
+            title: contract.title,
+            content: sanitizeContractHtml(contract.content),
+            reason,
+            versionNumber:
+              Math.max(0, ...contract.versions.map((item) => item.version)) + 1,
+            aiGenerated: options?.aiGenerated,
+            immutable: options?.immutable,
+          });
+          saved = next;
+          return normalizeContract({
+            ...contract,
+            currentVersionId: next.id,
+            versions: [next, ...contract.versions],
+            updatedAt: new Date().toISOString(),
+            events: [
+              event(
+                options?.aiGenerated ? "ai_generated" : "version_created",
+                reason,
+                "Uma nova versão formal foi preservada.",
+              ),
+              ...contract.events,
+            ],
+          });
+        }),
+      );
+      return saved;
+    },
+    [],
+  );
 
-  const replaceContentFromAi = useCallback((id: string, title: string, content: string, provider: string) => {
-    let saved: WeekiContract | null = null;
-    setContracts((current) => current.map((contract) => {
-      if (contract.id !== id) return contract;
-      const next = version({
-        title,
-        content: sanitizeContractHtml(content),
-        reason: "Contrato gerado por IA",
-        versionNumber: Math.max(0, ...contract.versions.map((item) => item.version)) + 1,
-        aiGenerated: true,
-      });
-      const updated = normalizeContract({
-        ...contract,
-        title,
-        content: sanitizeContractHtml(content),
-        currentVersionId: next.id,
-        versions: [next, ...contract.versions],
-        editorialStatus: "review",
-        aiGenerated: true,
-        aiProvider: provider,
-        aiNoticeAccepted: true,
-        updatedAt: new Date().toISOString(),
-        events: [event("ai_generated", "Conteúdo gerado por IA", "Revise todas as cláusulas antes do envio.", "IA Weeki"), ...contract.events],
-      });
-      saved = updated;
-      return updated;
-    }));
-    return saved;
-  }, []);
+  const replaceContentFromAi = useCallback(
+    (id: string, title: string, content: string, provider: string) => {
+      let saved: WeekiContract | null = null;
+      setContracts((current) =>
+        current.map((contract) => {
+          if (contract.id !== id) return contract;
+          const next = version({
+            title,
+            content: sanitizeContractHtml(content),
+            reason: "Contrato gerado por IA",
+            versionNumber:
+              Math.max(0, ...contract.versions.map((item) => item.version)) + 1,
+            aiGenerated: true,
+          });
+          const updated = normalizeContract({
+            ...contract,
+            title,
+            content: sanitizeContractHtml(content),
+            currentVersionId: next.id,
+            versions: [next, ...contract.versions],
+            editorialStatus: "review",
+            aiGenerated: true,
+            aiProvider: provider,
+            aiNoticeAccepted: true,
+            updatedAt: new Date().toISOString(),
+            events: [
+              event(
+                "ai_generated",
+                "Conteúdo gerado por IA",
+                "Revise todas as cláusulas antes do envio.",
+                "IA Weeki",
+              ),
+              ...contract.events,
+            ],
+          });
+          saved = updated;
+          return updated;
+        }),
+      );
+      return saved;
+    },
+    [],
+  );
 
   const duplicateContract = useCallback((id: string) => {
     let copy: WeekiContract | null = null;
@@ -250,7 +336,13 @@ export function useWeekiContracts() {
         versions: [firstVersion],
         documents: [],
         signatureRequests: [],
-        events: [event("created", "Contrato duplicado", `Criado a partir de ${source.number}.`)],
+        events: [
+          event(
+            "created",
+            "Contrato duplicado",
+            `Criado a partir de ${source.number}.`,
+          ),
+        ],
         archivedAt: null,
         createdAt: now,
         updatedAt: now,
@@ -261,48 +353,104 @@ export function useWeekiContracts() {
   }, []);
 
   const archiveContract = useCallback((id: string) => {
-    setContracts((current) => current.map((contract) => contract.id === id
-      ? normalizeContract({
-          ...contract,
-          archivedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          events: [event("archived", "Contrato arquivado", "O histórico foi preservado."), ...contract.events],
-        })
-      : contract,
-    ));
+    setContracts((current) =>
+      current.map((contract) =>
+        contract.id === id
+          ? normalizeContract({
+              ...contract,
+              archivedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              events: [
+                event(
+                  "archived",
+                  "Contrato arquivado",
+                  "O histórico foi preservado.",
+                ),
+                ...contract.events,
+              ],
+            })
+          : contract,
+      ),
+    );
+  }, []);
+
+  const restoreContract = useCallback((id: string) => {
+    setContracts((current) =>
+      current.map((contract) =>
+        contract.id === id
+          ? normalizeContract({
+              ...contract,
+              archivedAt: null,
+              updatedAt: new Date().toISOString(),
+              events: [
+                event(
+                  "updated",
+                  "Contrato restaurado",
+                  "O contrato voltou para a lista ativa.",
+                ),
+                ...contract.events,
+              ],
+            })
+          : contract,
+      ),
+    );
   }, []);
 
   const deleteDraft = useCallback((id: string) => {
-    setContracts((current) => current.filter((contract) =>
-      contract.id !== id || contract.signatureStatus !== "not_started" || contract.editorialStatus !== "draft",
-    ));
+    setContracts((current) =>
+      current.filter(
+        (contract) =>
+          contract.id !== id ||
+          contract.signatureStatus !== "not_started" ||
+          contract.editorialStatus !== "draft",
+      ),
+    );
   }, []);
 
-  const attachDocument = useCallback((id: string, document: Omit<ContractDocument, "id" | "createdAt">) => {
-    let saved: ContractDocument | null = null;
-    setContracts((current) => current.map((contract) => {
-      if (contract.id !== id) return contract;
-      saved = {
-        ...document,
-        id: createId(),
-        createdAt: new Date().toISOString(),
-      };
-      return normalizeContract({
-        ...contract,
-        documents: [saved, ...contract.documents],
-        updatedAt: new Date().toISOString(),
-        events: [event("pdf_generated", "Documento gerado", `${saved.fileName} foi registrado no contrato.`), ...contract.events],
-      });
-    }));
-    return saved;
-  }, []);
+  const attachDocument = useCallback(
+    (id: string, document: Omit<ContractDocument, "id" | "createdAt">) => {
+      let saved: ContractDocument | null = null;
+      setContracts((current) =>
+        current.map((contract) => {
+          if (contract.id !== id) return contract;
+          saved = {
+            ...document,
+            id: createId(),
+            createdAt: new Date().toISOString(),
+          };
+          return normalizeContract({
+            ...contract,
+            documents: [saved, ...contract.documents],
+            updatedAt: new Date().toISOString(),
+            events: [
+              event(
+                "pdf_generated",
+                "Documento gerado",
+                `${saved.fileName} foi registrado no contrato.`,
+              ),
+              ...contract.events,
+            ],
+          });
+        }),
+      );
+      return saved;
+    },
+    [],
+  );
 
   const saveTemplate = useCallback((template: ContractTemplate) => {
     const now = new Date().toISOString();
     setTemplates((current) => {
       const exists = current.some((item) => item.id === template.id);
-      const saved = { ...template, content: sanitizeContractHtml(template.content), updatedAt: now, createdAt: template.createdAt || now };
-      return exists ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current];
+      const saved = {
+        ...template,
+        content: sanitizeContractHtml(template.content),
+        updatedAt: now,
+        createdAt: template.createdAt || now,
+      };
+      return exists
+        ? current.map((item) => (item.id === saved.id ? saved : item))
+        : [saved, ...current];
     });
   }, []);
 
@@ -311,23 +459,34 @@ export function useWeekiContracts() {
       const source = current.find((item) => item.id === id);
       if (!source) return current;
       const now = new Date().toISOString();
-      return [{
-        ...source,
-        id: createId(),
-        name: `${source.name} - cópia`,
-        favorite: false,
-        archivedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      }, ...current];
+      return [
+        {
+          ...source,
+          id: createId(),
+          name: `${source.name} - cópia`,
+          favorite: false,
+          archivedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        ...current,
+      ];
     });
   }, []);
 
-  const activeContracts = useMemo(() => contracts.filter((contract) => !contract.archivedAt), [contracts]);
+  const activeContracts = useMemo(
+    () => contracts.filter((contract) => !contract.archivedAt),
+    [contracts],
+  );
+  const archivedContracts = useMemo(
+    () => contracts.filter((contract) => contract.archivedAt),
+    [contracts],
+  );
 
   return {
     contracts: activeContracts,
     allContracts: contracts,
+    archivedContracts,
     templates,
     createContract,
     updateContract,
@@ -335,6 +494,7 @@ export function useWeekiContracts() {
     replaceContentFromAi,
     duplicateContract,
     archiveContract,
+    restoreContract,
     deleteDraft,
     attachDocument,
     saveTemplate,

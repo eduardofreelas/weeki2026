@@ -1,10 +1,10 @@
 # Orçamentos
 
-O módulo de Orçamentos é a área de propostas comerciais. Serviços voltou como catálogo/vitrine própria; os orçamentos consomem esses serviços como base, copiando dados para preservar snapshots sem quebrar atendimentos, tarefas, Fiscal/NFS-e e contratos.
+O módulo de Orçamentos é a área de propostas. Serviços é o catálogo/vitrine própria; os orçamentos consomem esses serviços como base, copiando dados para preservar snapshots sem quebrar vínculos internos, tarefas, Fiscal/NFS-e e contratos.
 
 Fluxo funcional da V1:
 
-Clientes → Orçamentos → Aprovação → Contrato / Cobrança / Atendimento → Relatórios / Fiscal
+Clientes → Orçamentos → Aprovação → Contrato / Cobrança / Demanda → Relatórios / Fiscal
 
 ## Funcionalidades
 
@@ -17,10 +17,10 @@ Clientes → Orçamentos → Aprovação → Contrato / Cobrança / Atendimento 
 - PDF real gerado no navegador como documento vetorial simples.
 - Exportação Excel `.xlsx` real em OpenXML.
 - Envio preparado por e-mail, WhatsApp e link público por token não sequencial.
-- Página pública `/orcamento/?token=...` para visualização, aprovação e recusa comercial.
+- Página pública `/orcamento/?token=...` para visualização, aprovação e recusa.
 - Histórico de eventos por orçamento.
 - Duplicação e revisão sem apagar versões anteriores.
-- Conversão de orçamento aprovado em rascunho de cobrança, contrato ou atendimento.
+- Conversão de orçamento aprovado em rascunho de cobrança, contrato ou demanda.
 - Configurações em **Configurações → Orçamentos** para prefixo, validade, prazo, textos padrão, rodapé, moeda e exibição de dados.
 
 ## Persistência local

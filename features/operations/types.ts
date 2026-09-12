@@ -318,8 +318,6 @@ export interface OperationsState {
   timeEntries: TimeEntry[];
 }
 
-export type OperationsView = "engagements" | "commercial" | "services";
-
 export type {
   ServiceAnalytics,
   ServiceAutomationSettings,

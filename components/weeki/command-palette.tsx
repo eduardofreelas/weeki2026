@@ -1,16 +1,16 @@
 "use client";
 
 import {
+  Archive,
   BarChart3,
-  BriefcaseBusiness,
   CalendarDays,
   CheckCircle2,
+  CircleHelp,
   CirclePlus,
   FileCheck2,
   FileSignature,
   FileText,
   Inbox,
-  KanbanSquare,
   Search,
   Settings,
   ShoppingBag,
@@ -28,12 +28,7 @@ import {
 } from "@/components/ui/command";
 import type { Client } from "@/features/clients/types";
 import type { Task } from "@/features/tasks/types";
-import type {
-  Engagement,
-  Opportunity,
-  Quote,
-  Service,
-} from "@/features/operations/types";
+import type { Quote, Service } from "@/features/operations/types";
 import { FISCAL_FLAGS } from "@/features/fiscal/config";
 import type { WeekiArea } from "./sidebar";
 
@@ -42,8 +37,6 @@ export function WeekiCommandPalette({
   onOpenChange,
   tasks,
   clients,
-  engagements,
-  opportunities,
   quotes,
   services,
   onCreate,
@@ -55,8 +48,6 @@ export function WeekiCommandPalette({
   onOpenChange: (open: boolean) => void;
   tasks: Task[];
   clients: Client[];
-  engagements: Engagement[];
-  opportunities: Opportunity[];
   quotes: Quote[];
   services: Service[];
   onCreate: (date: string | null) => void;
@@ -77,7 +68,7 @@ export function WeekiCommandPalette({
       description="Crie ou encontre uma demanda"
       className="top-[36%] max-w-xl rounded-2xl border-slate-200 shadow-2xl"
     >
-      <CommandInput placeholder="Buscar cliente, atendimento, orçamento ou ação..." />
+      <CommandInput placeholder="Buscar cliente, serviço, orçamento ou ação..." />
       <CommandList className="max-h-[360px] p-2">
         <CommandEmpty>Nenhuma demanda ou ação encontrada.</CommandEmpty>
         <CommandGroup heading="Ações rápidas">
@@ -98,12 +89,6 @@ export function WeekiCommandPalette({
           <CommandItem onSelect={() => run(() => onNavigate("contracts"))}>
             <FileSignature /> Abrir Contratos
           </CommandItem>
-          <CommandItem onSelect={() => run(() => onNavigate("engagements"))}>
-            <BriefcaseBusiness /> Abrir Atendimentos
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => onNavigate("commercial"))}>
-            <KanbanSquare /> Abrir Comercial
-          </CommandItem>
           <CommandItem onSelect={() => run(() => onNavigate("quotes"))}>
             <FileText /> Abrir Orçamentos
           </CommandItem>
@@ -112,6 +97,12 @@ export function WeekiCommandPalette({
           </CommandItem>
           <CommandItem onSelect={() => run(() => onNavigate("reports"))}>
             <BarChart3 /> Abrir Relatórios
+          </CommandItem>
+          <CommandItem onSelect={() => run(() => onNavigate("archives"))}>
+            <Archive /> Abrir Arquivados
+          </CommandItem>
+          <CommandItem onSelect={() => run(() => onNavigate("help"))}>
+            <CircleHelp /> Abrir Ajuda
           </CommandItem>
           {FISCAL_FLAGS.moduleEnabled && (
             <CommandItem onSelect={() => run(() => onNavigate("fiscal"))}>
@@ -124,16 +115,6 @@ export function WeekiCommandPalette({
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Operação">
-          {engagements.slice(0, 6).map((engagement) => (
-            <CommandItem
-              key={engagement.id}
-              value={`${engagement.name} atendimento`}
-              onSelect={() => run(() => onNavigate("engagements"))}
-            >
-              <BriefcaseBusiness />
-              <span className="min-w-0 flex-1 truncate">{engagement.name}</span>
-            </CommandItem>
-          ))}
           {quotes.slice(0, 4).map((quote) => (
             <CommandItem
               key={quote.id}
@@ -142,18 +123,6 @@ export function WeekiCommandPalette({
             >
               <FileText />
               <span className="min-w-0 flex-1 truncate">{quote.number}</span>
-            </CommandItem>
-          ))}
-          {opportunities.slice(0, 4).map((opportunity) => (
-            <CommandItem
-              key={opportunity.id}
-              value={`${opportunity.name} oportunidade`}
-              onSelect={() => run(() => onNavigate("commercial"))}
-            >
-              <KanbanSquare />
-              <span className="min-w-0 flex-1 truncate">
-                {opportunity.name}
-              </span>
             </CommandItem>
           ))}
           {services.slice(0, 4).map((service) => (

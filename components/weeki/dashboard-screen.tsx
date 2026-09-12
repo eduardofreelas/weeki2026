@@ -17,17 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import type { BillingCharge } from "@/features/billing/types";
 import type { Client } from "@/features/clients/types";
-import type {
-  Engagement,
-  Quote,
-  Service,
-  ServiceOrder,
-} from "@/features/operations/types";
-import {
-  ENGAGEMENT_STATUS_LABELS,
-  QUOTE_STATUS_LABELS,
-  quoteTotal,
-} from "@/features/operations/types";
+import type { Quote, Service, ServiceOrder } from "@/features/operations/types";
+import { QUOTE_STATUS_LABELS, quoteTotal } from "@/features/operations/types";
 import type { Task } from "@/features/tasks/types";
 import type { WeekiArea } from "./sidebar";
 
@@ -39,7 +30,6 @@ const currency = new Intl.NumberFormat("pt-BR", {
 export function DashboardScreen({
   tasks,
   clients,
-  engagements,
   quotes,
   services,
   serviceOrders,
@@ -49,7 +39,6 @@ export function DashboardScreen({
 }: {
   tasks: Task[];
   clients: Client[];
-  engagements: Engagement[];
   quotes: Quote[];
   services: Service[];
   serviceOrders: ServiceOrder[];
@@ -58,9 +47,6 @@ export function DashboardScreen({
   onCreate: () => void;
 }) {
   const today = format(new Date(), "yyyy-MM-dd");
-  const activeEngagements = engagements.filter(
-    (item) => !["completed", "cancelled"].includes(item.status),
-  );
   const overdueTasks = tasks.filter(
     (task) =>
       task.dueDate && task.dueDate < today && task.status !== "completed",
@@ -113,12 +99,12 @@ export function DashboardScreen({
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Metric
-          label="Atendimentos ativos"
-          value={String(activeEngagements.length)}
-          detail={`${engagements.filter((item) => item.status === "waiting_client").length} aguardando cliente`}
+          label="Contratações abertas"
+          value={String(pendingOrders.length)}
+          detail={`${serviceOrders.length} registro(s) da vitrine`}
           icon={ClipboardList}
           tone="violet"
-          onClick={() => onNavigate("engagements")}
+          onClick={() => onNavigate("services")}
         />
         <Metric
           label="A receber"
@@ -139,7 +125,7 @@ export function DashboardScreen({
         <Metric
           label="Orçamentos aguardando"
           value={String(pendingQuotes.length)}
-          detail="Retorno comercial pendente"
+          detail="Retorno pendente"
           icon={FileText}
           tone="blue"
           onClick={() => onNavigate("quotes")}
@@ -159,58 +145,60 @@ export function DashboardScreen({
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
-                Atendimentos ativos
+                Contratações recentes
               </h2>
               <p className="mt-0.5 text-[11px] text-slate-400">
-                O trabalho que está em andamento agora.
+                Solicitações recebidas pela vitrine pública.
               </p>
             </div>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => onNavigate("engagements")}
+              onClick={() => onNavigate("services")}
               className="h-8 text-[11px]"
             >
               Ver todos <ArrowRight className="size-3.5" />
             </Button>
           </div>
           <div className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-100">
-            {activeEngagements.slice(0, 5).map((engagement) => {
-              const client = clients.find(
-                (item) => item.id === engagement.clientId,
-              );
+            {pendingOrders.slice(0, 5).map((order) => {
+              const client = clients.find((item) => item.id === order.clientId);
               return (
                 <button
-                  key={engagement.id}
+                  key={order.id}
                   type="button"
-                  onClick={() => onNavigate("engagements")}
+                  onClick={() => onNavigate("services")}
                   className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-50"
                 >
                   <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#efedff] text-[10px] font-bold text-[#654ce4]">
-                    {client?.initials ?? "AT"}
+                    {client?.initials ?? "CT"}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-semibold text-slate-800">
-                      {engagement.name}
+                      {order.serviceName}
                     </span>
                     <span className="mt-1 block truncate text-[10px] text-slate-400">
-                      {client?.name ?? "Cliente"} · prazo{" "}
-                      {formatDate(engagement.dueDate)}
+                      {client?.name ?? order.clientName} ·{" "}
+                      {currency.format(order.total)}
                     </span>
                   </span>
                   <span className="hidden rounded-full bg-slate-100 px-2 py-1 text-[9px] font-semibold text-slate-600 sm:inline-flex">
-                    {ENGAGEMENT_STATUS_LABELS[engagement.status]}
+                    {order.status === "awaiting_payment"
+                      ? "Aguardando pagamento"
+                      : order.status === "confirmed"
+                        ? "Confirmada"
+                        : "Interesse"}
                   </span>
                 </button>
               );
             })}
-            {!activeEngagements.length && (
+            {!pendingOrders.length && (
               <Empty
-                title="Nenhum atendimento ativo"
-                description="Crie o primeiro atendimento para começar a acompanhar a execução."
-                action="Criar atendimento"
-                onClick={() => onNavigate("engagements")}
+                title="Nenhuma contratação aberta"
+                description="Publique serviços na vitrine para receber solicitações e compras."
+                action="Abrir serviços"
+                onClick={() => onNavigate("services")}
               />
             )}
           </div>
