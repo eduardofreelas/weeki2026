@@ -1,6 +1,6 @@
 # Orçamentos
 
-O módulo de Orçamentos substitui Serviços como área principal da navegação comercial. Os antigos serviços permanecem como catálogo interno de itens salvos para não quebrar atendimentos, tarefas, Fiscal/NFS-e e contratos.
+O módulo de Orçamentos é a área de propostas comerciais. Serviços voltou como catálogo/vitrine própria; os orçamentos consomem esses serviços como base, copiando dados para preservar snapshots sem quebrar atendimentos, tarefas, Fiscal/NFS-e e contratos.
 
 Fluxo funcional da V1:
 
@@ -11,7 +11,7 @@ Clientes → Orçamentos → Aprovação → Contrato / Cobrança / Atendimento 
 - Tela principal com indicadores, filtros por status, cliente, período, valor e validade.
 - Criação e edição de orçamento com cliente existente ou novo cliente.
 - Itens livres com quantidade, unidade, preço, desconto por item, desconto geral, taxa/imposto e total automático.
-- Catálogo interno de itens salvos, reutilizando a estrutura anterior de serviços.
+- Seleção de serviços cadastrados, com preenchimento automático de nome, descrição, preço, unidade e dados fiscais opcionais.
 - Modelos de orçamento a partir de propostas existentes.
 - Preview A4 em tempo real com identidade do workspace.
 - PDF real gerado no navegador como documento vetorial simples.

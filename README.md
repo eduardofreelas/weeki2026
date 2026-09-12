@@ -16,13 +16,14 @@ Workspace operacional para prestadores de serviços. O frontend Next.js continua
 - backend Fiscal desacoplado e seguro, com a integração nacional real em standby;
 - módulo Contratos com criação progressiva, modelos, snapshots, versões, editor, PDF backend, IA server-side e arquitetura Clicksign em standby até credenciais.
 - base autenticada de conta, onboarding e disponibilidade, reaproveitando OIDC, sessão HttpOnly e workspace quando o backend estiver habilitado.
-- módulo de Orçamentos como área comercial principal, com itens salvos internos, PDF, Excel, link público, aceite, histórico, revisões e conversão para cobrança, contrato ou atendimento.
+- módulo de Serviços como catálogo comercial, portfólio, vitrine pública, checkout local, contratações, QR Code, analytics e conversões para orçamento, cobrança, contrato ou atendimento.
+- módulo de Orçamentos como área de propostas comerciais, consumindo serviços cadastrados, com PDF, Excel, link público, aceite, histórico, revisões e conversão para cobrança, contrato ou atendimento.
 - operação V1 conectada com dashboard, atendimentos, oportunidades, tarefas padrão, ciclos, entregas e apontamento manual de tempo.
 
 ## Arquitetura
 
 ```text
-app/                 rotas (home SPA + /agendar + /orcamento)
+app/                 rotas (home SPA + /agendar + /orcamento + /vitrine)
 components/ui/       primitivos shadcn (Button, Input, Dialog, Sheet…)
 components/weeki/    telas e widgets do produto
 features/*/          tipos, seed e hooks de persistência local
@@ -74,7 +75,8 @@ npm run start:payments
 - pagamentos dependem de PostgreSQL, OIDC, HTTPS e credenciais sandbox configurados externamente;
 - emissão NFS-e real depende de credenciamento, documentação oficial fixada, certificado em KMS/Vault e homologação;
 - IA e assinatura de contratos dependem de OpenAI, Clicksign sandbox, segredo de webhook e homologação;
-- a persistência de tarefas, clientes e operação permanece local enquanto a migração multi-tenant dessas áreas não for ativada no backend.
+- a vitrine pública e o checkout funcionam no modo local/estático; compartilhamento entre dispositivos, uploads reais e confirmação de pagamento dependem do backend;
+- a persistência de tarefas, clientes, serviços e operação permanece local enquanto a migração multi-tenant dessas áreas não for ativada no backend.
 
 ## Conta, onboarding e disponibilidade
 
@@ -93,3 +95,7 @@ A arquitetura, os estados, as rotas, a migration, os controles de idempotência 
 ## Contratos
 
 A arquitetura, endpoints, variáveis, estados, migration, IA e assinatura eletrônica estão em [docs/contracts.md](docs/contracts.md). Para ativação real, siga a [checklist externa](docs/contracts-external-checklist.md) e o [registro de validação](docs/contracts-validation.md).
+
+## Serviços e Vitrine Pública
+
+O catálogo de serviços, a vitrine pública, o checkout local, contratações, analytics e a migration server-only estão documentados em [docs/services-storefront.md](docs/services-storefront.md). A V1 preserva compatibilidade com orçamentos, agenda, cobranças, contratos e Fiscal, mas checkout real, uploads, domínio próprio e analytics multi-tenant dependem das integrações externas descritas no documento.

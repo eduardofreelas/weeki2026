@@ -1530,11 +1530,11 @@ function QuoteEditorSheet({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-xs font-semibold text-slate-800">
-                      Catálogo de itens salvos
+                      Serviços cadastrados
                     </p>
                     <p className="mt-0.5 text-[10px] text-slate-400">
-                      Reutilize serviços, horas, pacotes ou atividades sem
-                      manter um módulo separado.
+                      Selecione um serviço da vitrine ou crie um item manual sem
+                      alterar o cadastro original.
                     </p>
                   </div>
                   <Button
@@ -1565,7 +1565,7 @@ function QuoteEditorSheet({
                   ))}
                   {!savedItems.length && (
                     <p className="py-3 text-[11px] text-slate-400">
-                      Itens salvos aparecerão aqui.
+                      Serviços cadastrados aparecerão aqui.
                     </p>
                   )}
                 </div>
@@ -1589,7 +1589,7 @@ function QuoteEditorSheet({
                           onClick={() => saveItem(item)}
                           className="h-7 text-[10px]"
                         >
-                          <Save className="size-3" /> Salvar item
+                          <Save className="size-3" /> Salvar como serviço
                         </Button>
                         <Button
                           type="button"
@@ -1604,7 +1604,7 @@ function QuoteEditorSheet({
                     </div>
                     {savedItems.length > 0 && (
                       <div className="mb-3 max-w-xs">
-                        <Field label="Usar item salvo">
+                        <Field label="Usar serviço cadastrado">
                           <Select
                             value={item.savedItemId ?? "none"}
                             onValueChange={(value) =>
@@ -1620,7 +1620,7 @@ function QuoteEditorSheet({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Item livre</SelectItem>
+                              <SelectItem value="none">Item manual</SelectItem>
                               {savedItems.map((savedItem) => (
                                 <SelectItem
                                   key={savedItem.id}

@@ -1,5 +1,9 @@
 import { addMonths, format } from "date-fns";
-import type { OperationsState } from "./types";
+import {
+  createDefaultServiceDetails,
+  defaultStorefrontSettings,
+} from "@/features/services/defaults";
+import type { OperationsState, Service } from "./types";
 
 const now = "2026-09-01T10:00:00.000Z";
 const iso = (date: Date) => format(date, "yyyy-MM-dd");
@@ -16,6 +20,38 @@ const quoteEvent = (
   createdAt: now,
 });
 
+function serviceSeed(
+  base: Omit<Service, keyof ReturnType<typeof createDefaultServiceDetails>>,
+  details: Partial<ReturnType<typeof createDefaultServiceDetails>> = {},
+): Service {
+  const defaults = createDefaultServiceDetails({
+    id: base.id,
+    name: base.name,
+    description: base.description,
+    category: base.category,
+    defaultPrice: base.defaultPrice,
+    unit: base.unit,
+    defaultDurationDays: base.defaultDurationDays,
+    status: details.status ?? "published",
+    availabilityStatus: details.availabilityStatus ?? "available",
+  });
+  return {
+    ...base,
+    ...defaults,
+    ...details,
+    pricing: { ...defaults.pricing, ...details.pricing },
+    deadline: { ...defaults.deadline, ...details.deadline },
+    duration: { ...defaults.duration, ...details.duration },
+    hiring: { ...defaults.hiring, ...details.hiring },
+    payment: { ...defaults.payment, ...details.payment },
+    scheduling: { ...defaults.scheduling, ...details.scheduling },
+    seo: { ...defaults.seo, ...details.seo },
+    analytics: { ...defaults.analytics, ...details.analytics },
+    fiscal: { ...defaults.fiscal, ...details.fiscal },
+    automations: { ...defaults.automations, ...details.automations },
+  };
+}
+
 export function createSeedOperations(
   referenceDate = new Date("2026-09-11T12:00:00.000Z"),
 ): OperationsState {
@@ -26,79 +62,507 @@ export function createSeedOperations(
   );
   return {
     services: [
+      serviceSeed(
+        {
+          id: "service-social",
+          name: "Gestão de Comunicação",
+          description:
+            "Planejamento, produção e acompanhamento de comunicação digital.",
+          category: "Comunicação",
+          defaultPrice: 2000,
+          billingType: "fixed",
+          unit: "mês",
+          defaultDurationDays: 30,
+          fiscalCode: "",
+          taxRate: 0,
+          contractTemplateId: null,
+          standardTasks: [
+            "Planejamento editorial",
+            "Produção de conteúdos",
+            "Revisão com cliente",
+            "Relatório mensal",
+          ],
+          recurrence: "monthly",
+          archivedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          slug: "gestao-de-comunicacao",
+          status: "published",
+          inStorefront: true,
+          featured: true,
+          summary:
+            "Planejamento editorial, produção de conteúdo e acompanhamento mensal para marcas e instituições.",
+          fullDescription:
+            "<p>Organização da comunicação digital com rotina editorial, produção de conteúdo, revisão com o cliente e relatório de evolução.</p><ul><li>Planejamento mensal</li><li>Gestão de canais</li><li>Acompanhamento de indicadores</li></ul>",
+          coverImage:
+            "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80",
+          pricing: {
+            type: "unit",
+            amount: 2000,
+            unit: "month",
+            customUnit: "",
+            label: "",
+          },
+          variants: [
+            {
+              id: "variant-social-essential",
+              name: "Essencial",
+              description: "Calendário editorial e até 8 conteúdos por mês.",
+              price: 1200,
+              includedItems: [
+                "Planejamento",
+                "8 conteúdos",
+                "Relatório mensal",
+              ],
+              highlighted: false,
+              duration: "Mensal",
+              conditions: "Renovação mês a mês.",
+            },
+            {
+              id: "variant-social-pro",
+              name: "Profissional",
+              description:
+                "Rotina completa com calendário, produção e análise.",
+              price: 2000,
+              includedItems: [
+                "Planejamento",
+                "16 conteúdos",
+                "Revisão com cliente",
+                "Relatório mensal",
+              ],
+              highlighted: true,
+              duration: "Mensal",
+              conditions: "Contrato mensal com início após aprovação.",
+            },
+          ],
+          extras: [
+            {
+              id: "extra-social-ads",
+              name: "Gestão de mídia paga",
+              description: "Acompanhamento de campanhas e verba separada.",
+              price: 500,
+              required: false,
+              allowQuantity: false,
+              maxQuantity: 1,
+              imageUrl: "",
+            },
+            {
+              id: "extra-social-photo",
+              name: "Banco de fotos presencial",
+              description: "Sessão curta para captação de imagens.",
+              price: 750,
+              required: false,
+              allowQuantity: true,
+              maxQuantity: 4,
+              imageUrl: "",
+            },
+          ],
+          includedItems: [
+            "Calendário editorial",
+            "Produção de conteúdos",
+            "Revisão com cliente",
+            "Relatório mensal",
+          ],
+          excludedItems: [
+            "Verba de impulsionamento",
+            "Produção audiovisual externa",
+            "Compra de bancos de imagem",
+          ],
+          deadline: {
+            value: 5,
+            unit: "business_days",
+            customText: "Primeiro calendário em até 5 dias úteis.",
+          },
+          duration: { value: 1, unit: "months", customText: "Mensal" },
+          hiring: {
+            type: "request_quote",
+            autoCreateClient: true,
+            autoCreateDemand: true,
+            autoCreateContract: false,
+            autoCreateBilling: false,
+            reserveTimeWhenScheduled: false,
+            intakeTitle: "Conte quais canais você quer organizar",
+            confirmationMessage:
+              "Recebemos sua solicitação de comunicação e vamos preparar um orçamento.",
+          },
+          faq: [
+            {
+              id: "faq-social-1",
+              question: "A verba de anúncios está inclusa?",
+              answer:
+                "Não. A verba é definida e paga separadamente pelo cliente.",
+            },
+            {
+              id: "faq-social-2",
+              question: "Vocês publicam os conteúdos?",
+              answer:
+                "A publicação pode ser incluída no escopo conforme a rotina aprovada.",
+            },
+          ],
+          analytics: {
+            storefrontViews: 88,
+            serviceViews: 42,
+            ctaClicks: 14,
+            quoteRequests: 5,
+            purchases: 0,
+            appointments: 0,
+            lastViewedAt: now,
+          },
+        },
+      ),
+      serviceSeed(
+        {
+          id: "service-website",
+          name: "Criação de Website",
+          description:
+            "Projeto completo de planejamento, design, desenvolvimento e publicação.",
+          category: "Digital",
+          defaultPrice: 6500,
+          billingType: "fixed",
+          unit: "projeto",
+          defaultDurationDays: 45,
+          fiscalCode: "",
+          taxRate: 0,
+          contractTemplateId: null,
+          standardTasks: [
+            "Briefing",
+            "Wireframe",
+            "Design",
+            "Desenvolvimento",
+            "Revisão",
+            "Publicação",
+          ],
+          recurrence: "none",
+          archivedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          slug: "criacao-de-website",
+          status: "published",
+          inStorefront: true,
+          featured: true,
+          summary:
+            "Site institucional responsivo, planejado para apresentar a empresa e gerar contato qualificado.",
+          fullDescription:
+            "<p>Projeto completo para empresas que precisam de presença digital clara, bonita e fácil de atualizar.</p><ul><li>Arquitetura das páginas</li><li>Design responsivo</li><li>Desenvolvimento</li><li>Publicação assistida</li></ul>",
+          coverImage:
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+          pricing: {
+            type: "starting_at",
+            amount: 6500,
+            unit: "project",
+            customUnit: "",
+            label: "",
+          },
+          variants: [
+            {
+              id: "variant-site-start",
+              name: "Institucional",
+              description: "Até 5 páginas para apresentação da empresa.",
+              price: 6500,
+              includedItems: [
+                "Briefing",
+                "Design",
+                "Desenvolvimento",
+                "Publicação",
+              ],
+              highlighted: true,
+              duration: "45 dias",
+              conditions: "50% no início e 50% na entrega.",
+            },
+            {
+              id: "variant-site-pro",
+              name: "Institucional + conteúdo",
+              description: "Inclui apoio na organização de textos e chamadas.",
+              price: 8500,
+              includedItems: [
+                "Briefing",
+                "Design",
+                "Desenvolvimento",
+                "Apoio de conteúdo",
+                "Publicação",
+              ],
+              highlighted: false,
+              duration: "60 dias",
+              conditions: "Escopo fechado após briefing.",
+            },
+          ],
+          extras: [
+            {
+              id: "extra-site-page",
+              name: "Página adicional",
+              description: "Página extra com layout alinhado ao projeto.",
+              price: 650,
+              required: false,
+              allowQuantity: true,
+              maxQuantity: 10,
+              imageUrl: "",
+            },
+            {
+              id: "extra-site-express",
+              name: "Entrega expressa",
+              description:
+                "Priorização do cronograma conforme disponibilidade.",
+              price: 1200,
+              required: false,
+              allowQuantity: false,
+              maxQuantity: 1,
+              imageUrl: "",
+            },
+          ],
+          includedItems: [
+            "Briefing",
+            "Wireframe",
+            "Design responsivo",
+            "Desenvolvimento",
+            "Publicação assistida",
+          ],
+          excludedItems: [
+            "Domínio",
+            "Hospedagem",
+            "Produção de fotografias",
+            "Mensalidade de ferramentas externas",
+          ],
+          portfolio: [
+            {
+              id: "portfolio-site-1",
+              title: "Website institucional para associação",
+              description:
+                "Estrutura institucional com páginas de conteúdo, contato e áreas de serviço.",
+              imageUrl:
+                "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80",
+              gallery: [],
+              clientName: "Projeto institucional",
+              projectDate: "2026-07-10",
+              externalUrl: "",
+              result: "Melhor organização da apresentação pública.",
+              createdAt: now,
+              updatedAt: now,
+            },
+          ],
+          videos: [
+            {
+              id: "video-site-1",
+              title: "Como organizamos o briefing",
+              url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              provider: "youtube",
+              embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            },
+          ],
+          links: [
+            {
+              id: "link-site-portfolio",
+              label: "Portfólio externo",
+              url: "https://weeki.com.br",
+              kind: "portfolio",
+              icon: "",
+            },
+          ],
+          customFields: [
+            {
+              id: "field-domain",
+              label: "Você já possui domínio?",
+              type: "select",
+              required: true,
+              options: ["Sim", "Não", "Ainda não sei"],
+              placeholder: "",
+              helpText: "",
+            },
+            {
+              id: "field-brand",
+              label: "Você já possui identidade visual?",
+              type: "checkbox",
+              required: false,
+              options: [],
+              placeholder: "",
+              helpText: "Isso ajuda a definir a etapa de design.",
+            },
+          ],
+          serviceTerms:
+            "Revisões inclusas conforme plano aprovado. Mudanças estruturais após aprovação de layout podem gerar novo orçamento.",
+          analytics: {
+            storefrontViews: 153,
+            serviceViews: 71,
+            ctaClicks: 24,
+            quoteRequests: 7,
+            purchases: 1,
+            appointments: 0,
+            lastViewedAt: now,
+          },
+        },
+      ),
+      serviceSeed(
+        {
+          id: "service-consulting",
+          name: "Consultoria estratégica",
+          description: "Análise, recomendações e encontros de acompanhamento.",
+          category: "Consultoria",
+          defaultPrice: 350,
+          billingType: "variable",
+          unit: "hora",
+          defaultDurationDays: 15,
+          fiscalCode: "",
+          taxRate: 0,
+          contractTemplateId: null,
+          standardTasks: [
+            "Diagnóstico",
+            "Plano de ação",
+            "Reunião de acompanhamento",
+          ],
+          recurrence: "none",
+          archivedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          slug: "consultoria-estrategica",
+          status: "published",
+          inStorefront: true,
+          featured: false,
+          summary:
+            "Sessão de diagnóstico e plano de ação para organizar prioridades, comunicação ou operação.",
+          fullDescription:
+            "<p>Consultoria prática para diagnosticar o cenário, organizar prioridades e sair com próximos passos claros.</p>",
+          coverImage:
+            "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1200&q=80",
+          pricing: {
+            type: "unit",
+            amount: 350,
+            unit: "hour",
+            customUnit: "",
+            label: "",
+          },
+          includedItems: ["Diagnóstico", "Plano de ação", "Reunião online"],
+          excludedItems: ["Execução das tarefas recomendadas"],
+          deadline: {
+            value: 2,
+            unit: "business_days",
+            customText: "Agenda conforme disponibilidade.",
+          },
+          duration: { value: 1, unit: "hours", customText: "1 hora" },
+          hiring: {
+            type: "hire_and_schedule",
+            autoCreateClient: true,
+            autoCreateDemand: true,
+            autoCreateContract: false,
+            autoCreateBilling: true,
+            reserveTimeWhenScheduled: true,
+            intakeTitle: "Qual desafio você quer resolver?",
+            confirmationMessage:
+              "Sua solicitação foi registrada. Após o pagamento, confirme o melhor horário.",
+          },
+          payment: {
+            methods: ["pix", "credit_card"],
+            mode: "full",
+            depositPercent: 0,
+            maxInstallments: 3,
+            notes: "Pagamento integral antes da sessão.",
+            providerPreference: "default",
+            requirePaymentBeforeScheduling: true,
+            createChargeAutomatically: true,
+          },
+          scheduling: {
+            enabled: true,
+            durationMinutes: 60,
+            bufferMinutes: 15,
+            minimumNoticeHours: 24,
+            maximumAdvanceDays: 45,
+            allowedWeekdays: [1, 2, 3, 4, 5],
+            specificHours: ["09:00", "10:30", "14:00", "16:00"],
+            useWorkspaceAvailability: true,
+          },
+          faq: [
+            {
+              id: "faq-consulting-1",
+              question: "A consultoria pode virar projeto?",
+              answer:
+                "Sim. Se houver necessidade de execução, uma nova demanda ou orçamento pode ser criado.",
+            },
+          ],
+          analytics: {
+            storefrontViews: 64,
+            serviceViews: 31,
+            ctaClicks: 9,
+            quoteRequests: 2,
+            purchases: 3,
+            appointments: 3,
+            lastViewedAt: now,
+          },
+        },
+      ),
+    ],
+    serviceOrders: [
       {
-        id: "service-social",
-        name: "Gestão de Comunicação",
-        description:
-          "Planejamento, produção e acompanhamento de comunicação digital.",
-        category: "Comunicação",
-        defaultPrice: 2000,
-        billingType: "fixed",
-        unit: "mês",
-        defaultDurationDays: 30,
-        fiscalCode: "",
-        taxRate: 0,
-        contractTemplateId: null,
-        standardTasks: [
-          "Planejamento editorial",
-          "Produção de conteúdos",
-          "Revisão com cliente",
-          "Relatório mensal",
+        id: "service-order-consulting-1",
+        number: "CTR-2026-0001",
+        serviceId: "service-consulting",
+        serviceName: "Consultoria estratégica",
+        serviceSlug: "consultoria-estrategica",
+        clientId: null,
+        clientName: "Mariana Alves",
+        clientEmail: "mariana@example.com",
+        clientPhone: "(63) 99999-0000",
+        clientDocument: "",
+        planId: null,
+        planName: "Plano padrão",
+        extras: [],
+        answers: [
+          {
+            fieldId: "challenge",
+            label: "Qual desafio você quer resolver?",
+            value: "Organizar prioridades e rotina comercial.",
+          },
         ],
-        recurrence: "monthly",
-        archivedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "service-website",
-        name: "Criação de Website",
-        description:
-          "Projeto completo de planejamento, design, desenvolvimento e publicação.",
-        category: "Digital",
-        defaultPrice: 6500,
-        billingType: "fixed",
-        unit: "projeto",
-        defaultDurationDays: 45,
-        fiscalCode: "",
-        taxRate: 0,
-        contractTemplateId: null,
-        standardTasks: [
-          "Briefing",
-          "Wireframe",
-          "Design",
-          "Desenvolvimento",
-          "Revisão",
-          "Publicação",
+        message: "Gostaria de agendar uma conversa ainda este mês.",
+        total: 350,
+        paymentStatus: "pending",
+        paymentMethod: "pix",
+        paymentLink: "/pagar/consultoria-estrategica-1",
+        appointmentDate: "2026-09-15",
+        appointmentTime: "14:00",
+        quoteId: null,
+        chargeId: null,
+        contractId: null,
+        engagementId: null,
+        source: "storefront",
+        status: "awaiting_payment",
+        events: [
+          {
+            id: "service-order-event-1",
+            title: "Contratação recebida",
+            description: "Cliente iniciou contratação pela vitrine pública.",
+            createdAt: now,
+          },
         ],
-        recurrence: "none",
-        archivedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "service-consulting",
-        name: "Consultoria estratégica",
-        description: "Análise, recomendações e encontros de acompanhamento.",
-        category: "Consultoria",
-        defaultPrice: 350,
-        billingType: "variable",
-        unit: "hora",
-        defaultDurationDays: 15,
-        fiscalCode: "",
-        taxRate: 0,
-        contractTemplateId: null,
-        standardTasks: [
-          "Diagnóstico",
-          "Plano de ação",
-          "Reunião de acompanhamento",
-        ],
-        recurrence: "none",
-        archivedAt: null,
         createdAt: now,
         updatedAt: now,
       },
     ],
+    storefrontSettings: {
+      ...defaultStorefrontSettings(),
+      slug: "eduardodesign",
+      publicName: "Eduardo Vieira",
+      businessName: "Weeki Studio",
+      headline:
+        "Serviços digitais, comunicação e consultoria com contratação simples.",
+      about:
+        "Apresento aqui serviços que podem virar orçamento, agendamento, cobrança, contrato e demanda dentro da Weeki.",
+      location: "Palmas, TO",
+      siteUrl: "https://weeki.com.br",
+      instagramUrl: "https://instagram.com/weeki",
+      whatsapp: "(63) 99999-0000",
+      email: "eduardo@weeki.com.br",
+      serviceOrder: ["service-website", "service-social", "service-consulting"],
+      featuredServiceIds: ["service-website", "service-social"],
+      categories: ["Digital", "Comunicação", "Consultoria"],
+      seoTitle: "Serviços de Eduardo Vieira | Weeki",
+      seoDescription:
+        "Vitrine pública de serviços com orçamento, contratação, agenda e pagamento.",
+      updatedAt: now,
+    },
     opportunities: [
       {
         id: "opp-anoreg",

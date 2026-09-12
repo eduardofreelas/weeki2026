@@ -13,6 +13,7 @@ import {
   KanbanSquare,
   Search,
   Settings,
+  ShoppingBag,
   UserRound,
 } from "lucide-react";
 import {
@@ -106,6 +107,9 @@ export function WeekiCommandPalette({
           <CommandItem onSelect={() => run(() => onNavigate("quotes"))}>
             <FileText /> Abrir Orçamentos
           </CommandItem>
+          <CommandItem onSelect={() => run(() => onNavigate("services"))}>
+            <ShoppingBag /> Abrir Serviços
+          </CommandItem>
           <CommandItem onSelect={() => run(() => onNavigate("reports"))}>
             <BarChart3 /> Abrir Relatórios
           </CommandItem>
@@ -155,10 +159,10 @@ export function WeekiCommandPalette({
           {services.slice(0, 4).map((service) => (
             <CommandItem
               key={service.id}
-              value={`${service.name} item salvo orçamento`}
-              onSelect={() => run(() => onNavigate("quotes"))}
+              value={`${service.name} serviço vitrine`}
+              onSelect={() => run(() => onNavigate("services"))}
             >
-              <FileText />
+              <ShoppingBag />
               <span className="min-w-0 flex-1 truncate">{service.name}</span>
             </CommandItem>
           ))}

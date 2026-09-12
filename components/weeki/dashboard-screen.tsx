@@ -11,12 +11,18 @@ import {
   FileText,
   Plus,
   ReceiptText,
+  ShoppingBag,
   WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BillingCharge } from "@/features/billing/types";
 import type { Client } from "@/features/clients/types";
-import type { Engagement, Quote } from "@/features/operations/types";
+import type {
+  Engagement,
+  Quote,
+  Service,
+  ServiceOrder,
+} from "@/features/operations/types";
 import {
   ENGAGEMENT_STATUS_LABELS,
   QUOTE_STATUS_LABELS,
@@ -35,6 +41,8 @@ export function DashboardScreen({
   clients,
   engagements,
   quotes,
+  services,
+  serviceOrders,
   charges,
   onNavigate,
   onCreate,
@@ -43,6 +51,8 @@ export function DashboardScreen({
   clients: Client[];
   engagements: Engagement[];
   quotes: Quote[];
+  services: Service[];
+  serviceOrders: ServiceOrder[];
   charges: BillingCharge[];
   onNavigate: (area: WeekiArea) => void;
   onCreate: () => void;
@@ -63,6 +73,12 @@ export function DashboardScreen({
   );
   const pendingQuotes = quotes.filter((quote) =>
     ["sent", "viewed", "awaiting_approval"].includes(quote.status),
+  );
+  const publishedServices = services.filter(
+    (service) => service.status === "published" && service.inStorefront,
+  );
+  const pendingOrders = serviceOrders.filter((order) =>
+    ["interest", "awaiting_payment", "confirmed"].includes(order.status),
   );
   const todayTasks = tasks.filter(
     (task) => task.scheduledDate === today && task.status !== "completed",
@@ -86,8 +102,8 @@ export function DashboardScreen({
             Bom dia, organize seu trabalho
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Acompanhe clientes, atendimentos, orçamentos e recebimentos em um só
-            lugar.
+            Acompanhe clientes, serviços, orçamentos, contratações e
+            recebimentos em um só lugar.
           </p>
         </div>
         <Button type="button" size="sm" onClick={onCreate}>
@@ -95,7 +111,7 @@ export function DashboardScreen({
         </Button>
       </div>
 
-      <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Metric
           label="Atendimentos ativos"
           value={String(activeEngagements.length)}
@@ -127,6 +143,14 @@ export function DashboardScreen({
           icon={FileText}
           tone="blue"
           onClick={() => onNavigate("quotes")}
+        />
+        <Metric
+          label="Serviços publicados"
+          value={String(publishedServices.length)}
+          detail={`${pendingOrders.length} contratação(s) em aberto`}
+          icon={ShoppingBag}
+          tone="violet"
+          onClick={() => onNavigate("services")}
         />
       </section>
 
@@ -237,7 +261,7 @@ export function DashboardScreen({
         </section>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <DashboardList
           title="Atenção"
           icon={AlertCircle}
@@ -273,6 +297,20 @@ export function DashboardScreen({
             }))}
           empty="Nenhum orçamento criado."
           action={() => onNavigate("quotes")}
+        />
+        <DashboardList
+          title="Serviços"
+          icon={ShoppingBag}
+          tone="blue"
+          items={services
+            .filter((service) => service.status !== "archived")
+            .slice(0, 4)
+            .map((service) => ({
+              title: service.name,
+              detail: `${service.status === "published" ? "Publicado" : "Rascunho"} · ${service.analytics.ctaClicks} clique(s)`,
+            }))}
+          empty="Nenhum serviço cadastrado."
+          action={() => onNavigate("services")}
         />
       </div>
     </div>

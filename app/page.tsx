@@ -61,6 +61,7 @@ import { WeekiCommandPalette } from "@/components/weeki/command-palette";
 import { OperationsScreen } from "@/components/weeki/operations-screen";
 import { QuotesScreen } from "@/components/weeki/quotes-screen";
 import { ReportsScreen } from "@/components/weeki/reports-screen";
+import { ServicesScreen } from "@/components/weeki/services-screen";
 import {
   MobileNavigation,
   WeekiSidebar,
@@ -95,7 +96,10 @@ import type {
   Opportunity,
   OperationsView,
   Quote,
+  QuoteItem,
+  QuoteUnit,
   Service,
+  ServiceOrder,
 } from "@/features/operations/types";
 import {
   STATUS_LABELS,
@@ -108,6 +112,7 @@ import {
 import { useWeekiTasks } from "@/features/tasks/use-weeki-tasks";
 import { useWeekiSettings } from "@/features/settings/use-weeki-settings";
 import { createId } from "@/lib/format";
+import { servicePlanLabel } from "@/features/services/pricing";
 import { cn } from "@/lib/utils";
 import type { ContractDraftInput } from "@/shared/contracts";
 
@@ -121,11 +126,78 @@ const stripQuoteHtml = (value: string) =>
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+function quoteUnitFromService(unit: Service["pricing"]["unit"]): QuoteUnit {
+  const map: Partial<Record<Service["pricing"]["unit"], QuoteUnit>> = {
+    unit: "unit",
+    hour: "hour",
+    day: "day",
+    session: "session",
+    month: "month",
+    project: "project",
+    page: "page",
+    square_meter: "square_meter",
+    km: "km",
+    package: "package",
+    custom: "custom",
+  };
+  return map[unit] ?? "unit";
+}
+function quoteItemsFromServiceOrder(
+  service: Service,
+  order: ServiceOrder,
+): QuoteItem[] {
+  const selectedPlan = service.variants.find(
+    (variant) => variant.id === order.planId,
+  );
+  const unit = quoteUnitFromService(service.pricing.unit);
+  const base: QuoteItem = {
+    id: createId(),
+    serviceId: service.id,
+    savedItemId: service.id,
+    name: selectedPlan
+      ? `${service.name} — ${servicePlanLabel(selectedPlan)}`
+      : service.name,
+    description:
+      selectedPlan?.description || service.summary || service.description,
+    quantity: 1,
+    unit,
+    customUnit: unit === "custom" ? service.pricing.customUnit : "",
+    unitPrice:
+      selectedPlan?.price ?? service.pricing.amount ?? service.defaultPrice,
+    discountType: "none",
+    discountValue: 0,
+    discount: 0,
+    addition: 0,
+    fiscalCode: service.fiscal.serviceCode,
+    taxRate: service.fiscal.issRate,
+  };
+  return [
+    base,
+    ...order.extras.map((extra) => ({
+      id: createId(),
+      serviceId: service.id,
+      savedItemId: service.id,
+      name: extra.name,
+      description: `Extra vinculado ao serviço ${service.name}`,
+      quantity: extra.quantity,
+      unit: "unit" as QuoteUnit,
+      customUnit: "",
+      unitPrice: extra.price,
+      discountType: "none" as const,
+      discountValue: 0,
+      discount: 0,
+      addition: 0,
+      fiscalCode: service.fiscal.serviceCode,
+      taxRate: service.fiscal.issRate,
+    })),
+  ];
+}
 const areaHeader: Record<WeekiArea, { group: string; page: string }> = {
   dashboard: { group: "Visão geral", page: "Início" },
   week: { group: "Planejamento", page: "Minha Semana" },
   engagements: { group: "Trabalho", page: "Atendimentos" },
   clients: { group: "Relacionamento", page: "Clientes" },
+  services: { group: "Comercial", page: "Serviços" },
   quotes: { group: "Comercial", page: "Orçamentos" },
   commercial: { group: "Comercial", page: "Oportunidades" },
   contracts: { group: "Relacionamento", page: "Contratos" },
@@ -167,7 +239,7 @@ export default function Home() {
     useState<OperationsView>("engagements");
   const [initialPayments, setInitialPayments] = useState(false);
   const [initialSettingsView, setInitialSettingsView] = useState<
-    "availability" | "payments" | "quotes" | undefined
+    "availability" | "payments" | "quotes" | "storefront" | undefined
   >();
   const [fiscalView, setFiscalView] = useState<FiscalView>("overview");
   useEffect(() => {
@@ -176,6 +248,7 @@ export default function Home() {
     if (
       area === "dashboard" ||
       area === "engagements" ||
+      area === "services" ||
       area === "quotes" ||
       area === "commercial" ||
       area === "billing" ||
@@ -196,7 +269,9 @@ export default function Home() {
             ? "payments"
             : params.get("section") === "quotes"
               ? "quotes"
-              : undefined,
+              : params.get("section") === "storefront"
+                ? "storefront"
+                : undefined,
       );
       if (area === "fiscal") {
         const section = params.get("section");
@@ -245,7 +320,9 @@ export default function Home() {
   const [showWeekend, setShowWeekend] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [clientFilter, setClientFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">("all");
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">(
+    "all",
+  );
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -395,7 +472,10 @@ export default function Home() {
 
   const inboxTasks = tasks.filter((task) => !task.scheduledDate);
   const hasActiveFilters = Boolean(
-    query.trim() || statusFilter !== "all" || clientFilter !== "all" || priorityFilter !== "all",
+    query.trim() ||
+    statusFilter !== "all" ||
+    clientFilter !== "all" ||
+    priorityFilter !== "all",
   );
 
   const openNewTask = useCallback(
@@ -770,6 +850,352 @@ export default function Home() {
     [createStandardTasks, operations, todayKey],
   );
 
+  const ensureClientFromServiceOrder = useCallback(
+    (order: ServiceOrder) => {
+      if (order.clientId) {
+        const linked = clients.find((client) => client.id === order.clientId);
+        if (linked) return linked;
+      }
+      const phoneDigits = order.clientPhone.replace(/\D/g, "");
+      const existing = clients.find(
+        (client) =>
+          (order.clientEmail &&
+            client.email.toLocaleLowerCase("pt-BR") ===
+              order.clientEmail.toLocaleLowerCase("pt-BR")) ||
+          (phoneDigits && client.phone.replace(/\D/g, "") === phoneDigits),
+      );
+      if (existing) {
+        operations.updateServiceOrder(order.id, { clientId: existing.id });
+        return existing;
+      }
+      const client = addClient({
+        name: order.clientName || "Cliente da vitrine",
+        color: "#654ce4",
+        logoUrl: "",
+        kind:
+          order.clientDocument.replace(/\D/g, "").length > 11
+            ? "company"
+            : "person",
+        document: order.clientDocument,
+        contactName: order.clientName,
+        contactRole: "Contato da vitrine",
+        email: order.clientEmail,
+        phone: order.clientPhone,
+        website: "",
+        address: "",
+        notes: order.message,
+        status: "negotiating",
+        segment: order.serviceName,
+        contractValue: order.total,
+        contractKind: "none",
+        nextDueDate: "",
+        paymentStatus: order.paymentStatus === "paid" ? "paid" : "pending",
+        files: [],
+        links: [],
+      });
+      operations.updateServiceOrder(order.id, { clientId: client.id });
+      return client;
+    },
+    [addClient, clients, operations],
+  );
+
+  const createQuoteFromServiceOrder = useCallback(
+    (order: ServiceOrder) => {
+      const client = ensureClientFromServiceOrder(order);
+      const service =
+        operations.services.find((item) => item.id === order.serviceId) ?? null;
+      if (!service) {
+        toast.error("Serviço da contratação não foi encontrado.");
+        return null;
+      }
+      const quote = operations.addQuote({
+        title: order.serviceName,
+        clientId: client.id,
+        opportunityId: null,
+        items: quoteItemsFromServiceOrder(service, order),
+        description: order.message || service.summary,
+        issueDate: todayKey,
+        estimatedDeadline: service.deadline.customText,
+        validUntil: format(addDays(new Date(), 15), "yyyy-MM-dd"),
+        responsible: settings.profile.name,
+        discountType: "none",
+        discountValue: 0,
+        taxType: "none",
+        taxLabel: "",
+        taxValue: 0,
+        paymentCondition:
+          service.payment.mode === "installments" ? "installments" : "custom",
+        downPaymentPercent: service.payment.depositPercent,
+        installments: service.payment.maxInstallments,
+        firstDueDate: "",
+        paymentDetails: service.payment.notes,
+        estimatedStartDate: "",
+        estimatedEndDate: "",
+        scope: service.fullDescription,
+        exclusions: service.excludedItems
+          .map((item) => `<li>${item}</li>`)
+          .join(""),
+        notes: order.answers
+          .map((answer) => `${answer.label}: ${String(answer.value)}`)
+          .join("\n"),
+        terms: service.serviceTerms,
+        paymentMethod:
+          order.paymentMethod === "not_selected" ? "" : order.paymentMethod,
+        status: "awaiting_approval",
+        version: 1,
+        parentQuoteId: null,
+        publicToken: "",
+        viewedAt: null,
+        approvedAt: null,
+        rejectedAt: null,
+        rejectionReason: "",
+        acceptedBy: "",
+        engagementId: null,
+        chargeId: null,
+        contractId: null,
+        events: [],
+      });
+      return { id: quote.id, number: quote.number };
+    },
+    [ensureClientFromServiceOrder, operations, settings.profile.name, todayKey],
+  );
+
+  const createBillingFromServiceOrder = useCallback(
+    (order: ServiceOrder) => {
+      const client = ensureClientFromServiceOrder(order);
+      const service =
+        operations.services.find((item) => item.id === order.serviceId) ?? null;
+      const method =
+        order.paymentMethod === "credit_card" ||
+        order.paymentMethod === "bank_slip"
+          ? order.paymentMethod
+          : "pix";
+      const charge = billing.addCharge(
+        {
+          clientId: client.id,
+          engagementId: order.engagementId,
+          description: `Contratação ${order.serviceName}`,
+          amount: order.total,
+          dueDate: format(addDays(new Date(), 2), "yyyy-MM-dd"),
+          dueTime: "",
+          methods: [method],
+          cardMaxInstallments: service?.payment.maxInstallments ?? 1,
+          passCardFees: false,
+          discountEnabled: false,
+          discountMethod: "pix",
+          discountPercent: 0,
+          remindersEnabled: true,
+          lateFeeEnabled: false,
+          lateFeePercent: 2,
+          dailyInterestPercent: 0.033,
+          message:
+            service?.payment.notes ||
+            "Cobrança criada a partir de contratação da vitrine.",
+        },
+        true,
+      );
+      operations.updateServiceOrder(order.id, {
+        paymentLink: charge.paymentLink,
+        paymentStatus: "pending",
+      });
+      return { id: charge.id, code: charge.code };
+    },
+    [billing, ensureClientFromServiceOrder, operations],
+  );
+
+  const createContractFromServiceOrder = useCallback(
+    (order: ServiceOrder) => {
+      const client = ensureClientFromServiceOrder(order);
+      const service =
+        operations.services.find((item) => item.id === order.serviceId) ?? null;
+      if (!service) {
+        toast.error("Serviço da contratação não foi encontrado.");
+        return null;
+      }
+      const capturedAt = new Date().toISOString();
+      const businessName =
+        settings.profile.businessName ||
+        settings.profile.professionalName ||
+        settings.profile.name;
+      const sourceSnapshot: ContractDraftInput["sourceSnapshot"] = {
+        business: {
+          name: businessName,
+          document: "",
+          email: settings.profile.email,
+          phone: settings.profile.phone,
+          representativeName: settings.profile.name,
+          representativeRole: settings.profile.role,
+          address: "",
+        },
+        client: {
+          id: client.id,
+          name: client.name,
+          kind: client.kind === "company" ? "company" : "individual",
+          document: client.document,
+          email: client.email,
+          phone: client.phone,
+          address: client.address,
+          representativeName: client.contactName,
+          representativeRole: client.contactRole,
+          capturedAt,
+        },
+        service: {
+          id: service.id,
+          title: service.name,
+          description: service.summary || service.description,
+          scope: stripQuoteHtml(service.fullDescription),
+          deliverables: service.includedItems.join("; "),
+          deadline: service.deadline.customText,
+          revisions: "Conforme condições comerciais do serviço.",
+          providerResponsibilities:
+            "Executar o serviço contratado e comunicar impedimentos relevantes.",
+          clientResponsibilities:
+            "Fornecer informações, acessos, aprovações e materiais necessários.",
+          source: "manual",
+        },
+        billing: order.chargeId
+          ? {
+              id: order.chargeId,
+              code: order.chargeId,
+              description: order.serviceName,
+              amount: order.total,
+              dueDate: "",
+              paymentMethods: [order.paymentMethod || "pix"],
+            }
+          : null,
+        proposal: order.quoteId
+          ? { id: order.quoteId, title: order.serviceName, fileName: "" }
+          : null,
+        capturedAt,
+      };
+      const contract = contracts.createContract({
+        source: "manual",
+        title: `Contrato — ${order.serviceName}`,
+        clientId: client.id,
+        templateId: null,
+        relatedServiceId: service.id,
+        relatedTaskId: null,
+        proposalId: order.quoteId,
+        chargeId: order.chargeId,
+        sourceSnapshot,
+        terms: {
+          value: order.total,
+          paymentTerms: service.payment.notes,
+          installments: service.payment.maxInstallments,
+          firstDueDate: "",
+          lateFeePercent: 2,
+          dailyInterestPercent: 0.033,
+          adjustment: "Sem reajuste automático neste rascunho.",
+          startDate: todayKey,
+          endDate: "",
+          cancellation: "Cancelamento conforme termos comerciais do serviço.",
+          termination:
+            "Rescisão mediante comunicação prévia e quitação dos valores devidos.",
+          confidentiality: true,
+          intellectualProperty:
+            "A propriedade intelectual segue as condições informadas no serviço.",
+          portfolioAllowed: false,
+          dataProtection:
+            "As partes deverão tratar dados pessoais conforme legislação aplicável.",
+          jurisdiction: "",
+          additionalClauses: service.serviceTerms,
+        },
+        parties: [
+          {
+            id: createId(),
+            type: "company",
+            name: businessName,
+            document: "",
+            email: settings.profile.email,
+            phone: settings.profile.phone,
+            address: "",
+            role: "Contratada",
+            representativeName: settings.profile.name,
+            representativeRole: settings.profile.role,
+            snapshotSource: "business",
+          },
+          {
+            id: createId(),
+            type: client.kind === "company" ? "company" : "individual",
+            name: client.name,
+            document: client.document,
+            email: client.email,
+            phone: client.phone,
+            address: client.address,
+            role: "Contratante",
+            representativeName: client.contactName,
+            representativeRole: client.contactRole,
+            snapshotSource: "client",
+          },
+        ],
+        signers: [
+          {
+            id: createId(),
+            partyId: null,
+            name: client.contactName || client.name,
+            email: client.email,
+            document: client.document,
+            role: "Signatário",
+            order: 1,
+            authMethod: "provider_default",
+            status: "not_started",
+            viewedAt: null,
+            signedAt: null,
+            lastEventAt: null,
+          },
+        ],
+        signingMode: "simultaneous",
+        signatureMessage:
+          "Contrato criado a partir de contratação da vitrine. Revise antes de enviar.",
+        content: `<h1>Contrato de Prestação de Serviços</h1><p>Contratação ${order.number} do serviço ${order.serviceName}.</p><h2>Objeto</h2><p>${stripQuoteHtml(service.fullDescription || service.description)}</p><h2>Valor</h2><p>${order.total}</p><h2>Termos</h2><p>${service.serviceTerms}</p>`,
+      });
+      return { id: contract.id, number: contract.number };
+    },
+    [
+      contracts,
+      ensureClientFromServiceOrder,
+      operations.services,
+      settings.profile,
+      todayKey,
+    ],
+  );
+
+  const createProjectFromServiceOrder = useCallback(
+    (order: ServiceOrder) => {
+      const client = ensureClientFromServiceOrder(order);
+      const service =
+        operations.services.find((item) => item.id === order.serviceId) ?? null;
+      const engagement = operations.addEngagement({
+        name: order.serviceName,
+        clientId: client.id,
+        serviceId: service?.id ?? order.serviceId,
+        responsible: settings.profile.name,
+        status: "planning",
+        description:
+          order.message ||
+          service?.summary ||
+          "Demanda criada a partir da vitrine pública.",
+        startDate: order.appointmentDate || todayKey,
+        dueDate: "",
+        value: order.total,
+        quoteId: order.quoteId,
+        contractId: order.contractId,
+        recurrence: service?.recurrence ?? "none",
+        cycleValue: order.total,
+      });
+      if (service?.standardTasks.length)
+        createStandardTasks(engagement, service);
+      return { id: engagement.id };
+    },
+    [
+      createStandardTasks,
+      ensureClientFromServiceOrder,
+      operations,
+      settings.profile.name,
+      todayKey,
+    ],
+  );
+
   const handleMove = useCallback(
     (taskId: string, date: string, time?: string) => {
       const previous = tasks.find((task) => task.id === taskId);
@@ -817,9 +1243,17 @@ export default function Home() {
     (taskId: string, status: TaskStatus) => {
       const previous = tasks.find((task) => task.id === taskId);
       setTaskStatus(taskId, status);
-      toast.success("Status atualizado.", previous ? {
-        action: { label: "Desfazer", onClick: () => setTaskStatus(taskId, previous.status) },
-      } : undefined);
+      toast.success(
+        "Status atualizado.",
+        previous
+          ? {
+              action: {
+                label: "Desfazer",
+                onClick: () => setTaskStatus(taskId, previous.status),
+              },
+            }
+          : undefined,
+      );
     },
     [setTaskStatus, tasks],
   );
@@ -828,9 +1262,17 @@ export default function Home() {
     (taskId: string, priority: TaskPriority) => {
       const previous = tasks.find((task) => task.id === taskId);
       setTaskPriority(taskId, priority);
-      toast.success("Prioridade atualizada.", previous ? {
-        action: { label: "Desfazer", onClick: () => setTaskPriority(taskId, previous.priority) },
-      } : undefined);
+      toast.success(
+        "Prioridade atualizada.",
+        previous
+          ? {
+              action: {
+                label: "Desfazer",
+                onClick: () => setTaskPriority(taskId, previous.priority),
+              },
+            }
+          : undefined,
+      );
     },
     [setTaskPriority, tasks],
   );
@@ -1032,6 +1474,8 @@ export default function Home() {
             clients={clients}
             engagements={operations.engagements}
             quotes={operations.quotes}
+            services={operations.services}
+            serviceOrders={operations.serviceOrders}
             charges={billing.charges}
             onNavigate={navigateArea}
             onCreate={() => setCommandOpen(true)}
@@ -1046,6 +1490,17 @@ export default function Home() {
             onCreateBilling={createBillingFromQuote}
             onCreateContract={createContractFromQuote}
             onCreateProject={createProjectFromQuote}
+          />
+        ) : activeArea === "services" ? (
+          <ServicesScreen
+            controller={operations}
+            clients={clients}
+            settings={settings}
+            onNavigate={navigateArea}
+            onCreateQuoteFromOrder={createQuoteFromServiceOrder}
+            onCreateBillingFromOrder={createBillingFromServiceOrder}
+            onCreateContractFromOrder={createContractFromServiceOrder}
+            onCreateProjectFromOrder={createProjectFromServiceOrder}
           />
         ) : activeArea === "engagements" || activeArea === "commercial" ? (
           <OperationsScreen
@@ -1122,6 +1577,8 @@ export default function Home() {
             initialView={initialSettingsView}
             quoteSettings={operations.quoteSettings}
             onUpdateQuoteSettings={operations.updateQuoteSettings}
+            storefrontSettings={operations.storefrontSettings}
+            onUpdateStorefrontSettings={operations.updateStorefrontSettings}
             settings={settings}
             onUpdateSettings={updateSettings}
             fiscalController={fiscal}
@@ -1150,7 +1607,8 @@ export default function Home() {
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  Planeje, priorize e acompanhe o trabalho da semana em Kanban, dias, lista, calendário ou tabela.
+                  Planeje, priorize e acompanhe o trabalho da semana em Kanban,
+                  dias, lista, calendário ou tabela.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -1245,13 +1703,21 @@ export default function Home() {
                   className="flex items-center rounded-lg border bg-slate-100 p-0.5"
                   aria-label="Layout das demandas"
                 >
-                  {([
+                  {[
                     { value: "kanban" as const, label: "Kanban", icon: Kanban },
                     { value: "board" as const, label: "Dias", icon: Columns3 },
-                    { value: "list" as const, label: "Lista", icon: LayoutList },
-                    { value: "calendar" as const, label: "Calendário", icon: CalendarRange },
+                    {
+                      value: "list" as const,
+                      label: "Lista",
+                      icon: LayoutList,
+                    },
+                    {
+                      value: "calendar" as const,
+                      label: "Calendário",
+                      icon: CalendarRange,
+                    },
                     { value: "table" as const, label: "Tabela", icon: Table2 },
-                  ]).map((item) => (
+                  ].map((item) => (
                     <button
                       key={item.value}
                       type="button"
@@ -1269,33 +1735,35 @@ export default function Home() {
                   ))}
                 </div>
 
-                {layoutMode !== "calendar" && layoutMode !== "kanban" && layoutMode !== "table" && (
-                <button
-                  type="button"
-                  onClick={() => setShowWeekend((current) => !current)}
-                  aria-pressed={showWeekend}
-                  className={cn(
-                    "focus-ring flex h-8 items-center gap-1.5 rounded-lg border bg-white px-2 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300",
-                    showWeekend &&
-                      "border-ring bg-accent text-accent-foreground",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "relative h-4 w-7 rounded-full bg-slate-200 transition",
-                      showWeekend && "bg-[#7657ff]",
-                    )}
-                  >
-                    <span
+                {layoutMode !== "calendar" &&
+                  layoutMode !== "kanban" &&
+                  layoutMode !== "table" && (
+                    <button
+                      type="button"
+                      onClick={() => setShowWeekend((current) => !current)}
+                      aria-pressed={showWeekend}
                       className={cn(
-                        "absolute left-0.5 top-0.5 size-3 rounded-full bg-white shadow-sm transition",
-                        showWeekend && "translate-x-3",
+                        "focus-ring flex h-8 items-center gap-1.5 rounded-lg border bg-white px-2 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300",
+                        showWeekend &&
+                          "border-ring bg-accent text-accent-foreground",
                       )}
-                    />
-                  </span>
-                  Sáb e dom
-                </button>
-                )}
+                    >
+                      <span
+                        className={cn(
+                          "relative h-4 w-7 rounded-full bg-slate-200 transition",
+                          showWeekend && "bg-[#7657ff]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "absolute left-0.5 top-0.5 size-3 rounded-full bg-white shadow-sm transition",
+                            showWeekend && "translate-x-3",
+                          )}
+                        />
+                      </span>
+                      Sáb e dom
+                    </button>
+                  )}
               </div>
 
               <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
@@ -1358,7 +1826,9 @@ export default function Home() {
                   </Select>
                   <Select
                     value={priorityFilter}
-                    onValueChange={(value) => setPriorityFilter(value as TaskPriority | "all")}
+                    onValueChange={(value) =>
+                      setPriorityFilter(value as TaskPriority | "all")
+                    }
                   >
                     <SelectTrigger className="h-8 w-[132px] shrink-0 rounded-lg bg-white px-2.5 text-xs shadow-sm">
                       <SelectValue />
@@ -1398,7 +1868,8 @@ export default function Home() {
                       Caixa de Entrada
                     </h2>
                     <p className="text-xs text-slate-400">
-                      Arraste para o Kanban, os dias ou o calendário para agendar.
+                      Arraste para o Kanban, os dias ou o calendário para
+                      agendar.
                     </p>
                   </div>
                   <Button

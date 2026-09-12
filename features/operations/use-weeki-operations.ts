@@ -19,8 +19,23 @@ import type {
   QuoteStatus,
   QuoteTemplate,
   Service,
+  ServiceInput,
+  ServiceOrder,
   TimeEntry,
 } from "./types";
+import {
+  createDefaultServiceDetails,
+  defaultStorefrontSettings,
+  publicServiceToken,
+  slugifyService,
+} from "@/features/services/defaults";
+import type {
+  ServiceAvailabilityStatus,
+  ServiceOrderInput,
+  ServiceOrderStatus,
+  ServiceStatus,
+  StorefrontSettings,
+} from "@/features/services/types";
 
 const STORAGE_KEY = "weeki.operations.v1";
 
@@ -51,6 +66,10 @@ const defaultQuoteSettings = (): QuoteSettings => ({
 
 function makePublicToken() {
   return `wkq_${makeId().replace(/-/g, "")}`;
+}
+
+function makeServicePublicToken(seed: string) {
+  return `wks_${makeId().replace(/-/g, "").slice(0, 18)}_${slugifyService(seed)}`;
 }
 
 function eventFor(
@@ -153,10 +172,135 @@ function normalizeTemplate(template: QuoteTemplate): QuoteTemplate {
   };
 }
 
+function normalizeService(service: Service | ServiceInput): Service {
+  const timestamp = now();
+  const details = createDefaultServiceDetails({
+    id: "id" in service ? service.id : undefined,
+    name: service.name,
+    description: service.description,
+    category: service.category,
+    defaultPrice: service.defaultPrice,
+    unit: service.unit,
+    defaultDurationDays: service.defaultDurationDays,
+    status: service.status,
+    availabilityStatus: service.availabilityStatus,
+    slug: service.slug,
+  });
+  const slug = slugifyService(service.slug || service.name, details.slug);
+  const status = service.archivedAt
+    ? "archived"
+    : (service.status ?? details.status);
+  return {
+    ...details,
+    ...service,
+    id: "id" in service ? service.id : makeId(),
+    slug,
+    status,
+    availabilityStatus:
+      service.availabilityStatus ?? details.availabilityStatus,
+    summary: service.summary ?? details.summary,
+    fullDescription: service.fullDescription ?? details.fullDescription,
+    coverImage: service.coverImage ?? details.coverImage,
+    gallery: service.gallery ?? details.gallery,
+    portfolio: service.portfolio ?? details.portfolio,
+    videos: service.videos ?? details.videos,
+    links: service.links ?? details.links,
+    pricing: { ...details.pricing, ...service.pricing },
+    variants: service.variants ?? details.variants,
+    extras: service.extras ?? details.extras,
+    includedItems: service.includedItems ?? details.includedItems,
+    excludedItems: service.excludedItems ?? details.excludedItems,
+    deadline: { ...details.deadline, ...service.deadline },
+    duration: { ...details.duration, ...service.duration },
+    hiring: { ...details.hiring, ...service.hiring },
+    payment: { ...details.payment, ...service.payment },
+    scheduling: { ...details.scheduling, ...service.scheduling },
+    faq: service.faq ?? details.faq,
+    customFields: service.customFields ?? details.customFields,
+    serviceTerms: service.serviceTerms ?? details.serviceTerms,
+    seo: { ...details.seo, ...service.seo },
+    analytics: { ...details.analytics, ...service.analytics },
+    featured: service.featured ?? details.featured,
+    inStorefront:
+      service.inStorefront ??
+      (service.status === "published" ? true : details.inStorefront),
+    publicToken:
+      service.publicToken ||
+      publicServiceToken(slug) ||
+      makeServicePublicToken(slug),
+    fiscal: {
+      ...details.fiscal,
+      ...service.fiscal,
+      serviceCode:
+        service.fiscal?.serviceCode ??
+        service.fiscalCode ??
+        details.fiscal.serviceCode,
+      issRate:
+        service.fiscal?.issRate ?? service.taxRate ?? details.fiscal.issRate,
+      fiscalDescription:
+        service.fiscal?.fiscalDescription ??
+        service.description ??
+        details.fiscal.fiscalDescription,
+    },
+    automations: { ...details.automations, ...service.automations },
+    archivedAt:
+      status === "archived" ? service.archivedAt || now() : service.archivedAt,
+    createdAt: "createdAt" in service ? service.createdAt : timestamp,
+    updatedAt: "updatedAt" in service ? service.updatedAt : timestamp,
+  };
+}
+
+function normalizeStorefront(
+  settings?: Partial<StorefrontSettings>,
+): StorefrontSettings {
+  const defaults = defaultStorefrontSettings();
+  const slug = slugifyService(settings?.slug || defaults.slug, defaults.slug);
+  return {
+    ...defaults,
+    ...settings,
+    slug,
+    accentColor: settings?.accentColor || defaults.accentColor,
+    serviceOrder: settings?.serviceOrder ?? defaults.serviceOrder,
+    featuredServiceIds:
+      settings?.featuredServiceIds ?? defaults.featuredServiceIds,
+    categories: settings?.categories ?? defaults.categories,
+    previousSlugs: settings?.previousSlugs ?? defaults.previousSlugs,
+    updatedAt: settings?.updatedAt ?? defaults.updatedAt,
+  };
+}
+
+function normalizeServiceOrder(order: ServiceOrder): ServiceOrder {
+  return {
+    ...order,
+    clientId: order.clientId ?? null,
+    planId: order.planId ?? null,
+    extras: order.extras ?? [],
+    answers: order.answers ?? [],
+    paymentStatus: order.paymentStatus ?? "not_required",
+    paymentMethod: order.paymentMethod ?? "not_selected",
+    paymentLink: order.paymentLink ?? "",
+    appointmentDate: order.appointmentDate ?? "",
+    appointmentTime: order.appointmentTime ?? "",
+    quoteId: order.quoteId ?? null,
+    chargeId: order.chargeId ?? null,
+    contractId: order.contractId ?? null,
+    engagementId: order.engagementId ?? null,
+    source: order.source ?? "storefront",
+    status: order.status ?? "interest",
+    events: order.events ?? [],
+  };
+}
+
 function normalizeState(parsed?: Partial<OperationsState>): OperationsState {
   const seed = createSeedOperations();
   return {
-    services: parsed?.services ?? seed.services,
+    services: (parsed?.services ?? seed.services).map(normalizeService),
+    serviceOrders: (parsed?.serviceOrders ?? seed.serviceOrders).map(
+      normalizeServiceOrder,
+    ),
+    storefrontSettings: normalizeStorefront(
+      parsed?.storefrontSettings ?? seed.storefrontSettings,
+    ),
     opportunities: parsed?.opportunities ?? seed.opportunities,
     quotes: (parsed?.quotes ?? seed.quotes).map(normalizeQuote),
     quoteTemplates: (parsed?.quoteTemplates ?? seed.quoteTemplates).map(
@@ -194,6 +338,14 @@ function nextQuoteNumber(current: Quote[], prefix: string) {
       quote.number.startsWith(`${normalizedPrefix}-${year}-`),
     ).length + 1;
   return `${normalizedPrefix}-${year}-${String(count).padStart(4, "0")}`;
+}
+
+function nextServiceOrderNumber(current: ServiceOrder[]) {
+  const year = new Date().getFullYear();
+  const count =
+    current.filter((order) => order.number.startsWith(`CTR-${year}-`)).length +
+    1;
+  return `CTR-${year}-${String(count).padStart(4, "0")}`;
 }
 
 function statusEvent(status: QuoteStatus): [QuoteEventKind, string, string] {
@@ -235,46 +387,230 @@ export function useWeekiOperations() {
     }
   }, [state]);
 
-  const addService = useCallback(
-    (service: Omit<Service, "id" | "createdAt" | "updatedAt">) => {
-      const timestamp = now();
-      const created = {
-        ...service,
-        id: makeId(),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-      setState((current) => ({
-        ...current,
-        services: [created, ...current.services],
-      }));
-      return created;
-    },
-    [],
-  );
+  const addService = useCallback((service: ServiceInput) => {
+    const timestamp = now();
+    const created = normalizeService({
+      ...service,
+      id: makeId(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    setState((current) => ({
+      ...current,
+      services: [created, ...current.services],
+    }));
+    return created;
+  }, []);
 
-  const updateService = useCallback(
-    (id: string, service: Omit<Service, "id" | "createdAt" | "updatedAt">) => {
-      setState((current) => ({
-        ...current,
-        services: current.services.map((item) =>
-          item.id === id ? { ...item, ...service, updatedAt: now() } : item,
-        ),
-      }));
-    },
-    [],
-  );
+  const updateService = useCallback((id: string, service: ServiceInput) => {
+    let saved: Service | null = null;
+    setState((current) => ({
+      ...current,
+      services: current.services.map((item) => {
+        if (item.id !== id) return item;
+        saved = normalizeService({ ...item, ...service, updatedAt: now() });
+        return saved;
+      }),
+    }));
+    return saved;
+  }, []);
 
   const archiveService = useCallback((id: string) => {
     setState((current) => ({
       ...current,
       services: current.services.map((item) =>
         item.id === id
-          ? { ...item, archivedAt: now(), updatedAt: now() }
+          ? {
+              ...item,
+              status: "archived",
+              inStorefront: false,
+              archivedAt: now(),
+              updatedAt: now(),
+            }
           : item,
       ),
     }));
   }, []);
+
+  const deleteService = useCallback((id: string) => {
+    let removed = false;
+    setState((current) => {
+      const linked =
+        current.quotes.some((quote) =>
+          quote.items.some((item) => item.serviceId === id),
+        ) ||
+        current.engagements.some((engagement) => engagement.serviceId === id) ||
+        current.serviceOrders.some((order) => order.serviceId === id);
+      const service = current.services.find((item) => item.id === id);
+      if (!service || linked || service.status === "published") return current;
+      removed = true;
+      return {
+        ...current,
+        services: current.services.filter((item) => item.id !== id),
+      };
+    });
+    return removed;
+  }, []);
+
+  const duplicateService = useCallback((id: string) => {
+    let copy: Service | null = null;
+    setState((current) => {
+      const source = current.services.find((service) => service.id === id);
+      if (!source) return current;
+      const timestamp = now();
+      const name = `${source.name} - cópia`;
+      const created = normalizeService({
+        ...source,
+        id: makeId(),
+        name,
+        slug: slugifyService(name),
+        status: "draft",
+        inStorefront: false,
+        featured: false,
+        publicToken: makeServicePublicToken(name),
+        analytics: {
+          storefrontViews: 0,
+          serviceViews: 0,
+          ctaClicks: 0,
+          quoteRequests: 0,
+          purchases: 0,
+          appointments: 0,
+          lastViewedAt: null,
+        },
+        archivedAt: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      copy = created;
+      return { ...current, services: [created, ...current.services] };
+    });
+    return copy;
+  }, []);
+
+  const setServiceStatus = useCallback((id: string, status: ServiceStatus) => {
+    setState((current) => ({
+      ...current,
+      services: current.services.map((service) =>
+        service.id === id
+          ? {
+              ...service,
+              status,
+              inStorefront:
+                status === "published"
+                  ? true
+                  : status === "archived"
+                    ? false
+                    : service.inStorefront,
+              archivedAt: status === "archived" ? now() : service.archivedAt,
+              updatedAt: now(),
+            }
+          : service,
+      ),
+    }));
+  }, []);
+
+  const setServiceAvailability = useCallback(
+    (id: string, availabilityStatus: ServiceAvailabilityStatus) => {
+      setState((current) => ({
+        ...current,
+        services: current.services.map((service) =>
+          service.id === id
+            ? { ...service, availabilityStatus, updatedAt: now() }
+            : service,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const toggleServiceStorefront = useCallback(
+    (id: string, inStorefront: boolean) => {
+      setState((current) => ({
+        ...current,
+        services: current.services.map((service) =>
+          service.id === id
+            ? {
+                ...service,
+                inStorefront,
+                status: inStorefront ? "published" : service.status,
+                updatedAt: now(),
+              }
+            : service,
+        ),
+        storefrontSettings: {
+          ...current.storefrontSettings,
+          serviceOrder: inStorefront
+            ? Array.from(
+                new Set([...current.storefrontSettings.serviceOrder, id]),
+              )
+            : current.storefrontSettings.serviceOrder.filter(
+                (serviceId) => serviceId !== id,
+              ),
+          updatedAt: now(),
+        },
+      }));
+    },
+    [],
+  );
+
+  const recordServiceAnalytics = useCallback(
+    (
+      id: string,
+      metric: keyof Pick<
+        Service["analytics"],
+        | "storefrontViews"
+        | "serviceViews"
+        | "ctaClicks"
+        | "quoteRequests"
+        | "purchases"
+        | "appointments"
+      >,
+    ) => {
+      setState((current) => ({
+        ...current,
+        services: current.services.map((service) =>
+          service.id === id
+            ? {
+                ...service,
+                analytics: {
+                  ...service.analytics,
+                  [metric]: service.analytics[metric] + 1,
+                  lastViewedAt:
+                    metric === "storefrontViews" || metric === "serviceViews"
+                      ? now()
+                      : service.analytics.lastViewedAt,
+                },
+                updatedAt: now(),
+              }
+            : service,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const updateStorefrontSettings = useCallback(
+    (settings: StorefrontSettings) => {
+      setState((current) => {
+        const previousSlug = current.storefrontSettings.slug;
+        const normalized = normalizeStorefront({
+          ...settings,
+          previousSlugs:
+            settings.slug !== previousSlug
+              ? Array.from(
+                  new Set([
+                    ...current.storefrontSettings.previousSlugs,
+                    previousSlug,
+                  ]),
+                )
+              : settings.previousSlugs,
+          updatedAt: now(),
+        });
+        return { ...current, storefrontSettings: normalized };
+      });
+    },
+    [],
+  );
 
   const addOpportunity = useCallback(
     (opportunity: Omit<Opportunity, "id" | "createdAt" | "updatedAt">) => {
@@ -650,6 +986,128 @@ export function useWeekiOperations() {
     [],
   );
 
+  const addServiceOrder = useCallback(
+    (order: ServiceOrderInput) => {
+      const timestamp = now();
+      const created = normalizeServiceOrder({
+        ...order,
+        id: makeId(),
+        number: nextServiceOrderNumber(state.serviceOrders),
+        events: [
+          {
+            id: makeId(),
+            title: "Contratação recebida",
+            description:
+              order.source === "storefront"
+                ? "Solicitação criada pela vitrine pública."
+                : "Contratação registrada manualmente.",
+            createdAt: timestamp,
+          },
+        ],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      setState((current) => ({
+        ...current,
+        serviceOrders: [created, ...current.serviceOrders],
+      }));
+      return created;
+    },
+    [state.serviceOrders],
+  );
+
+  const updateServiceOrder = useCallback(
+    (id: string, updates: Partial<ServiceOrder>) => {
+      let saved: ServiceOrder | null = null;
+      setState((current) => ({
+        ...current,
+        serviceOrders: current.serviceOrders.map((order) => {
+          if (order.id !== id) return order;
+          saved = normalizeServiceOrder({
+            ...order,
+            ...updates,
+            updatedAt: now(),
+          });
+          return saved;
+        }),
+      }));
+      return saved;
+    },
+    [],
+  );
+
+  const setServiceOrderStatus = useCallback(
+    (id: string, status: ServiceOrderStatus) => {
+      setState((current) => ({
+        ...current,
+        serviceOrders: current.serviceOrders.map((order) =>
+          order.id === id
+            ? {
+                ...order,
+                status,
+                updatedAt: now(),
+                events: [
+                  {
+                    id: makeId(),
+                    title: "Status atualizado",
+                    description: `Novo status da contratação: ${status}.`,
+                    createdAt: now(),
+                  },
+                  ...order.events,
+                ],
+              }
+            : order,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const recordServiceOrderConversion = useCallback(
+    (
+      id: string,
+      target: "quote" | "billing" | "contract" | "project",
+      targetId: string,
+    ) => {
+      const labels = {
+        quote: "Orçamento criado",
+        billing: "Cobrança criada",
+        contract: "Contrato criado",
+        project: "Demanda criada",
+      };
+      setState((current) => ({
+        ...current,
+        serviceOrders: current.serviceOrders.map((order) =>
+          order.id === id
+            ? {
+                ...order,
+                quoteId: target === "quote" ? targetId : order.quoteId,
+                chargeId: target === "billing" ? targetId : order.chargeId,
+                contractId: target === "contract" ? targetId : order.contractId,
+                engagementId:
+                  target === "project" ? targetId : order.engagementId,
+                status:
+                  target === "billing" && order.status === "interest"
+                    ? "awaiting_payment"
+                    : order.status,
+                updatedAt: now(),
+                events: [
+                  {
+                    id: makeId(),
+                    title: labels[target],
+                    description: "Integração registrada a partir da vitrine.",
+                    createdAt: now(),
+                  },
+                  ...order.events,
+                ],
+              }
+            : order,
+        ),
+      }));
+    },
+    [],
+  );
+
   const addEngagement = useCallback(
     (engagement: Omit<Engagement, "id" | "createdAt" | "updatedAt">) => {
       const timestamp = now();
@@ -760,6 +1218,17 @@ export function useWeekiOperations() {
     addService,
     updateService,
     archiveService,
+    deleteService,
+    duplicateService,
+    setServiceStatus,
+    setServiceAvailability,
+    toggleServiceStorefront,
+    recordServiceAnalytics,
+    updateStorefrontSettings,
+    addServiceOrder,
+    updateServiceOrder,
+    setServiceOrderStatus,
+    recordServiceOrderConversion,
     addOpportunity,
     updateOpportunity,
     setOpportunityStatus,

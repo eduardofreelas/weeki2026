@@ -8,7 +8,7 @@ Oportunidade → Orçamento → Atendimento → Tarefas / Entregas / Horas → C
 
 ## Entidades
 
-- **Item salvo**: catálogo interno reaproveitado pelos orçamentos, atendimentos, contratos e Fiscal/NFS-e. Ele preserva a estrutura técnica anterior de serviços, mas não aparece como módulo principal.
+- **Serviço**: catálogo comercial reaproveitado por vitrine, orçamentos, atendimentos, contratos e Fiscal/NFS-e. A V1 preserva os IDs antigos para manter os vínculos já existentes.
 - **Oportunidade**: registro comercial leve, com origem, próxima ação, valor estimado e status.
 - **Orçamento**: itens, quantidade, preço unitário, desconto, acréscimo, validade, prazo, condições e status.
 - **Atendimento**: registro central do serviço prestado para um cliente, com responsável, datas, valor, recorrência e vínculos para evolução futura.
@@ -25,9 +25,9 @@ Quando a aplicação autenticada for migrada para o backend, essa fronteira pode
 ## Fluxos fechados
 
 1. Criar oportunidade e convertê-la em cliente, evitando duplicidade por e-mail ou nome.
-2. Criar orçamento com itens livres ou itens salvos do catálogo interno.
+2. Criar orçamento com itens livres ou serviços cadastrados, copiando os dados para o snapshot do orçamento.
 3. Aprovar orçamento e gerar cobrança, contrato ou atendimento.
-4. Criar automaticamente tarefas padrão ao iniciar um atendimento quando houver item salvo com esse padrão.
+4. Criar automaticamente tarefas padrão ao iniciar um atendimento quando houver serviço com esse padrão.
 5. Acompanhar progresso, ciclos, entregas e tempo no atendimento.
 6. Navegar do dashboard para orçamentos, cobranças, financeiro, comercial e Minha Semana.
 

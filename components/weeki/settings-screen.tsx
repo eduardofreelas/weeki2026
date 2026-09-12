@@ -26,6 +26,7 @@ import {
   Search,
   Settings2,
   ShieldCheck,
+  ShoppingBag,
   Smartphone,
   Sun,
   Trash2,
@@ -52,6 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import type {
   IntegrationId,
   WeekiProfileSettings,
@@ -59,7 +61,12 @@ import type {
   WeekiSettings,
   WeekiTheme,
 } from "@/features/settings/types";
-import type { QuoteSettings } from "@/features/operations/types";
+import type {
+  QuoteSettings,
+  StorefrontSettings,
+} from "@/features/operations/types";
+import { storefrontPublicUrl } from "@/features/services/pricing";
+import { slugifyService } from "@/features/services/defaults";
 import type {
   AccountProfileInput,
   ConnectedAuthProvider,
@@ -76,6 +83,7 @@ type SettingsView =
   | "overview"
   | "payments"
   | "quotes"
+  | "storefront"
   | "fiscal"
   | "profile"
   | "business"
@@ -107,6 +115,7 @@ const navigation: Array<{
   { id: "notifications", label: "Notificações", icon: Bell },
   { id: "payments", label: "Pagamentos", icon: Link2 },
   { id: "quotes", label: "Orçamentos", icon: FileText },
+  { id: "storefront", label: "Vitrine", icon: ShoppingBag },
   { id: "fiscal", label: "Fiscal", icon: FileText },
   { id: "privacy", label: "Dados e conta", icon: Database },
 ];
@@ -160,6 +169,8 @@ export function SettingsScreen({
   onUpdateSettings,
   quoteSettings,
   onUpdateQuoteSettings,
+  storefrontSettings,
+  onUpdateStorefrontSettings,
   fiscalController,
   availability,
   onSaveAvailability,
@@ -175,6 +186,8 @@ export function SettingsScreen({
   onUpdateSettings: (updates: Partial<WeekiSettings>) => void;
   quoteSettings: QuoteSettings;
   onUpdateQuoteSettings: (settings: QuoteSettings) => void;
+  storefrontSettings: StorefrontSettings;
+  onUpdateStorefrontSettings: (settings: StorefrontSettings) => void;
   fiscalController: WeekiFiscalController;
   availability: WeekiAvailability;
   onSaveAvailability: (
@@ -368,6 +381,7 @@ export function SettingsScreen({
               availability={availability}
               fiscalController={fiscalController}
               quoteSettings={quoteSettings}
+              storefrontSettings={storefrontSettings}
               onNavigate={setView}
             />
           )}
@@ -376,6 +390,12 @@ export function SettingsScreen({
             <QuoteSettingsPanel
               quoteSettings={quoteSettings}
               onSave={onUpdateQuoteSettings}
+            />
+          )}
+          {view === "storefront" && (
+            <StorefrontSettingsPanel
+              storefrontSettings={storefrontSettings}
+              onSave={onUpdateStorefrontSettings}
             />
           )}
           {view === "fiscal" && (
@@ -468,12 +488,14 @@ function SettingsOverview({
   availability,
   fiscalController,
   quoteSettings,
+  storefrontSettings,
   onNavigate,
 }: {
   settings: WeekiSettings;
   availability: WeekiAvailability;
   fiscalController: WeekiFiscalController;
   quoteSettings: QuoteSettings;
+  storefrontSettings: StorefrontSettings;
   onNavigate: (view: SettingsView) => void;
 }) {
   const profileComplete = Boolean(
@@ -595,6 +617,16 @@ function SettingsOverview({
       icon: FileText,
       tone: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300",
     },
+    {
+      id: "storefront",
+      title: "Vitrine",
+      description: "Página pública, contatos, slug e compartilhamento",
+      status: storefrontSettings.enabled
+        ? `/${storefrontSettings.slug}`
+        : "Desativada",
+      icon: ShoppingBag,
+      tone: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300",
+    },
     ...(FISCAL_FLAGS.moduleEnabled
       ? [
           {
@@ -687,6 +719,164 @@ function SettingsOverview({
         ))}
       </div>
     </div>
+  );
+}
+
+function StorefrontSettingsPanel({
+  storefrontSettings,
+  onSave,
+}: {
+  storefrontSettings: StorefrontSettings;
+  onSave: (settings: StorefrontSettings) => void;
+}) {
+  const [draft, setDraft] = useState(storefrontSettings);
+  const update = <K extends keyof StorefrontSettings>(
+    key: K,
+    value: StorefrontSettings[K],
+  ) => setDraft((current) => ({ ...current, [key]: value }));
+  const save = (event: FormEvent) => {
+    event.preventDefault();
+    if (!draft.slug.trim()) return toast.error("Informe um slug público.");
+    onSave({ ...draft, slug: slugifyService(draft.slug) });
+    toast.success("Vitrine atualizada.");
+  };
+  const copyLink = async () => {
+    await navigator.clipboard?.writeText(storefrontPublicUrl(draft));
+    toast.success("Link da vitrine copiado.");
+  };
+  return (
+    <form onSubmit={save} className="space-y-4">
+      <SettingsPanel
+        title="Vitrine pública"
+        description="Página do prestador para divulgar serviços, receber solicitações e preparar checkout."
+      >
+        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+          <SettingsField
+            label="Status"
+            hint="Quando desativada, a rota pública mostra vitrine indisponível."
+          >
+            <div className="flex h-9 items-center justify-between rounded-md border border-slate-200 px-3 dark:border-white/10">
+              <span className="text-[10px] text-slate-500">
+                {draft.enabled ? "Ativa" : "Desativada"}
+              </span>
+              <Switch
+                checked={draft.enabled}
+                onCheckedChange={(checked) => update("enabled", checked)}
+                className="data-[state=checked]:bg-[#654fe4]"
+              />
+            </div>
+          </SettingsField>
+          <SettingsField
+            label="Slug público"
+            hint="Use letras, números e hífen. Slugs antigos devem virar redirects no backend."
+          >
+            <Input
+              value={draft.slug}
+              onChange={(event) =>
+                update("slug", slugifyService(event.target.value))
+              }
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="Nome público">
+            <Input
+              value={draft.publicName}
+              onChange={(event) => update("publicName", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="Empresa ou marca">
+            <Input
+              value={draft.businessName}
+              onChange={(event) => update("businessName", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="Chamada da vitrine">
+            <Input
+              value={draft.headline}
+              onChange={(event) => update("headline", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="Cor de destaque">
+            <Input
+              type="color"
+              value={draft.accentColor}
+              onChange={(event) => update("accentColor", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="WhatsApp">
+            <Input
+              value={draft.whatsapp}
+              onChange={(event) => update("whatsapp", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="E-mail">
+            <Input
+              value={draft.email}
+              onChange={(event) => update("email", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField
+            label="Domínio próprio futuro"
+            hint="A arquitetura aceita o campo, mas DNS/SSL dependem de infraestrutura externa."
+          >
+            <Input
+              value={draft.customDomain}
+              onChange={(event) => update("customDomain", event.target.value)}
+              placeholder="servicos.minhaempresa.com.br"
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <SettingsField label="SEO da vitrine">
+            <Input
+              value={draft.seoTitle}
+              onChange={(event) => update("seoTitle", event.target.value)}
+              className="h-9 rounded-md text-xs shadow-none"
+            />
+          </SettingsField>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+              Sobre
+            </span>
+            <Textarea
+              value={draft.about}
+              onChange={(event) => update("about", event.target.value)}
+              className="min-h-24 rounded-md text-xs shadow-none"
+            />
+          </label>
+        </div>
+        <PanelFooter>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={copyLink}
+              className="h-8 rounded-md px-3 text-[10px] shadow-none"
+            >
+              Copiar link
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="h-8 rounded-md px-3 text-[10px] shadow-none"
+            >
+              <Save className="size-3.5" /> Salvar vitrine
+            </Button>
+          </div>
+        </PanelFooter>
+      </SettingsPanel>
+      <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-[9px] leading-4 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/8 dark:text-blue-200">
+        Link atual: {storefrontPublicUrl(draft)}. Duplicidade de slug, palavras
+        reservadas, redirects e rate limit devem ser validados pelo backend
+        quando a vitrine sair do modo local.
+      </div>
+    </form>
   );
 }
 

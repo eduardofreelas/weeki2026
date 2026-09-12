@@ -15,6 +15,7 @@ import { signatureProviders } from "./contracts/registry.js";
 import { contractApi } from "./contracts/api.js";
 import { AccountService } from "./account/service.js";
 import { accountApi } from "./account/api.js";
+import { servicesApi } from "./services/api.js";
 const conf = config(),
   db = database(conf.databaseUrl),
   registry = providers(conf),
@@ -41,6 +42,11 @@ const account = accountApi(
   new SessionAuth(db, conf.origin, conf.key),
   conf.origin,
 );
+const services = servicesApi(
+  db,
+  new SessionAuth(db, conf.origin, conf.key),
+  conf.origin,
+);
 const root = resolve("out"),
   mime: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
@@ -55,6 +61,7 @@ const root = resolve("out"),
 const server = createServer(async (req, res) => {
   try {
     if (await account(req, res)) return;
+    if (await services(req, res)) return;
     if (await contracts(req, res)) return;
     if (await fiscal(req, res)) return;
     if (await api(req, res)) return;
@@ -124,7 +131,10 @@ const contractsInterval = setInterval(async () => {
     }
   } catch {
     console.error(
-      JSON.stringify({ event: "contracts.webhook_worker.failed", code: "CONTRACT_INTERNAL" }),
+      JSON.stringify({
+        event: "contracts.webhook_worker.failed",
+        code: "CONTRACT_INTERNAL",
+      }),
     );
   } finally {
     contractSyncing = false;

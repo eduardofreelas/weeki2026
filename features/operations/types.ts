@@ -1,3 +1,26 @@
+import type {
+  ServiceAnalytics,
+  ServiceAutomationSettings,
+  ServiceAvailabilityStatus,
+  ServiceDeadline,
+  ServiceDuration,
+  ServiceExtra,
+  ServiceFaq,
+  ServiceFiscalSettings,
+  ServiceHiringSettings,
+  ServiceImage,
+  ServiceLink,
+  ServiceOrder,
+  ServicePortfolioItem,
+  ServicePricing,
+  ServiceStatus,
+  ServiceVariant,
+  ServiceVideo,
+  ServiceCustomField,
+  StorefrontSettings,
+  WeekiServiceDetails,
+} from "@/features/services/types";
+
 export type ServiceBillingType = "fixed" | "variable";
 export type ServiceRecurrence =
   "none" | "weekly" | "monthly" | "quarterly" | "yearly" | "custom";
@@ -70,7 +93,7 @@ export type DeliverableStatus =
   | "approved"
   | "changes_requested";
 
-export interface Service {
+export interface ServiceBase {
   id: string;
   name: string;
   description: string;
@@ -88,6 +111,11 @@ export interface Service {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Service extends ServiceBase, WeekiServiceDetails {}
+
+export type ServiceInput = Omit<ServiceBase, "id" | "createdAt" | "updatedAt"> &
+  Partial<WeekiServiceDetails>;
 
 export type SavedItem = Service;
 
@@ -278,6 +306,8 @@ export interface TimeEntry {
 
 export interface OperationsState {
   services: Service[];
+  serviceOrders: ServiceOrder[];
+  storefrontSettings: StorefrontSettings;
   opportunities: Opportunity[];
   quotes: Quote[];
   quoteTemplates: QuoteTemplate[];
@@ -289,6 +319,28 @@ export interface OperationsState {
 }
 
 export type OperationsView = "engagements" | "commercial" | "services";
+
+export type {
+  ServiceAnalytics,
+  ServiceAutomationSettings,
+  ServiceAvailabilityStatus,
+  ServiceDeadline,
+  ServiceDuration,
+  ServiceExtra,
+  ServiceFaq,
+  ServiceFiscalSettings,
+  ServiceHiringSettings,
+  ServiceImage,
+  ServiceLink,
+  ServiceOrder,
+  ServicePortfolioItem,
+  ServicePricing,
+  ServiceStatus,
+  ServiceVariant,
+  ServiceVideo,
+  ServiceCustomField,
+  StorefrontSettings,
+};
 
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   new: "Novo",

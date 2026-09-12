@@ -23,6 +23,10 @@ try {
       },
       { version: "005_reports", file: "server/migrations/005_reports.sql" },
       { version: "006_quotes", file: "server/migrations/006_quotes.sql" },
+      {
+        version: "007_services_storefront",
+        file: "server/migrations/007_services_storefront.sql",
+      },
     ]) {
       const applied = await sql.query(
         "SELECT version FROM public.weeki_payment_migrations WHERE version=$1",

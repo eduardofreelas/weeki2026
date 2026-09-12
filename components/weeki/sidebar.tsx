@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   ReceiptText,
   Settings,
+  ShoppingBag,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const primaryItems = [
   },
   { label: "Agenda", icon: CalendarClock, area: "appointments" as const },
   { label: "Clientes", icon: Users, area: "clients" as const },
+  { label: "Serviços", icon: ShoppingBag, area: "services" as const },
   { label: "Orçamentos", icon: FileText, area: "quotes" as const },
   { label: "Comercial", icon: KanbanSquare, area: "commercial" as const },
   { label: "Contratos", icon: FileSignature, area: "contracts" as const },
@@ -59,6 +61,7 @@ export type WeekiArea =
   | "week"
   | "engagements"
   | "clients"
+  | "services"
   | "quotes"
   | "commercial"
   | "contracts"
@@ -265,6 +268,12 @@ export function MobileNavigation({
       description: "Agenda e disponibilidade",
       icon: CalendarClock,
       area: "appointments" as const,
+    },
+    {
+      label: "Serviços",
+      description: "Catálogo, vitrine e checkout",
+      icon: ShoppingBag,
+      area: "services" as const,
     },
     {
       label: "Orçamentos",
